@@ -3,7 +3,6 @@
 	displayBlock="true"
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
-	xmlns:core="sap.ui.core"
 	xmlns:f="sap.f"
 	xmlns:l="sap.ui.layout">
 
@@ -21,8 +20,6 @@
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
-					<Button text="Copy XML" icon="sap-icon://copy" press=".onCopyXml" />
-					<Button text="Download XML" icon="sap-icon://download" press=".onDownloadXml" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
@@ -43,37 +40,22 @@
 					</content>
 				</Panel>
 
-				<Panel headerText="Detail List" expandable="false" class="sapUiSmallMarginTop">
-					<content>
-						<Table items="{versionDetail>/details}" mode="None" growing="true">
-							<columns>
-								<Column width="12rem"><Text text="Detail ID" /></Column>
-								<Column width="12rem"><Text text="Service Def" /></Column>
-								<Column width="12rem"><Text text="Service Hash" /></Column>
-								<Column width="11rem"><Text text="Changed At" /></Column>
-								<Column width="11rem"><Text text="Actions" /></Column>
-							</columns>
-							<items>
-								<ColumnListItem>
-									<cells>
-										<Text text="{versionDetail>id}" />
-										<Text text="{versionDetail>serviceDefinition}" />
-										<Text text="{versionDetail>serviceHash}" />
-										<Text text="{path: 'versionDetail>lastChangedAt', formatter: '.formatDateTime'}" />
-										<Button text="Open Metadata" type="Transparent" press=".onOpenDetail" />
-									</cells>
-								</ColumnListItem>
-							</items>
-						</Table>
-					</content>
-				</Panel>
+				<HBox width="100%" class="sapUiSmallMarginTop" alignItems="Start">
+					<Panel headerText="Details" expandable="false" width="20rem" class="sapUiTinyMarginEnd">
+						<content>
+							<List items="{versionDetail>/details}" mode="SingleSelectMaster" selectionChange=".onDetailSelect" includeItemInSelection="true">
+								<StandardListItem title="{versionDetail>id}" description="{= ${versionDetail>serviceDefinition} + ' / ' + ${versionDetail>serviceHash} }" />
+							</List>
+						</content>
+					</Panel>
 
-				<Panel headerText="Metadata XML" class="sapUiSmallMarginTop" expandable="false" busy="{versionDetail>/selectedDetailBusy}">
-					<content>
-						<Text text="Select a detail to load its parse metadata XML." visible="{= !${versionDetail>/selectedDetailXml} }" />
-						<TextArea value="{versionDetail>/selectedDetailXml}" width="100%" rows="20" editable="false" visible="{= !!${versionDetail>/selectedDetailXml} }" />
-					</content>
-				</Panel>
+					<Panel headerText="Parse Metadata" expandable="false" width="100%" busy="{versionDetail>/selectedDetailBusy}">
+						<content>
+							<Text text="Select a detail from the left list to load its parse metadata XML." visible="{= !${versionDetail>/selectedDetailXml} }" />
+							<TextArea value="{versionDetail>/selectedDetailXml}" width="100%" rows="24" editable="false" visible="{= !!${versionDetail>/selectedDetailXml} }" />
+						</content>
+					</Panel>
+				</HBox>
 			</VBox>
 		</f:content>
 	</f:DynamicPage>

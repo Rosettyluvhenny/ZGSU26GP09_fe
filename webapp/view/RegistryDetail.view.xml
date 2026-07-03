@@ -3,7 +3,6 @@
 	displayBlock="true"
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
-	xmlns:core="sap.ui.core"
 	xmlns:f="sap.f"
 	xmlns:l="sap.ui.layout">
 
@@ -20,22 +19,15 @@
 		</f:title>
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
-				<VBox width="100%" class="sapUiSmallMarginBottom">
-					<Text text="{registryDetail>/registry/description}" wrapping="true" />
-					<OverflowToolbar>
-						<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
-						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
-						<ToolbarSpacer />
-					</OverflowToolbar>
-					<HBox class="sapUiTinyMarginTop" wrap="Wrap">
-						<Text text="{= 'Created By: ' + ${registryDetail>/registry/createdBy} }" class="sapUiTinyMarginEnd" />
-						<Text text="{path: 'registryDetail>/registry/createdAt', formatter: '.formatDateTime'}" class="sapUiTinyMarginEnd" />
-					</HBox>
-				</VBox>
+				<OverflowToolbar>
+					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+					<ToolbarSpacer />
+				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
 		<f:content>
-			<VBox class="sapUiSmallMargin">
+			<VBox class="sapUiSmallMargin" busy="{registryDetail>/busy}">
 				<Panel headerText="Registry Information" expandable="false">
 					<content>
 						<l:Grid defaultSpan="L6 M6 S12" hSpacing="1" vSpacing="1">
@@ -45,17 +37,15 @@
 							<Text text="{registryDetail>/registry/serviceName}" />
 							<Label text="Service Type" />
 							<Text text="{registryDetail>/registry/serviceType}" />
-							<Label text="Last Changed By" />
-							<Text text="{registryDetail>/registry/lastChangedBy}" />
-							<Label text="Last Changed At" />
-							<Text text="{path: 'registryDetail>/registry/lastChangedAt', formatter: '.formatDateTime'}" />
+							<Label text="Description" />
+							<Text text="{registryDetail>/registry/description}" wrapping="true" />
 						</l:Grid>
 					</content>
 				</Panel>
 
-				<Panel headerText="Version Management" expandable="false" class="sapUiSmallMarginTop">
+				<Panel headerText="Versions" expandable="false" class="sapUiSmallMarginTop">
 					<content>
-						<Table items="{registryDetail>/versions}" busy="{registryDetail>/busy}" growing="true" mode="None">
+						<Table items="{registryDetail>/versions}" mode="None" growing="true">
 							<columns>
 								<Column width="10rem"><Text text="Version Number" /></Column>
 								<Column width="11rem"><Text text="Created By" /></Column>
@@ -63,7 +53,7 @@
 								<Column width="16rem"><Text text="Comment" /></Column>
 							</columns>
 							<items>
-								<ColumnListItem>
+								<ColumnListItem type="Navigation" press=".onVersionPress">
 									<cells>
 										<Text text="{registryDetail>versionNumber}" />
 										<Text text="{registryDetail>createdBy}" />

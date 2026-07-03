@@ -80,6 +80,16 @@
 					"target": "registryList"
 				},
 				{
+					"pattern": "registries/{registryId}",
+					"name": "registryDetail",
+					"target": "registryDetail"
+				},
+				{
+					"pattern": "registries/{registryId}/versions/{versionId}",
+					"name": "versionDetail",
+					"target": "versionDetail"
+				},
+				{
 					"pattern": "jobs",
 					"name": "jobList",
 					"target": "jobList"
@@ -102,6 +112,20 @@
 				"registryList": {
 					"id": "registryList",
 					"name": "RegistryList",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
+				},
+				"registryDetail": {
+					"id": "registryDetail",
+					"name": "RegistryDetail",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
+				},
+				"versionDetail": {
+					"id": "versionDetail",
+					"name": "VersionDetail",
 					"parent": "shell",
 					"controlId": "shellFcl",
 					"controlAggregation": "beginColumnPages"
