@@ -1,0 +1,55 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:form="sap.ui.layout.form">
+
+	<Dialog id="registryDialog" title="{registryDialog>/title}" draggable="true" resizable="true" contentWidth="42rem">
+		<beginButton>
+			<Button text="Save" type="Emphasized" press=".onSaveRegistryDialog" />
+		</beginButton>
+		<endButton>
+			<Button text="Cancel" press=".onCancelRegistryDialog" />
+		</endButton>
+		<content>
+			<VBox class="sapUiSmallMargin">
+				<Text text="Backend RAP validation messages are surfaced through the service layer." wrapping="true" />
+				<form:Form editable="true">
+					<form:layout>
+						<form:ColumnLayout />
+					</form:layout>
+					<form:formContainers>
+						<form:FormContainer title="Registry Details">
+							<form:formElements>
+								<form:FormElement label="Registry Name">
+									<form:fields>
+										<Input value="{registryDialog>/registryName}" required="true" maxLength="36" />
+									</form:fields>
+								</form:FormElement>
+								<form:FormElement label="Service Definition">
+									<form:fields>
+										<Input value="{registryDialog>/serviceDefinition}" required="true" placeholder="/sap/opu/odata4/..." />
+									</form:fields>
+								</form:FormElement>
+								<form:FormElement label="Service Type">
+									<form:fields>
+										<Select selectedKey="{registryDialog>/serviceType}">
+											<core:Item key="RAP" text="RAP" />
+											<core:Item key="CDS" text="CDS" />
+											<core:Item key="Custom" text="Custom" />
+										</Select>
+									</form:fields>
+								</form:FormElement>
+								<form:FormElement label="Description">
+									<form:fields>
+										<TextArea value="{registryDialog>/description}" growing="true" rows="5" maxLength="255" width="100%" />
+									</form:fields>
+								</form:FormElement>
+							</form:formElements>
+						</form:FormContainer>
+					</form:formContainers>
+				</form:Form>
+			</VBox>
+		</content>
+	</Dialog>
+
+</core:FragmentDefinition>

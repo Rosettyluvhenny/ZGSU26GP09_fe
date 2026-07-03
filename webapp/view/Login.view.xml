@@ -1,0 +1,52 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.Login"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:form="sap.ui.layout.form"
+	xmlns:l="sap.ui.layout"
+	xmlns:core="sap.ui.core">
+
+	<Page showHeader="false" class="loginPage" backgroundDesign="Solid">
+		<content>
+			<VBox class="loginHero" width="100%" justifyContent="Center" alignItems="Center">
+				<Panel width="100%" class="loginCard">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Registry Control Center" level="H2" />
+						</Toolbar>
+					</headerToolbar>
+					<content>
+						<Text text="Sign in to manage registries, versions, and scan jobs." wrapping="true" />
+						<form:Form editable="true" width="100%">
+							<form:layout>
+								<form:ColumnLayout />
+							</form:layout>
+							<form:formContainers>
+								<form:FormContainer title="Credentials">
+									<form:formElements>
+										<form:FormElement label="Username">
+											<form:fields>
+												<Input value="{login>/userName}" placeholder="Enter username" submit=".onLogin" />
+											</form:fields>
+										</form:FormElement>
+										<form:FormElement label="Password">
+											<form:fields>
+												<Input value="{login>/password}" type="Password" placeholder="Enter password" submit=".onLogin" />
+											</form:fields>
+										</form:FormElement>
+									</form:formElements>
+								</form:FormContainer>
+							</form:formContainers>
+						</form:Form>
+						<OverflowToolbar class="loginActions">
+							<ToolbarSpacer />
+							<Button text="Sign In" type="Emphasized" press=".onLogin" busy="{ui>/loginBusy}" />
+						</OverflowToolbar>
+					</content>
+				</Panel>
+			</VBox>
+		</content>
+	</Page>
+
+</mvc:View>

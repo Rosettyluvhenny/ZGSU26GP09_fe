@@ -1,0 +1,5 @@
+{
+  "name": "ui5-middleware-sap-proxy",
+  "version": "1.0.0",
+  "main": "lib/sap-proxy.js"
+}

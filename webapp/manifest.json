@@ -1,0 +1,126 @@
+{
+	"_version": "2.0.0",
+	"sap.app": {
+		"id": "com.zgp9.fe",
+		"type": "application",
+		"i18n": "i18n/i18n.properties",
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"applicationVersion": {
+			"version": "${version}"
+		},
+		"sourceTemplate": {
+			"id": "@ui5/mcp-server:ts",
+			"version": "0.2.14"
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"icons": {},
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"rootView": {
+			"viewName": "com.zgp9.fe.view.App",
+			"type": "XML",
+			"id": "app"
+		},
+		"dependencies": {
+			"minUI5Version": "1.149.1",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.m": {},
+				"sap.f": {},
+				"sap.tnt": {},
+				"sap.ui.layout": {}
+			}
+		},
+		"flexEnabled": false,
+		"handleValidation": true,
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "com.zgp9.fe.i18n.i18n",
+					"async": true
+				}
+			}
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.f.routing.Router",
+				"type": "View",
+				"viewType": "XML",
+				"path": "com.zgp9.fe.view",
+				"controlId": "app",
+				"controlAggregation": "pages"
+			},
+			"routes": [
+				{
+					"pattern": "",
+					"name": "login",
+					"target": "login"
+				},
+				{
+					"pattern": "home",
+					"name": "home",
+					"target": "shell"
+				},
+				{
+					"pattern": "registries",
+					"name": "registryList",
+					"target": "registryList"
+				},
+				{
+					"pattern": "jobs",
+					"name": "jobList",
+					"target": "jobList"
+				},
+				{
+					"pattern": "jobs/{jobId}",
+					"name": "jobDetail",
+					"target": ["jobList", "jobDetail"]
+				}
+			],
+			"targets": {
+				"login": {
+					"id": "login",
+					"name": "Login"
+				},
+				"shell": {
+					"id": "shell",
+					"name": "MainShell"
+				},
+				"registryList": {
+					"id": "registryList",
+					"name": "RegistryList",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
+				},
+				"jobList": {
+					"id": "jobList",
+					"name": "JobList",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
+				},
+				"jobDetail": {
+					"id": "jobDetail",
+					"name": "JobDetail",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "midColumnPages"
+				}
+			}
+		}
+	}
+}

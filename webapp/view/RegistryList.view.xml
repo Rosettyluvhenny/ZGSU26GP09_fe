@@ -1,0 +1,153 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.RegistryList"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout">
+
+	<f:DynamicPage id="registryListPage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Registry Explorer" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<Toolbar>
+					<Button text="Create Registry" type="Emphasized" press=".onCreateRegistry" />
+					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+					<ToolbarSpacer />
+					<SearchField width="18rem" placeholder="Search registries" liveChange=".onSearchLiveChange" />
+					<Select width="11rem" selectedKey="{registryList>/status}" change=".onStatusChange">
+						<core:Item key="All" text="All Statuses" />
+						<core:Item key="Publish" text="Publish" />
+						<core:Item key="Unpublish" text="Unpublish" />
+						<core:Item key="Archive" text="Archive" />
+					</Select>
+				</Toolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<VBox width="100%" class="sapUiSmallMargin">
+				<Table id="registryTable" items="{registryList>/items}" busy="{registryList>/busy}" mode="None" growing="true" sticky="ColumnHeaders">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Registries" level="H2" />
+							<ToolbarSpacer />
+							<ObjectStatus text="{= ${registryList>/items}.length + ' items' }" state="Information" />
+						</Toolbar>
+					</headerToolbar>
+					<columns>
+						<Column width="14rem"><Text text="Registry Name" /></Column>
+						<Column width="12rem"><Text text="Service Name" /></Column>
+						<Column width="8rem"><Text text="Service Type" /></Column>
+						<Column width="9rem"><Text text="Current Status" /></Column>
+						<Column width="11rem"><Text text="Created By" /></Column>
+						<Column width="11rem"><Text text="Created At" /></Column>
+						<Column width="11rem"><Text text="Last Changed By" /></Column>
+						<Column width="11rem"><Text text="Last Changed At" /></Column>
+						<Column width="22rem"><Text text="Actions" /></Column>
+					</columns>
+					<items>
+						<ColumnListItem type="Navigation" press=".onRowPress">
+							<cells>
+								<ObjectIdentifier title="{registryList>registryName}" text="{registryList>description}" />
+								<Text text="{registryList>serviceName}" />
+								<ObjectStatus text="{registryList>serviceType}" />
+								<ObjectStatus text="{registryList>status}" state="{path: 'registryList>status', formatter: '.formatStatusState'}" />
+								<Text text="{registryList>createdBy}" />
+								<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />
+								<Text text="{registryList>lastChangedBy}" />
+								<Text text="{path: 'registryList>lastChangedAt', formatter: '.formatDateTime'}" />
+								<HBox wrap="Wrap" renderType="Bare" justifyContent="Start">
+									<Button text="Edit" type="Transparent" press=".onEditRegistry" />
+									<Button text="Delete" type="Transparent" press=".onDeleteRegistry" />
+									<Button text="Activate" type="Transparent" press=".onActivateRegistry" />
+									<Button text="Deactivate" type="Transparent" press=".onDeactivateRegistry" />
+									<Button text="Generate Version" type="Transparent" press=".onGenerateVersion" />
+									<Button text="View Versions" type="Transparent" press=".onViewVersions" />
+								</HBox>
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+
+				<Panel headerText="Selected Registry" expandable="false" class="sapUiSmallMarginTop" busy="{registryList>/versionsBusy}">
+					<content>
+						<Text text="Select a registry to load its versions." visible="{= !${registryList>/selectedRegistryId} }" />
+						<l:Grid defaultSpan="L6 M6 S12" hSpacing="1" vSpacing="1" visible="{= !!${registryList>/selectedRegistryId} }">
+							<Label text="Registry Name" />
+							<Text text="{registryList>/selectedRegistry/registryName}" />
+							<Label text="Service Name" />
+							<Text text="{registryList>/selectedRegistry/serviceName}" />
+							<Label text="Service Type" />
+							<Text text="{registryList>/selectedRegistry/serviceType}" />
+							<Label text="Description" />
+							<Text text="{registryList>/selectedRegistry/description}" wrapping="true" />
+						</l:Grid>
+					</content>
+				</Panel>
+
+				<Panel headerText="Versions" expandable="false" class="sapUiSmallMarginTop" busy="{registryList>/versionsBusy}">
+					<content>
+						<Text text="Click a registry to load its versions." visible="{= !${registryList>/selectedRegistryId} }" />
+						<Table items="{registryList>/versions}" mode="None" growing="true" visible="{= !!${registryList>/selectedRegistryId} }">
+							<columns>
+								<Column width="10rem"><Text text="Version Number" /></Column>
+								<Column width="11rem"><Text text="Created By" /></Column>
+								<Column width="11rem"><Text text="Created At" /></Column>
+								<Column width="16rem"><Text text="Comment" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem type="Active" press=".onVersionPress">
+									<cells>
+										<Text text="{registryList>versionNumber}" />
+										<Text text="{registryList>createdBy}" />
+										<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />
+										<Text text="{registryList>comment}" />
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<Panel headerText="Details" expandable="false" class="sapUiSmallMarginTop" busy="{registryList>/detailsBusy}">
+					<content>
+						<Text text="Click a version to load its details." visible="{= !${registryList>/selectedVersionId} }" />
+						<Table items="{registryList>/details}" mode="None" growing="true" visible="{= !!${registryList>/selectedVersionId} }">
+							<columns>
+								<Column width="12rem"><Text text="Detail ID" /></Column>
+								<Column width="12rem"><Text text="Service Def" /></Column>
+								<Column width="12rem"><Text text="Service Hash" /></Column>
+								<Column width="11rem"><Text text="Changed At" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem type="Active" press=".onDetailPress">
+									<cells>
+										<Text text="{registryList>id}" />
+										<Text text="{registryList>serviceDefinition}" />
+										<Text text="{registryList>serviceHash}" />
+										<Text text="{path: 'registryList>lastChangedAt', formatter: '.formatDateTime'}" />
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<Panel headerText="Parse Metadata" class="sapUiSmallMarginTop" expandable="false" busy="{registryList>/selectedDetailBusy}">
+					<content>
+						<Text text="Click a detail to load its parse metadata XML." visible="{= !${registryList>/selectedDetailXml} }" />
+						<TextArea value="{registryList>/selectedDetailXml}" width="100%" rows="20" editable="false" visible="{= !!${registryList>/selectedDetailXml} }" />
+					</content>
+				</Panel>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

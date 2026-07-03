@@ -1,0 +1,55 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.JobList"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f">
+
+	<f:DynamicPage id="jobListPage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Scan Job Management" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<Toolbar>
+					<Button text="Run Scan Job" type="Emphasized" press=".onRunScanJob" />
+					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+					<ToolbarSpacer />
+					<SearchField width="18rem" placeholder="Search jobs" liveChange=".onSearchLiveChange" />
+				</Toolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" growing="true" mode="None">
+				<columns>
+					<Column width="12rem"><Text text="Job ID" /></Column>
+					<Column width="14rem"><Text text="Registry" /></Column>
+					<Column width="9rem"><Text text="Status" /></Column>
+					<Column width="11rem"><Text text="Started At" /></Column>
+					<Column width="11rem"><Text text="Finished At" /></Column>
+					<Column width="9rem"><Text text="Duration" /></Column>
+					<Column width="11rem"><Text text="Executed By" /></Column>
+				</columns>
+				<items>
+					<ColumnListItem type="Navigation" press=".onRowPress">
+						<cells>
+							<Text text="{jobList>id}" />
+							<ObjectIdentifier title="{jobList>registryName}" text="{jobList>registryId}" />
+							<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
+							<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
+							<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
+							<Text text="{path: 'jobList>durationMs', formatter: '.formatDuration'}" />
+							<Text text="{jobList>executedBy}" />
+						</cells>
+					</ColumnListItem>
+				</items>
+			</Table>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

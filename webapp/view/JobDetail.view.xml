@@ -1,0 +1,40 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.JobDetail"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:f="sap.f">
+
+	<f:DynamicPage id="jobDetailPage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="{= 'Job ' + ${jobDetail>/job/id} }" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:content>
+			<VBox class="sapUiSmallMargin" busy="{jobDetail>/busy}">
+				<ObjectStatus text="{jobDetail>/job/status}" state="{path: 'jobDetail>/job/status', formatter: '.formatStatusState'}" />
+				<Panel headerText="Execution Status" expandable="false">
+					<content>
+						<VBox>
+							<Text text="Summary" />
+							<Text text="{jobDetail>/job/summary}" wrapping="true" />
+							<Text text="Error Message" class="sapUiSmallMarginTop" />
+							<MessageStrip text="{jobDetail>/job/errorMessage}" type="Error" visible="{= !!${jobDetail>/job/errorMessage} }" />
+						</VBox>
+					</content>
+				</Panel>
+				<Panel headerText="Logs" class="sapUiSmallMarginTop" expandable="false">
+					<content>
+						<List items="{jobDetail>/job/logs}">
+							<StandardListItem title="{jobDetail>}" />
+						</List>
+					</content>
+				</Panel>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

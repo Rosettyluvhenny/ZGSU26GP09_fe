@@ -1,0 +1,32 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.MainShell"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:f="sap.f"
+	xmlns:tnt="sap.tnt">
+
+	<tnt:ToolPage id="shellPage" class="shellPage">
+		<tnt:header>
+			<OverflowToolbar>
+				<Title text="Registry Control Center" level="H3" />
+				<ToolbarSpacer />
+				<ObjectStatus text="{session>/userName}" state="Information" />
+				<Button icon="sap-icon://log" text="Logout" press=".onLogout" type="Transparent" />
+			</OverflowToolbar>
+		</tnt:header>
+		<tnt:sideContent>
+			<tnt:SideNavigation expanded="true">
+				<tnt:NavigationList>
+					<tnt:NavigationListItem text="Registry Management" icon="sap-icon://business-objects-experience" select=".onNavigateRegistries" />
+					<tnt:NavigationListItem text="Scan Job Management" icon="sap-icon://activity-items" select=".onNavigateJobs" />
+				</tnt:NavigationList>
+			</tnt:SideNavigation>
+		</tnt:sideContent>
+		<tnt:mainContents>
+			<f:FlexibleColumnLayout id="shellFcl" layout="{ui>/layout}" fitContainer="true" height="100%" />
+		</tnt:mainContents>
+	</tnt:ToolPage>
+
+</mvc:View>
+

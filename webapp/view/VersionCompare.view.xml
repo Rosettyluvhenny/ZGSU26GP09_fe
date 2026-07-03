@@ -1,0 +1,74 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.VersionCompare"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f">
+
+	<f:DynamicPage id="versionComparePage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Version Comparison" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<OverflowToolbar>
+					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+					<Button text="Collapse Unchanged" press=".onToggleUnchanged" />
+					<Button text="Copy Left XML" press=".onCopyLeftXml" />
+					<Button text="Copy Right XML" press=".onCopyRightXml" />
+				</OverflowToolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<VBox class="sapUiSmallMargin" busy="{versionCompare>/busy}">
+				<Panel headerText="Structured Difference" expandable="false">
+					<content>
+						<Table items="{versionCompare>/filteredStructured}" growing="true">
+							<columns>
+								<Column width="10rem"><Text text="Category" /></Column>
+								<Column width="22rem"><Text text="Left" /></Column>
+								<Column width="22rem"><Text text="Right" /></Column>
+								<Column width="9rem"><Text text="Status" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{versionCompare>label}" />
+										<Text text="{versionCompare>left}" wrapping="true" />
+										<Text text="{versionCompare>right}" wrapping="true" />
+										<ObjectStatus text="{versionCompare>status}" state="{path: 'versionCompare>status', formatter: '.formatStatusState'}" />
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<IconTabBar class="sapUiSmallMarginTop">
+					<items>
+						<IconTabFilter text="Raw XML Difference" key="raw" icon="sap-icon://compare">
+							<HBox width="100%" renderType="Bare" justifyContent="SpaceBetween">
+								<Panel headerText="Left XML" width="49%" expandable="false">
+									<content>
+										<TextArea id="compareLeftXml" value="{versionCompare>/rawLeft}" editable="false" width="100%" rows="22" growing="false" />
+									</content>
+								</Panel>
+								<Panel headerText="Right XML" width="49%" expandable="false">
+									<content>
+										<TextArea id="compareRightXml" value="{versionCompare>/rawRight}" editable="false" width="100%" rows="22" growing="false" />
+									</content>
+								</Panel>
+							</HBox>
+						</IconTabFilter>
+					</items>
+				</IconTabBar>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

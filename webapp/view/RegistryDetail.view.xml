@@ -1,0 +1,100 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.RegistryDetail"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout">
+
+	<f:DynamicPage id="registryDetailPage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="{registryDetail>/registry/registryName}" level="H1" />
+				</f:heading>
+				<f:snappedContent>
+					<ObjectStatus text="{registryDetail>/registry/status}" state="{path: 'registryDetail>/registry/status', formatter: '.formatStatusState'}" />
+				</f:snappedContent>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<VBox width="100%" class="sapUiSmallMarginBottom">
+					<Text text="{registryDetail>/registry/description}" wrapping="true" />
+					<OverflowToolbar>
+						<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+						<Button text="Generate Version" type="Emphasized" press=".onGenerateVersion" />
+						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+						<ToolbarSpacer />
+					</OverflowToolbar>
+					<HBox class="sapUiTinyMarginTop" wrap="Wrap">
+						<Text text="{= 'Created By: ' + ${registryDetail>/registry/createdBy} }" class="sapUiTinyMarginEnd" />
+						<Text text="{path: 'registryDetail>/registry/createdAt', formatter: '.formatDateTime'}" class="sapUiTinyMarginEnd" />
+					</HBox>
+				</VBox>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<VBox class="sapUiSmallMargin">
+				<Panel headerText="Registry Information" expandable="false">
+					<content>
+						<l:Grid defaultSpan="L6 M6 S12" hSpacing="1" vSpacing="1">
+							<Label text="Registry Name" />
+							<Text text="{registryDetail>/registry/registryName}" />
+							<Label text="Service Name" />
+							<Text text="{registryDetail>/registry/serviceName}" />
+							<Label text="Service Type" />
+							<Text text="{registryDetail>/registry/serviceType}" />
+							<Label text="Last Changed By" />
+							<Text text="{registryDetail>/registry/lastChangedBy}" />
+							<Label text="Last Changed At" />
+							<Text text="{path: 'registryDetail>/registry/lastChangedAt', formatter: '.formatDateTime'}" />
+						</l:Grid>
+					</content>
+				</Panel>
+
+				<Panel headerText="Version Management" expandable="false" class="sapUiSmallMarginTop">
+					<content>
+						<OverflowToolbar>
+							<Title text="Select versions to compare" level="H3" />
+							<ToolbarSpacer />
+							<Select width="14rem" selectedKey="{registryDetail>/compareBase}" change=".onCompareSelectionChange" items="{registryDetail>/versions}">
+								<core:Item key="{registryDetail>id}" text="{registryDetail>versionNumber}" />
+							</Select>
+							<Select width="14rem" selectedKey="{registryDetail>/compareTarget}" change=".onCompareSelectionChange" items="{registryDetail>/versions}">
+								<core:Item key="{registryDetail>id}" text="{registryDetail>versionNumber}" />
+							</Select>
+							<Button text="Compare Versions" type="Emphasized" enabled="{registryDetail>/compareEnabled}" press=".onCompareSelectedVersions" />
+						</OverflowToolbar>
+						<Table items="{registryDetail>/versions}" busy="{registryDetail>/busy}" growing="true" mode="None">
+							<columns>
+								<Column width="10rem"><Text text="Version Number" /></Column>
+								<Column width="11rem"><Text text="Created By" /></Column>
+								<Column width="11rem"><Text text="Created At" /></Column>
+								<Column width="16rem"><Text text="Comment" /></Column>
+								<Column width="18rem"><Text text="Actions" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{registryDetail>versionNumber}" />
+										<Text text="{registryDetail>createdBy}" />
+										<Text text="{path: 'registryDetail>createdAt', formatter: '.formatDateTime'}" />
+										<Text text="{registryDetail>comment}" />
+										<HBox wrap="Wrap">
+											<Button text="View Details" type="Transparent" press=".onViewVersion" />
+											<Button text="Compare Version" type="Transparent" press=".onCompareVersion" />
+											<Button text="Download Metadata XML" type="Transparent" press=".onDownloadXml" />
+										</HBox>
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

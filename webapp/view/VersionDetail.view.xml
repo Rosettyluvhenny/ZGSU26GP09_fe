@@ -1,0 +1,81 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.VersionDetail"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:core="sap.ui.core"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout">
+
+	<f:DynamicPage id="versionDetailPage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="{= 'Version ' + ${versionDetail>/version/versionNumber} + ' Details' }" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<OverflowToolbar>
+					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+					<ToolbarSpacer />
+					<Button text="Copy XML" icon="sap-icon://copy" press=".onCopyXml" />
+					<Button text="Download XML" icon="sap-icon://download" press=".onDownloadXml" />
+				</OverflowToolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<VBox class="sapUiSmallMargin" busy="{versionDetail>/busy}">
+				<Panel headerText="Version Summary" expandable="false">
+					<content>
+						<l:Grid defaultSpan="L6 M6 S12" hSpacing="1" vSpacing="1">
+							<Label text="Version Number" />
+							<Text text="{versionDetail>/version/versionNumber}" />
+							<Label text="Created By" />
+							<Text text="{versionDetail>/version/createdBy}" />
+							<Label text="Created At" />
+							<Text text="{path: 'versionDetail>/version/createdAt', formatter: '.formatDateTime'}" />
+							<Label text="Comment" />
+							<Text text="{versionDetail>/version/comment}" wrapping="true" />
+						</l:Grid>
+					</content>
+				</Panel>
+
+				<Panel headerText="Detail List" expandable="false" class="sapUiSmallMarginTop">
+					<content>
+						<Table items="{versionDetail>/details}" mode="None" growing="true">
+							<columns>
+								<Column width="12rem"><Text text="Detail ID" /></Column>
+								<Column width="12rem"><Text text="Service Def" /></Column>
+								<Column width="12rem"><Text text="Service Hash" /></Column>
+								<Column width="11rem"><Text text="Changed At" /></Column>
+								<Column width="11rem"><Text text="Actions" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{versionDetail>id}" />
+										<Text text="{versionDetail>serviceDefinition}" />
+										<Text text="{versionDetail>serviceHash}" />
+										<Text text="{path: 'versionDetail>lastChangedAt', formatter: '.formatDateTime'}" />
+										<Button text="Open Metadata" type="Transparent" press=".onOpenDetail" />
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<Panel headerText="Metadata XML" class="sapUiSmallMarginTop" expandable="false" busy="{versionDetail>/selectedDetailBusy}">
+					<content>
+						<Text text="Select a detail to load its parse metadata XML." visible="{= !${versionDetail>/selectedDetailXml} }" />
+						<TextArea value="{versionDetail>/selectedDetailXml}" width="100%" rows="20" editable="false" visible="{= !!${versionDetail>/selectedDetailXml} }" />
+					</content>
+				</Panel>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>
