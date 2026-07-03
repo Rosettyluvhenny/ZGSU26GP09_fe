@@ -1,7 +1,5 @@
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
-import BusyIndicator from 'sap/ui/core/BusyIndicator';
-import MessageToast from 'sap/m/MessageToast';
 
 import BaseController from './BaseController';
 import type { RegistryVersion } from '../model/types';
@@ -40,23 +38,6 @@ export default class RegistryDetail extends BaseController {
 		await this.loadRegistry();
 	}
 
-	public async onGenerateVersion(): Promise<void> {
-		if (!this.registryId) {
-			return;
-		}
-
-		BusyIndicator.show(0);
-		try {
-			await this.getOwnerComponent().getRegistryService().generateVersion(this.registryId, 'Generated from frontend');
-			MessageToast.show('Version generated.');
-			await this.loadRegistry();
-		} catch (error) {
-			await this.handleServiceError(error);
-		} finally {
-			BusyIndicator.hide();
-		}
-	}
-
 	public onViewVersion(event: UI5Event): void {
 		const version = this.getVersionFromEvent(event);
 		if (!version || !this.registryId) {
@@ -85,7 +66,6 @@ export default class RegistryDetail extends BaseController {
 		const compareBase = (model.getProperty('/compareBase') as string) || version.id;
 		const compareTarget = (model.getProperty('/compareTarget') as string) || this.getLatestVersionId(model);
 		if (!compareBase || !compareTarget || compareBase === compareTarget) {
-			MessageToast.show('Select two different versions to compare.');
 			return;
 		}
 
@@ -112,7 +92,6 @@ export default class RegistryDetail extends BaseController {
 		const leftVersionId = model.getProperty('/compareBase') as string;
 		const rightVersionId = model.getProperty('/compareTarget') as string;
 		if (!leftVersionId || !rightVersionId || leftVersionId === rightVersionId) {
-			MessageToast.show('Select two different versions to compare.');
 			return;
 		}
 
@@ -130,7 +109,6 @@ export default class RegistryDetail extends BaseController {
 
 		const model = this.getModel('registryDetail') as JSONModel;
 		model.setProperty('/busy', true);
-		BusyIndicator.show(0);
 		try {
 			const [registry, versions] = await Promise.all([
 				this.getOwnerComponent().getRegistryService().getRegistry(this.registryId),
@@ -141,14 +119,12 @@ export default class RegistryDetail extends BaseController {
 				registry,
 				versions,
 				compareBase: versions[versions.length - 2]?.id ?? versions[0]?.id ?? '',
-				compareTarget: versions[versions.length - 1]?.id ?? versions[0]?.id ?? '',
-				compareEnabled: versions.length > 1 && versions[versions.length - 2]?.id !== versions[versions.length - 1]?.id
+				compareTarget: versions[versions.length - 1]?.id ?? versions[0]?.id ?? ''
 			});
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
-			BusyIndicator.hide();
 		}
 	}
 

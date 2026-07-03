@@ -18,7 +18,6 @@
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
 				<Toolbar>
-					<Button text="Create Registry" type="Emphasized" press=".onCreateRegistry" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
 					<SearchField width="18rem" placeholder="Search registries" liveChange=".onSearchLiveChange" />
@@ -50,7 +49,6 @@
 						<Column width="11rem"><Text text="Created At" /></Column>
 						<Column width="11rem"><Text text="Last Changed By" /></Column>
 						<Column width="11rem"><Text text="Last Changed At" /></Column>
-						<Column width="22rem"><Text text="Actions" /></Column>
 					</columns>
 					<items>
 						<ColumnListItem type="Navigation" press=".onRowPress">
@@ -63,14 +61,6 @@
 								<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />
 								<Text text="{registryList>lastChangedBy}" />
 								<Text text="{path: 'registryList>lastChangedAt', formatter: '.formatDateTime'}" />
-								<HBox wrap="Wrap" renderType="Bare" justifyContent="Start">
-									<Button text="Edit" type="Transparent" press=".onEditRegistry" />
-									<Button text="Delete" type="Transparent" press=".onDeleteRegistry" />
-									<Button text="Activate" type="Transparent" press=".onActivateRegistry" />
-									<Button text="Deactivate" type="Transparent" press=".onDeactivateRegistry" />
-									<Button text="Generate Version" type="Transparent" press=".onGenerateVersion" />
-									<Button text="View Versions" type="Transparent" press=".onViewVersions" />
-								</HBox>
 							</cells>
 						</ColumnListItem>
 					</items>
