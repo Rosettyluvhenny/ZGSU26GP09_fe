@@ -1,6 +1,7 @@
 import ServiceError from './ServiceError';
 import { readSessionStorage, removeSessionStorage, writeSessionStorage } from './MockStore';
 import type { SessionData } from '../model/types';
+import { LOGOFF_URL } from './ODataClient';
 
 const EMPTY_SESSION: SessionData = {
 	authenticated: false,
@@ -13,6 +14,25 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
 		setTimeout(() => resolve(value), ms);
 	});
+}
+
+function clearBrowserCookies(): void {
+	if (typeof document === 'undefined') {
+		return;
+	}
+
+	const names = document.cookie
+		.split(';')
+		.map((cookie) => cookie.split('=')[0]?.trim())
+		.filter((name): name is string => Boolean(name));
+
+	const currentPath = window.location.pathname || '/';
+	for (const name of names) {
+		const encodedName = encodeURIComponent(name);
+		const expires = 'Thu, 01 Jan 1970 00:00:00 GMT';
+		document.cookie = `${encodedName}=; expires=${expires}; path=/`;
+		document.cookie = `${encodedName}=; expires=${expires}; path=${currentPath}`;
+	}
 }
 
 export default class AuthenticationService {
@@ -76,7 +96,22 @@ export default class AuthenticationService {
 	}
 
 	public async logout(): Promise<void> {
+		try {
+			await fetch(LOGOFF_URL, {
+				method: 'GET',
+				credentials: 'include',
+				redirect: 'manual',
+				cache: 'no-store',
+				headers: {
+					Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+				}
+			});
+		} catch {
+			// Ignore redirect/network failures and finish local cleanup.
+		}
+
 		removeSessionStorage();
+		clearBrowserCookies();
 		await delay(undefined, 50);
 	}
 }

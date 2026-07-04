@@ -46,6 +46,7 @@ export interface Registry {
 	serviceName: string;
 	serviceType: string;
 	status: RegistryStatus;
+	statusText: string;
 	description: string;
 	createdBy: string;
 	createdAt: string;
@@ -81,6 +82,21 @@ export interface RegistryInput {
 	serviceDefinition: string;
 	serviceType: string;
 	description: string;
+}
+
+export interface RegistryCreateInput {
+	groupName: string;
+	groupType: string;
+	versionNo: string;
+}
+
+export interface RegistryUpdateInput {
+	status: string;
+}
+
+export interface RegistryValueHelpItem {
+	key: string;
+	text: string;
 }
 
 export interface JobRunInput {

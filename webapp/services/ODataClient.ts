@@ -1,6 +1,9 @@
+import ServiceError from './ServiceError';
+
 export const SERVICE_ORIGIN = '/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001';
 export const SERVICE_BASE_URL = `${SERVICE_ORIGIN}?sap-client=324`;
 export const SERVICE_METADATA_URL = `${SERVICE_ORIGIN}/$metadata?sap-client=324`;
+export const LOGOFF_URL = 'https://s40lp1.ucc.cit.tum.de:8100/sap/public/bc/icf/logoff?sap-client=324';
 
 const DEFAULT_QUERY = { 'sap-client': '324' };
 
@@ -87,7 +90,7 @@ export default class ODataClient {
 
 	public async authenticate(userName: string, password: string): Promise<string> {
 		const authorization = `Basic ${btoa(`${userName}:${password}`)}`;
-		const response = await fetch(SERVICE_BASE_URL, {
+		const response = await fetch(this.buildUrl(SERVICE_ORIGIN), {
 			method: 'GET',
 			credentials: 'include',
 			headers: {
@@ -122,30 +125,43 @@ export default class ODataClient {
 		return this.requestWriteJson(path, 'POST', body, options);
 	}
 
+	public async refreshCsrfToken(): Promise<string> {
+		const response = await fetch(SERVICE_BASE_URL, {
+			method: 'GET',
+			credentials: 'include',
+			headers: {
+				Accept: 'application/json',
+				'X-CSRF-Token': 'Fetch'
+			}
+		});
+
+		if (!response.ok) {
+			throw new ServiceError(response.status, `CSRF token refresh failed (${response.status})`);
+		}
+
+		const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
+		const etag = response.headers.get('etag');
+		if (token) {
+			this.csrfToken = token;
+		}
+		if (etag) {
+			this.etag = etag;
+		}
+		return this.csrfToken;
+	}
+
+	public clearSecurityState(): void {
+		this.csrfToken = '';
+		this.etag = '*';
+	}
+
 	public async fetchCsrfToken(): Promise<string> {
 		if (this.csrfToken) {
 			return this.csrfToken;
 		}
 
 		try {
-			const response = await fetch(SERVICE_BASE_URL, {
-				method: 'GET',
-				credentials: 'include',
-				headers: {
-					Accept: 'application/json',
-					'X-CSRF-Token': 'Fetch'
-				}
-			});
-
-			const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
-			const etag = response.headers.get('etag');
-			if (token) {
-				this.csrfToken = token;
-			}
-			if (etag) {
-				this.etag = etag;
-			}
-			return this.csrfToken;
+			return await this.refreshCsrfToken();
 		} catch {
 			if (!this.csrfToken) {
 				this.csrfToken = `offline-${Date.now().toString(36)}`;
@@ -167,4 +183,3 @@ export default class ODataClient {
 		return headers;
 	}
 }
-

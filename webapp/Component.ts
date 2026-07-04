@@ -1,6 +1,7 @@
 import UIComponent from 'sap/ui/core/UIComponent';
 import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
+import JSONModel from 'sap/ui/model/json/JSONModel';
 
 import AuthenticationService from './services/AuthenticationService';
 import DetailService from './services/DetailService';
@@ -36,7 +37,33 @@ export default class Component extends UIComponent {
 		this.setModel((Messaging as any).getMessageModel(), 'message');
 
 		this.errorHandler = new ErrorHandler(this.getRouter(), this.authenticationService);
+		void this.restoreSessionOnStartup();
 		this.getRouter().initialize();
+	}
+
+	private async restoreSessionOnStartup(): Promise<void> {
+		const sessionModel = this.getModel('session') as JSONModel;
+		const session = sessionModel.getData() as { authenticated?: boolean };
+		if (!session.authenticated) {
+			return;
+		}
+
+		try {
+			await this.registryService.getPermissions();
+			const currentHash = window.location.hash.replace(/^#/, '');
+			if (!currentHash || currentHash === 'login') {
+				this.getRouter().navTo('home', {}, true);
+			}
+		} catch {
+			await this.authenticationService.logout();
+			sessionModel.setData({
+				authenticated: false,
+				userName: '',
+				csrfToken: '',
+				loginAt: null
+			});
+			this.getRouter().navTo('login', {}, true);
+		}
 	}
 
 	public getContentDensityClass(): string {

@@ -18,6 +18,7 @@
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
 				<Toolbar>
+					<Button text="Create Registry" type="Emphasized" press=".onCreateRegistry" visible="{registryList>/canCreate}" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
 					<SearchField width="18rem" placeholder="Search registries" liveChange=".onSearchLiveChange" />
@@ -49,6 +50,7 @@
 						<Column width="11rem"><Text text="Created At" /></Column>
 						<Column width="11rem"><Text text="Last Changed By" /></Column>
 						<Column width="11rem"><Text text="Last Changed At" /></Column>
+						<Column width="10rem" visible="{registryList>/canUpdate}"><Text text="Actions" /></Column>
 					</columns>
 					<items>
 						<ColumnListItem type="Navigation" press=".onRowPress">
@@ -56,11 +58,14 @@
 								<ObjectIdentifier title="{registryList>registryName}" text="{registryList>description}" />
 								<Text text="{registryList>serviceName}" />
 								<ObjectStatus text="{registryList>serviceType}" />
-								<ObjectStatus text="{registryList>status}" state="{path: 'registryList>status', formatter: '.formatStatusState'}" />
+								<ObjectStatus text="{registryList>statusText}" state="{path: 'registryList>status', formatter: '.formatStatusState'}" />
 								<Text text="{registryList>createdBy}" />
 								<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />
 								<Text text="{registryList>lastChangedBy}" />
 								<Text text="{path: 'registryList>lastChangedAt', formatter: '.formatDateTime'}" />
+								<HBox wrap="Wrap" renderType="Bare" justifyContent="Start" visible="{registryList>/canUpdate}">
+									<Button text="Edit" type="Transparent" press=".onEditRegistry" visible="{registryList>/canUpdate}" />
+								</HBox>
 							</cells>
 						</ColumnListItem>
 					</items>

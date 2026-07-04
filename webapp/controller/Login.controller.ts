@@ -14,11 +14,6 @@ export default class Login extends BaseController {
 			password: ''
 		});
 		this.setModel(model, 'login');
-
-		const session = this.getSessionModel().getData() as { authenticated?: boolean };
-		if (session.authenticated) {
-			this.getRouter().navTo('home', {}, true);
-		}
 	}
 
 	public async onLogin(): Promise<void> {

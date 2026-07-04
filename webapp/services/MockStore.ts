@@ -58,6 +58,7 @@ function createRegistry(seed: number): Registry {
 		serviceName,
 		serviceType: seed === 3 ? 'CDS' : 'RAP',
 		status: seed === 2 ? 'Unpublish' : seed === 3 ? 'Archive' : 'Publish',
+		statusText: seed === 2 ? 'Unpublish' : seed === 3 ? 'Archive' : 'Publish',
 		description: `${registryName} manages backend service metadata for the frontend demo.`,
 		createdBy: 'demo.user',
 		createdAt: iso(-720),

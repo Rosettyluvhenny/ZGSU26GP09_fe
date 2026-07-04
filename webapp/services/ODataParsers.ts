@@ -212,6 +212,7 @@ export function mapRegistryEntity(entity: ODataRecord, options: { versions?: Reg
 		serviceName: registryName,
 		serviceType: serviceType || "RAP",
 		status,
+		statusText: asString(entity.StatusText) || status,
 		description: asString(entity.Description),
 		createdBy: asString(entity.RegisteredBy) || asString(entity.CreatedBy) || "",
 		createdAt: asIsoDate(entity.RegisteredAt ?? entity.CreatedAt),
