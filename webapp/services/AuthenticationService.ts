@@ -1,7 +1,6 @@
 import ServiceError from './ServiceError';
 import { readSessionStorage, removeSessionStorage, writeSessionStorage } from './MockStore';
 import type { SessionData } from '../model/types';
-import { LOGOFF_URL } from './ODataClient';
 
 const EMPTY_SESSION: SessionData = {
 	authenticated: false,
@@ -9,6 +8,8 @@ const EMPTY_SESSION: SessionData = {
 	csrfToken: '',
 	loginAt: null
 };
+
+const PROXY_LOGOFF_URL = '/sap/public/bc/icf/logoff?sap-client=324';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
@@ -97,7 +98,7 @@ export default class AuthenticationService {
 
 	public async logout(): Promise<void> {
 		try {
-			await fetch(LOGOFF_URL, {
+			await fetch(PROXY_LOGOFF_URL, {
 				method: 'GET',
 				credentials: 'include',
 				redirect: 'manual',

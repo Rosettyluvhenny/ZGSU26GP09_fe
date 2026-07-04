@@ -1,6 +1,7 @@
 const TARGET_PREFIX = "/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001";
 const TARGET_BASE_URL = "https://s40lp1.ucc.cit.tum.de";
 const LOGIN_ENDPOINT = "/auth/login";
+const LOGOFF_ENDPOINT = "/sap/public/bc/icf/logoff";
 const SESSION_COOKIE_NAME = "zgp9_session";
 
 const hopByHopHeaders = new Set([
@@ -211,6 +212,53 @@ async function handleLogin(req, res) {
 	}));
 }
 
+async function handleLogoff(req, res) {
+	const targetUrl = `${TARGET_BASE_URL}${LOGOFF_ENDPOINT}?sap-client=324`;
+	const sessionId = getSessionId(req);
+	const storedCookies = sessionId ? sessionCookies.get(sessionId) : null;
+
+	const headers = new Headers();
+	for (const [key, value] of Object.entries(req.headers)) {
+		if (value !== undefined && !hopByHopHeaders.has(key.toLowerCase()) && key.toLowerCase() !== "host") {
+			headers.set(key, Array.isArray(value) ? value.join(",") : value);
+		}
+	}
+
+	if (storedCookies && storedCookies.length > 0) {
+		headers.set("cookie", cookieHeaderFromPairs(storedCookies));
+	}
+
+	const response = await fetch(targetUrl, {
+		method: "GET",
+		headers,
+		redirect: "manual"
+	});
+
+	const responseSetCookies = toSetCookieArray(response.headers);
+	if (sessionId) {
+		sessionCookies.delete(sessionId);
+	}
+	setResponseCookies(res, [...responseSetCookies, `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`]);
+
+	res.statusCode = response.status;
+	for (const [key, value] of response.headers.entries()) {
+		if (!hopByHopHeaders.has(key.toLowerCase()) && key.toLowerCase() !== "set-cookie") {
+			res.setHeader(key, value);
+		}
+	}
+	addCorsHeaders(req, res);
+
+	if (![301, 302, 303, 307, 308].includes(response.status)) {
+		const body = await response.arrayBuffer();
+		if (body.byteLength > 0) {
+			res.end(Buffer.from(body));
+			return;
+		}
+	}
+
+	res.end();
+}
+
 module.exports = function () {
 	return async function proxyMiddleware(req, res, next) {
 		if (!req.url) {
@@ -233,6 +281,25 @@ module.exports = function () {
 				res.setHeader("Content-Type", "application/json");
 				addCorsHeaders(req, res);
 				res.end(JSON.stringify({ error: "Login proxy failed", message: error?.message ?? String(error) }));
+			}
+			return;
+		}
+
+		if (req.url === LOGOFF_ENDPOINT || req.url.startsWith(`${LOGOFF_ENDPOINT}?`)) {
+			try {
+				if (req.method === "OPTIONS") {
+					addCorsHeaders(req, res);
+					res.statusCode = 204;
+					res.end();
+					return;
+				}
+
+				await handleLogoff(req, res);
+			} catch (error) {
+				res.statusCode = 502;
+				res.setHeader("Content-Type", "application/json");
+				addCorsHeaders(req, res);
+				res.end(JSON.stringify({ error: "Logoff proxy failed", message: error?.message ?? String(error) }));
 			}
 			return;
 		}
@@ -295,4 +362,3 @@ module.exports = function () {
 		}
 	};
 };
-

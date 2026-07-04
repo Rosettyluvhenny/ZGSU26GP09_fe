@@ -31,6 +31,7 @@ export default class Login extends BaseController {
 			const auth = this.getOwnerComponent().getAuthenticationService();
 			const session = await auth.login(userName.trim(), password);
 			this.getSessionModel().setData(session);
+			loginModel.setData({ userName: '', password: '' });
 			MessageToast.show(`Welcome, ${session.userName}`);
 			this.getRouter().navTo('home', {}, true);
 		} catch (error) {
