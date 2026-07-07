@@ -1,8 +1,8 @@
 import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
 import ServiceError from './ServiceError';
 import { readMockData, writeMockData } from './MockStore';
-import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem, RegistryVersion } from '../model/types';
-import { mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
+import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem, RegistryVersion, VersionActionResult } from '../model/types';
+import { emptyMetadata, mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
@@ -206,6 +206,19 @@ function createMockVersion(registry: Registry, comment = 'Generated via frontend
 	};
 }
 
+function mapGeneratedVersionResult(result: VersionActionResult): RegistryVersion {
+	return {
+		id: result.VersionId,
+		groupId: result.GroupId,
+		versionNumber: result.VersionNo,
+		createdBy: result.CreatedBy,
+		createdAt: result.CreatedAt ?? new Date().toISOString(),
+		comment: '',
+		metadata: emptyMetadata(),
+		xml: ''
+	};
+}
+
 export default class RegistryService {
 	private readonly client = new ODataClient();
 
@@ -360,6 +373,7 @@ export default class RegistryService {
 		}
 
 		registry.status = this.statusTextFromId(input.status) as Registry['status'];
+		registry.statusText = registry.status;
 		registry.lastChangedBy = changedBy;
 		registry.lastChangedAt = new Date().toISOString();
 		writeMockData(data);
@@ -383,7 +397,26 @@ export default class RegistryService {
 	}
 
 	public async generateVersion(registryId: string, comment = 'Generated via frontend', changedBy = 'demo.user'): Promise<RegistryVersion> {
-		await this.client.ensureWriteHeaders('POST');
+		try {
+			const headers = await this.client.ensureWriteHeaders('POST');
+			const payload = normalizeODataEntity(
+				await writeJson(
+					`/Registry/${formatGuidLiteral(registryId)}/com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion`,
+					'POST',
+					undefined,
+					headers
+				)
+			);
+			if (Object.keys(payload).length > 0) {
+				const generated = mapGeneratedVersionResult(payload as VersionActionResult);
+				return delay(generated, 350);
+			}
+		} catch (error) {
+			if (!isNetworkFailure(error)) {
+				throw error;
+			}
+		}
+
 		const data = readMockData();
 		const registry = data.registries.find((item) => item.id === registryId);
 		if (!registry) {
@@ -444,6 +477,7 @@ export default class RegistryService {
 		}
 
 		registry.status = status;
+		registry.statusText = status;
 		registry.lastChangedBy = changedBy;
 		registry.lastChangedAt = new Date().toISOString();
 		writeMockData(data);

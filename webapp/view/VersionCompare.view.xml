@@ -3,7 +3,6 @@
 	displayBlock="true"
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
-	xmlns:core="sap.ui.core"
 	xmlns:f="sap.f">
 
 	<f:DynamicPage id="versionComparePage" toggleHeaderOnTitleClick="false">
@@ -18,7 +17,6 @@
 			<f:DynamicPageHeader pinnable="false">
 				<OverflowToolbar>
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
-					<Button text="Collapse Unchanged" press=".onToggleUnchanged" />
 					<Button text="Copy Left XML" press=".onCopyLeftXml" />
 					<Button text="Copy Right XML" press=".onCopyRightXml" />
 				</OverflowToolbar>
@@ -26,22 +24,24 @@
 		</f:header>
 		<f:content>
 			<VBox class="sapUiSmallMargin" busy="{versionCompare>/busy}">
-				<Panel headerText="Structured Difference" expandable="false">
+				<Panel headerText="Change" expandable="false">
 					<content>
-						<Table items="{versionCompare>/filteredStructured}" growing="true">
+						<Table items="{versionCompare>/change}" growing="true">
 							<columns>
-								<Column width="10rem"><Text text="Category" /></Column>
-								<Column width="22rem"><Text text="Left" /></Column>
-								<Column width="22rem"><Text text="Right" /></Column>
-								<Column width="9rem"><Text text="Status" /></Column>
+								<Column width="18rem"><Text text="Service Def" /></Column>
+								<Column width="16rem"><Text text="Base Detail" /></Column>
+								<Column width="16rem"><Text text="Compare Detail" /></Column>
+								<Column width="10rem"><Text text="Type" /></Column>
+								<Column width="9rem"><Text text="Action" /></Column>
 							</columns>
 							<items>
 								<ColumnListItem>
 									<cells>
-										<Text text="{versionCompare>label}" />
-										<Text text="{versionCompare>left}" wrapping="true" />
-										<Text text="{versionCompare>right}" wrapping="true" />
-										<ObjectStatus text="{versionCompare>status}" state="{path: 'versionCompare>status', formatter: '.formatStatusState'}" />
+										<Text text="{versionCompare>serviceDefId}" />
+										<Text text="{versionCompare>baseDetailId}" />
+										<Text text="{versionCompare>compareDetailId}" />
+										<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
+										<Button text="View Detail" type="Transparent" press=".onViewDetail" />
 									</cells>
 								</ColumnListItem>
 							</items>
@@ -49,24 +49,98 @@
 					</content>
 				</Panel>
 
-				<IconTabBar class="sapUiSmallMarginTop">
-					<items>
-						<IconTabFilter text="Raw XML Difference" key="raw" icon="sap-icon://compare">
-							<HBox width="100%" renderType="Bare" justifyContent="SpaceBetween">
-								<Panel headerText="Left XML" width="49%" expandable="false">
+				<Panel headerText="Different" expandable="false" class="sapUiSmallMarginTop">
+					<content>
+						<Table items="{versionCompare>/differ}" growing="true">
+							<columns>
+								<Column width="18rem"><Text text="Service Def" /></Column>
+								<Column width="16rem"><Text text="Base Detail" /></Column>
+								<Column width="16rem"><Text text="Compare Detail" /></Column>
+								<Column width="10rem"><Text text="Type" /></Column>
+								<Column width="9rem"><Text text="Action" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{versionCompare>serviceDefId}" />
+										<Text text="{versionCompare>baseDetailId}" />
+										<Text text="{versionCompare>compareDetailId}" />
+										<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
+										<Button text="View Detail" type="Transparent" press=".onViewDetail" />
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<Panel headerText="Unchange" expandable="false" class="sapUiSmallMarginTop">
+					<content>
+						<Table items="{versionCompare>/unchange}" growing="true">
+							<columns>
+								<Column width="18rem"><Text text="Service Def" /></Column>
+								<Column width="16rem"><Text text="Base Detail" /></Column>
+								<Column width="16rem"><Text text="Compare Detail" /></Column>
+								<Column width="10rem"><Text text="Type" /></Column>
+							</columns>
+							<items>
+								<ColumnListItem>
+									<cells>
+										<Text text="{versionCompare>serviceDefId}" />
+										<Text text="{versionCompare>baseDetailId}" />
+										<Text text="{versionCompare>compareDetailId}" />
+										<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
+									</cells>
+								</ColumnListItem>
+							</items>
+						</Table>
+					</content>
+				</Panel>
+
+				<Panel headerText="Detail Comparison" expandable="false" class="sapUiSmallMarginTop" busy="{versionCompare>/compareWorkspaceBusy}">
+					<content>
+						<VBox>
+							<HBox width="100%" alignItems="Start" class="sapUiSmallMarginBottom">
+								<Panel headerText="Base Node Tree" expandable="false" width="49%" class="sapUiTinyMarginEnd">
 									<content>
-										<TextArea id="compareLeftXml" value="{versionCompare>/rawLeft}" editable="false" width="100%" rows="22" growing="false" />
+										<ScrollContainer id="baseTreeScroll" height="34rem" vertical="true" horizontal="false">
+											<Tree items="{path: 'versionCompare>/baseTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onBaseTreeSelectionChange">
+												<StandardTreeItem title="{= ${versionCompare>label} + (${versionCompare>diffStatus} ? ' [' + ${versionCompare>diffStatus} + ']' : '') }" />
+											</Tree>
+										</ScrollContainer>
 									</content>
 								</Panel>
-								<Panel headerText="Right XML" width="49%" expandable="false">
+
+								<Panel headerText="Compare Node Tree" expandable="false" width="49%">
 									<content>
-										<TextArea id="compareRightXml" value="{versionCompare>/rawRight}" editable="false" width="100%" rows="22" growing="false" />
+										<ScrollContainer id="compareTreeScroll" height="34rem" vertical="true" horizontal="false">
+											<Tree items="{path: 'versionCompare>/compareTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onCompareTreeSelectionChange">
+												<StandardTreeItem title="{= ${versionCompare>label} + (${versionCompare>diffStatus} ? ' [' + ${versionCompare>diffStatus} + ']' : '') }" />
+											</Tree>
+										</ScrollContainer>
 									</content>
 								</Panel>
 							</HBox>
-						</IconTabFilter>
-					</items>
-				</IconTabBar>
+
+							<HBox width="100%" alignItems="Start">
+								<Panel headerText="Base XML" expandable="false" width="49%" class="sapUiTinyMarginEnd">
+									<content>
+										<ScrollContainer id="baseXmlScroll" height="36rem" vertical="true" horizontal="true">
+											<TextArea value="{versionCompare>/baseXml}" width="100%" rows="34" editable="false" />
+										</ScrollContainer>
+									</content>
+								</Panel>
+								<Panel headerText="Compare XML" expandable="false" width="49%">
+									<content>
+										<ScrollContainer id="compareXmlScroll" height="36rem" vertical="true" horizontal="true">
+											<TextArea value="{versionCompare>/compareXml}" width="100%" rows="34" editable="false" />
+										</ScrollContainer>
+									</content>
+								</Panel>
+							</HBox>
+						</VBox>
+					</content>
+				</Panel>
 			</VBox>
 		</f:content>
 	</f:DynamicPage>

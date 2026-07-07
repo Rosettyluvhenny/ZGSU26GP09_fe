@@ -13,7 +13,7 @@
 					<Title text="{registryDetail>/registry/registryName}" level="H1" />
 				</f:heading>
 				<f:snappedContent>
-					<ObjectStatus text="{registryDetail>/registry/status}" state="{path: 'registryDetail>/registry/status', formatter: '.formatStatusState'}" />
+					<ObjectStatus text="{registryDetail>/registry/statusText}" state="{path: 'registryDetail>/registry/status', formatter: '.formatStatusState'}" />
 				</f:snappedContent>
 			</f:DynamicPageTitle>
 		</f:title>
@@ -23,6 +23,9 @@
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
+					<Text text="{registryDetail>/selectionCountLabel}" />
+					<Button text="Compare" type="Emphasized" enabled="{registryDetail>/canCompare}" press=".onComparePress" />
+					<Button text="Generate Version" busy="{registryDetail>/generateBusy}" press=".onGenerateVersion" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
@@ -45,7 +48,7 @@
 
 				<Panel headerText="Versions" expandable="false" class="sapUiSmallMarginTop">
 					<content>
-						<Table items="{registryDetail>/versions}" mode="None" growing="true">
+						<Table items="{registryDetail>/versions}" mode="MultiSelect" growing="true" selectionChange=".onVersionSelectionChange">
 							<columns>
 								<Column width="10rem"><Text text="Version Number" /></Column>
 								<Column width="11rem"><Text text="Created By" /></Column>
@@ -53,9 +56,9 @@
 								<Column width="16rem"><Text text="Comment" /></Column>
 							</columns>
 							<items>
-								<ColumnListItem type="Navigation" press=".onVersionPress">
+								<ColumnListItem>
 									<cells>
-										<Text text="{registryDetail>versionNumber}" />
+										<Link text="{registryDetail>versionNumber}" press=".onVersionPress" />
 										<Text text="{registryDetail>createdBy}" />
 										<Text text="{path: 'registryDetail>createdAt', formatter: '.formatDateTime'}" />
 										<Text text="{registryDetail>comment}" />

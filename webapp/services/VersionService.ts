@@ -1,7 +1,7 @@
 import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 import { readMockData } from './MockStore';
-import type { MetadataDetails, RegistryVersion, VersionDifference } from '../model/types';
+import type { CompareVersionEntry, CompareVersionResult, RegistryVersion, VersionCompareActionEntry, VersionCompareActionResult } from '../model/types';
 import { mapVersionEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 import DetailService from './DetailService';
 
@@ -9,20 +9,6 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
 		setTimeout(() => resolve(value), ms);
 	});
-}
-
-function toLabelList(items: string[], prefix: string): string[] {
-	return items.map((item) => `${prefix}: ${item}`);
-}
-
-function compareLists(left: string[], right: string[]): VersionDifference {
-	const leftSet = new Set(left);
-	const rightSet = new Set(right);
-	const added = right.filter((item) => !leftSet.has(item));
-	const removed = left.filter((item) => !rightSet.has(item));
-	const unchanged = left.filter((item) => rightSet.has(item));
-	const modified = left.filter((item, index) => right[index] && right[index] !== item);
-	return { added, removed, modified, unchanged };
 }
 
 function normalizeGuid(value: string): string {
@@ -41,19 +27,23 @@ function asString(value: unknown): string {
 	return String(value);
 }
 
-export interface VersionComparisonLine {
-	label: string;
-	left: string;
-	right: string;
-	status: 'added' | 'removed' | 'modified' | 'unchanged';
+function mapCompareEntry(entry: VersionCompareActionEntry): CompareVersionEntry {
+	return {
+		serviceDefId: asString(entry.SERVICEDEFID),
+		baseDetailId: asString(entry.BASEDETAILID),
+		compareDetailId: asString(entry.COMPAREDETAILID),
+		changeType: (asString(entry.CHANGETYPE).toUpperCase() as CompareVersionEntry['changeType']) || 'UNCHANGED'
+	};
 }
 
-export interface VersionComparisonResult {
-	structured: VersionComparisonLine[];
-	rawLeft: string;
-	rawRight: string;
-	rawDiff: VersionComparisonLine[];
-	summary: VersionDifference;
+function mapCompareResult(payload: VersionCompareActionResult): CompareVersionResult {
+	return {
+		baseVersionId: asString(payload.BASEVERSIONID),
+		compareVersionId: asString(payload.COMPAREVERSIONID),
+		change: Array.isArray(payload.CHANGE) ? payload.CHANGE.map(mapCompareEntry) : [],
+		differ: Array.isArray(payload.DIFFER) ? payload.DIFFER.map(mapCompareEntry) : [],
+		unchange: Array.isArray(payload.UNCHANGE) ? payload.UNCHANGE.map(mapCompareEntry) : []
+	};
 }
 
 export default class VersionService {
@@ -109,67 +99,48 @@ export default class VersionService {
 		throw new ServiceError(404, 'Version not found.');
 	}
 
-	public async compareVersions(leftVersionId: string, rightVersionId: string): Promise<VersionComparisonResult> {
+	public async compareVersions(leftVersionId: string, rightVersionId: string): Promise<CompareVersionResult> {
+		try {
+			const headers = await this.client.ensureWriteHeaders('POST');
+			const payload = normalizeODataEntity(
+				await this.client.postJson(
+					'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
+					{
+						base_vrs_id: leftVersionId,
+						compare_vrs_id: rightVersionId
+					},
+					{ headers }
+				)
+			) as VersionCompareActionResult;
+			if (Object.keys(payload).length > 0) {
+				return delay(mapCompareResult(payload));
+			}
+		} catch (error) {
+			if (!(error instanceof TypeError) && !String(error).toLowerCase().includes('fetch')) {
+				throw error;
+			}
+		}
+
 		const [left, right] = await Promise.all([
 			this.getVersion(leftVersionId),
 			this.getVersion(rightVersionId)
 		]);
-		const categories: Array<keyof MetadataDetails> = [
-			'entityTypes',
-			'entitySets',
-			'properties',
-			'navigationProperties',
-			'functionImports',
-			'actions',
-			'complexTypes'
-		];
 
-		const structured: VersionComparisonLine[] = categories.flatMap((category) => {
-			const leftValue = left.metadata[category].join(', ');
-			const rightValue = right.metadata[category].join(', ');
-			const status: VersionComparisonLine['status'] = leftValue === rightValue ? 'unchanged' : 'modified';
-			return [
-				{
-					label: category,
-					left: leftValue,
-					right: rightValue,
-					status
-				}
-			];
+		const toEntry = (serviceDefId: string, changeType: CompareVersionEntry['changeType']): CompareVersionEntry => ({
+			serviceDefId,
+			baseDetailId: left.id,
+			compareDetailId: right.id,
+			changeType
 		});
 
-		const leftLines = left.xml.split(/\r?\n/);
-		const rightLines = right.xml.split(/\r?\n/);
-		const maxLength = Math.max(leftLines.length, rightLines.length);
-		const rawDiff: VersionComparisonLine[] = Array.from({ length: maxLength }, (_, index) => {
-			const leftLine = leftLines[index] ?? '';
-			const rightLine = rightLines[index] ?? '';
-			let status: VersionComparisonLine['status'] = 'unchanged';
-			if (leftLine && !rightLine) {
-				status = 'removed';
-			} else if (!leftLine && rightLine) {
-				status = 'added';
-			} else if (leftLine !== rightLine) {
-				status = 'modified';
-			}
-
-			return {
-				label: String(index + 1),
-				left: leftLine,
-				right: rightLine,
-				status
-			};
-		});
-
+		const leftLabel = left.metadata.entityTypes.join(', ') || left.versionNumber;
+		const rightLabel = right.metadata.entityTypes.join(', ') || right.versionNumber;
 		return delay({
-			structured,
-			rawLeft: left.xml,
-			rawRight: right.xml,
-			rawDiff,
-			summary: compareLists(
-				toLabelList(left.metadata.properties, 'Property'),
-				toLabelList(right.metadata.properties, 'Property')
-			)
+			baseVersionId: left.id,
+			compareVersionId: right.id,
+			change: leftLabel === rightLabel ? [] : [toEntry(leftLabel, 'CHANGED')],
+			differ: leftLabel === rightLabel ? [] : [toEntry(rightLabel, 'ADDED')],
+			unchange: leftLabel === rightLabel ? [toEntry(leftLabel, 'UNCHANGED')] : []
 		});
 	}
 

@@ -24,9 +24,8 @@
 			</tnt:SideNavigation>
 		</tnt:sideContent>
 		<tnt:mainContents>
-			<f:FlexibleColumnLayout id="shellFcl" layout="{ui>/layout}" fitContainer="true" height="100%" />
+			<f:FlexibleColumnLayout id="shellFcl" layout="{ui>/layout}" />
 		</tnt:mainContents>
 	</tnt:ToolPage>
 
 </mvc:View>
-

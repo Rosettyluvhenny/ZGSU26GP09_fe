@@ -49,10 +49,23 @@
 						</content>
 					</Panel>
 
-					<Panel headerText="Parse Metadata" expandable="false" width="100%" busy="{versionDetail>/selectedDetailBusy}">
+					<Panel headerText="Node Tree" expandable="false" width="24rem" busy="{versionDetail>/selectedDetailBusy}" class="sapUiTinyMarginEnd">
 						<content>
-							<Text text="Select a detail from the left list to load its parse metadata XML." visible="{= !${versionDetail>/selectedDetailXml} }" />
-							<TextArea value="{versionDetail>/selectedDetailXml}" width="100%" rows="24" editable="false" visible="{= !!${versionDetail>/selectedDetailXml} }" />
+							<Tree id="versionDetailTree" items="{path: 'versionDetail>/selectedDetailTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onNodeSelectionChange">
+								<StandardTreeItem title="{versionDetail>label}" />
+							</Tree>
+						</content>
+					</Panel>
+
+					<Panel headerText="XML" expandable="false" busy="{versionDetail>/selectedDetailBusy}">
+						<layoutData>
+							<FlexItemData growFactor="1" />
+						</layoutData>
+						<content>
+							<VBox width="100%">
+								<Text text="{= 'XML length: ' + ${versionDetail>/selectedDetailXml}.length }" />
+								<TextArea id="selectedDetailXmlArea" value="{versionDetail>/selectedDetailXml}" width="100%" rows="36" editable="false" />
+							</VBox>
 						</content>
 					</Panel>
 				</HBox>
