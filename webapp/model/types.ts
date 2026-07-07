@@ -118,6 +118,12 @@ export interface DetailMetadataResult {
 	metadataXml: string;
 }
 
+export interface XmlLineEntry {
+	lineNo: number;
+	text: string;
+	isWhitespace: boolean;
+}
+
 export interface VersionActionResult {
 	CreatedAt: string | null;
 	CreatedBy: string;
@@ -212,3 +218,4 @@ export interface CompareVersionResult {
 	differ: CompareVersionEntry[];
 	unchange: CompareVersionEntry[];
 }
+

@@ -36,9 +36,22 @@ export default class Component extends UIComponent {
 		this.setModel(models.createUiModel(), 'ui');
 		this.setModel((Messaging as any).getMessageModel(), 'message');
 
+		this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter(), this.authenticationService);
 		void this.restoreSessionOnStartup();
 		this.getRouter().initialize();
+	}
+
+	private injectAppStylesheet(): void {
+		if (document.head.querySelector('link[data-app-stylesheet="true"]')) {
+			return;
+		}
+
+		const link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = new URL('css/style.css', document.baseURI).toString();
+		link.setAttribute('data-app-stylesheet', 'true');
+		document.head.appendChild(link);
 	}
 
 	private async restoreSessionOnStartup(): Promise<void> {

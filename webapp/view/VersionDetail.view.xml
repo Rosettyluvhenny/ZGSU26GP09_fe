@@ -4,7 +4,7 @@
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:f="sap.f"
-	xmlns:l="sap.ui.layout">
+	xmlns:l="sap.ui.layout" xmlns:core="sap.ui.core">
 
 	<f:DynamicPage id="versionDetailPage" toggleHeaderOnTitleClick="false">
 		<f:title>
@@ -41,17 +41,36 @@
 				</Panel>
 
 				<HBox width="100%" class="sapUiSmallMarginTop" alignItems="Start">
-					<Panel headerText="Details" expandable="false" width="20rem" class="sapUiTinyMarginEnd">
+					<Panel headerText="Details" expandable="false" width="22rem" class="sapUiTinyMarginEnd">
 						<content>
-							<List items="{versionDetail>/details}" mode="SingleSelectMaster" selectionChange=".onDetailSelect" includeItemInSelection="true">
-								<StandardListItem title="{versionDetail>id}" description="{= ${versionDetail>serviceDefinition} + ' / ' + ${versionDetail>serviceHash} }" />
-							</List>
+							<Select
+								class="versionDetailDetailSelect"
+								width="100%"
+								selectedKey="{versionDetail>/selectedDetail/id}"
+								change=".onDetailChange"
+								items="{versionDetail>/details}">
+									<core:Item key="{versionDetail>id}" text="{= ${versionDetail>serviceDefinition} + ' / ' + ${versionDetail>serviceHash} }" />
+								</Select>
+							<l:Grid class="sapUiSmallMarginTop" defaultSpan="L12 M12 S12" hSpacing="0.5" vSpacing="0.5">
+								<Label text="DetailId" />
+								<Text text="{versionDetail>/selectedDetail/id}" wrapping="true" />
+								<Label text="ServiceDefId" />
+								<Text text="{versionDetail>/selectedDetail/serviceDefinition}" wrapping="true" />
+								<Label text="ServiceHash" />
+								<Text text="{versionDetail>/selectedDetail/serviceHash}" wrapping="true" />
+								<Label text="VersionId" />
+								<Text text="{versionDetail>/selectedDetail/versionId}" wrapping="true" />
+								<Label text="GroupId" />
+								<Text text="{versionDetail>/selectedDetail/groupId}" wrapping="true" />
+								<Label text="LastChangeAt" />
+								<Text text="{path: 'versionDetail>/selectedDetail/lastChangedAt', formatter: '.formatDateTime'}" wrapping="true" />
+							</l:Grid>
 						</content>
 					</Panel>
 
 					<Panel headerText="Node Tree" expandable="false" width="24rem" busy="{versionDetail>/selectedDetailBusy}" class="sapUiTinyMarginEnd">
 						<content>
-							<Tree id="versionDetailTree" items="{path: 'versionDetail>/selectedDetailTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onNodeSelectionChange">
+							<Tree class="versionDetailNodeTree" id="versionDetailTree" items="{path: 'versionDetail>/selectedDetailTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onNodeSelectionChange">
 								<StandardTreeItem title="{versionDetail>label}" />
 							</Tree>
 						</content>
@@ -62,10 +81,22 @@
 							<FlexItemData growFactor="1" />
 						</layoutData>
 						<content>
-							<VBox width="100%">
-								<Text text="{= 'XML length: ' + ${versionDetail>/selectedDetailXml}.length }" />
-								<TextArea id="selectedDetailXmlArea" value="{versionDetail>/selectedDetailXml}" width="100%" rows="36" editable="false" />
-							</VBox>
+							<ScrollContainer width="100%" height="36rem" horizontal="true" vertical="true">
+								<Table id="selectedDetailXmlTable" class="versionDetailXmlTable" width="100%" items="{versionDetail>/selectedDetailLines}" mode="SingleSelectMaster" selectionChange=".onXmlLineSelectionChange">
+									<columns>
+										<Column width="4rem"><Text text="#" /></Column>
+										<Column width="auto"><Text text="Line" /></Column>
+									</columns>
+									<items>
+										<ColumnListItem>
+											<cells>
+												<Text text="{versionDetail>lineNo}" class="versionDetailXmlIndex" />
+												<Text text="{versionDetail>text}" wrapping="false" class="versionDetailXmlText" />
+											</cells>
+										</ColumnListItem>
+									</items>
+								</Table>
+							</ScrollContainer>
 						</content>
 					</Panel>
 				</HBox>
@@ -74,3 +105,5 @@
 	</f:DynamicPage>
 
 </mvc:View>
+
+

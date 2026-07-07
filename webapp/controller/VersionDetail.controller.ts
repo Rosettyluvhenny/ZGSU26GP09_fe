@@ -1,9 +1,10 @@
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
+import type Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
-import type { NodeTreeViewItem, RegistryDetail } from '../model/types';
+import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
 import { buildNodeTree, buildXmlLineMap, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
 /**
@@ -24,7 +25,8 @@ export default class VersionDetail extends BaseController {
 				selectedDetailBusy: false,
 				selectedDetailTree: [],
 				selectedNodeLine: 1,
-				selectedDetailLineStarts: []
+				selectedDetailLineStarts: [],
+				selectedDetailLines: [] as XmlLineEntry[]
 			}),
 			'versionDetail'
 		);
@@ -46,7 +48,7 @@ export default class VersionDetail extends BaseController {
 		await this.loadVersion();
 	}
 
-	public async onDetailSelect(event: UI5Event): Promise<void> {
+	public async onDetailChange(event: UI5Event): Promise<void> {
 		const source = event.getSource() as unknown as { getSelectedItem: () => { getBindingContext: (name?: string) => { getObject: () => RegistryDetail } | null } | null };
 		const selectedItem = source.getSelectedItem();
 		const context = selectedItem?.getBindingContext('versionDetail');
@@ -66,7 +68,19 @@ export default class VersionDetail extends BaseController {
 			return;
 		}
 
-		this.scrollXmlToLine(node.lineStart || offsetToLine(node.offsetStart, (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetailLineStarts') as number[]));
+		this.selectXmlLine(node.lineStart || offsetToLine(node.offsetStart, (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetailLineStarts') as number[]));
+	}
+
+	public onXmlLineSelectionChange(event: UI5Event): void {
+		const source = event.getSource() as unknown as Table;
+		const selectedItem = source.getSelectedItem();
+		const context = selectedItem?.getBindingContext('versionDetail');
+		const line = context?.getObject() as XmlLineEntry | undefined;
+		if (!line) {
+			return;
+		}
+
+		this.scrollXmlToLine(line.lineNo);
 	}
 
 	private async loadVersion(): Promise<void> {
@@ -91,7 +105,8 @@ export default class VersionDetail extends BaseController {
 				selectedDetailBusy: false,
 				selectedDetailTree: [],
 				selectedNodeLine: 1,
-				selectedDetailLineStarts: []
+				selectedDetailLineStarts: [],
+				selectedDetailLines: []
 			});
 			if (details[0]) {
 				await this.loadDetailWorkspace(details[0]);
@@ -111,6 +126,7 @@ export default class VersionDetail extends BaseController {
 		model.setProperty('/selectedDetailXml', '');
 		model.setProperty('/selectedDetailTree', []);
 		model.setProperty('/selectedDetailLineStarts', []);
+		model.setProperty('/selectedDetailLines', []);
 		BusyIndicator.show(0);
 		try {
 			const [loadedDetail, parsedDetail, nodeTree] = await Promise.all([
@@ -127,7 +143,9 @@ export default class VersionDetail extends BaseController {
 			model.setProperty('/selectedDetailXml', prettyXml);
 			model.setProperty('/selectedDetailTree', root);
 			model.setProperty('/selectedDetailLineStarts', lineMap.lineStarts);
+			model.setProperty('/selectedDetailLines', this.buildXmlLines(prettyXml));
 			model.setProperty('/selectedNodeLine', 1);
+			this.selectXmlLine(1);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
@@ -168,14 +186,33 @@ export default class VersionDetail extends BaseController {
 		}
 	}
 
-	private scrollXmlToLine(line: number): void {
-		const textArea = this.byId('selectedDetailXmlArea')?.getDomRef()?.querySelector('textarea') as HTMLTextAreaElement | null;
-		if (!textArea) {
+	private buildXmlLines(xml: string): XmlLineEntry[] {
+		return xml.split('\n').map((text, index) => ({
+			lineNo: index + 1,
+			text,
+			isWhitespace: text.trim().length === 0
+		}));
+	}
+
+	private selectXmlLine(lineNo: number): void {
+		const model = this.getModel('versionDetail') as JSONModel;
+		model.setProperty('/selectedNodeLine', lineNo);
+		const table = this.byId('selectedDetailXmlTable') as Table | null;
+		if (!table) {
 			return;
 		}
 
-		const computed = window.getComputedStyle(textArea);
-		const lineHeight = Number.parseFloat(computed.lineHeight) || Number.parseFloat(computed.fontSize) * 1.4 || 18;
-		textArea.scrollTop = Math.max(0, (line - 1) * lineHeight - lineHeight * 2);
+		const item = table.getItems().find((listItem) => {
+			const context = listItem.getBindingContext('versionDetail');
+			return (context?.getObject() as XmlLineEntry | null)?.lineNo === lineNo;
+		});
+		if (item) {
+			table.setSelectedItem(item, true);
+			item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
+		}
+	}
+
+	private scrollXmlToLine(line: number): void {
+		this.selectXmlLine(line);
 	}
 }

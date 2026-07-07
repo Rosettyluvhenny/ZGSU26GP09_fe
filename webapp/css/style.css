@@ -1,0 +1,33 @@
+.versionDetailDetailSelect {
+	width: 100%;
+}
+
+.versionDetailNodeTree .sapMLIB:hover {
+	cursor: pointer;
+}
+
+.versionDetailXmlTable .sapMListTbl {
+	min-width: max-content;
+}
+
+.versionDetailXmlTable .sapMListTblCell {
+	vertical-align: top;
+}
+
+.versionDetailXmlIndex {
+	display: inline-block;
+	min-width: 3rem;
+	text-align: right;
+	padding-right: 0.75rem;
+	font-family: monospace;
+	color: var(--sapContent_LabelColor);
+}
+
+.versionDetailXmlText {
+	font-family: monospace;
+	white-space: pre;
+}
+
+.versionDetailXmlTable .sapMLIB:hover {
+	cursor: pointer;
+}
