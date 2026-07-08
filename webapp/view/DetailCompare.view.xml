@@ -1,0 +1,114 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.DetailCompare"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout">
+
+	<f:DynamicPage id="detailComparePage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Detail Comparison" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<OverflowToolbar>
+					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+				</OverflowToolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<VBox class="sapUiSmallMargin" busy="{detailCompare>/compareWorkspaceBusy}">
+				<l:Splitter width="100%" height="34rem" class="sapUiSmallMarginBottom">
+					<Page title="Base Node Tree ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+						<layoutData>
+							<l:SplitterLayoutData size="50%" resizable="true" />
+						</layoutData>
+						<content>
+							<ScrollContainer id="baseTreeScroll" height="100%" width="100%" vertical="true" horizontal="false">
+								<Tree id="baseTree" items="{path: 'detailCompare>/baseTree', parameters: { arrayNames: ['children'], numberOfExpandedLevels: 1 }}" mode="SingleSelectMaster" selectionChange=".onBaseTreeSelectionChange">
+									<StandardTreeItem highlight="{detailCompare>highlight}" title="{= ${detailCompare>label} + (${detailCompare>diffStatus} ? ' [' + ${detailCompare>diffStatus} + ']' : '') }">
+										<customData>
+											<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
+										</customData>
+									</StandardTreeItem>
+								</Tree>
+							</ScrollContainer>
+						</content>
+					</Page>
+
+					<Page title="Compare Node Tree ({detailCompare>/compareDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+						<layoutData>
+							<l:SplitterLayoutData size="auto" />
+						</layoutData>
+						<content>
+							<ScrollContainer id="compareTreeScroll" height="100%" width="100%" vertical="true" horizontal="false">
+								<Tree id="compareTree" items="{path: 'detailCompare>/compareTree', parameters: { arrayNames: ['children'], numberOfExpandedLevels: 1 }}" mode="SingleSelectMaster" selectionChange=".onCompareTreeSelectionChange">
+									<StandardTreeItem highlight="{detailCompare>highlight}" title="{= ${detailCompare>label} + (${detailCompare>diffStatus} ? ' [' + ${detailCompare>diffStatus} + ']' : '') }">
+										<customData>
+											<core:CustomData key="diffStatus" value="{= String(${detailCompare>highlight}) || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
+										</customData>
+									</StandardTreeItem>
+								</Tree>
+							</ScrollContainer>
+						</content>
+					</Page>
+				</l:Splitter>
+
+				<l:Splitter width="100%" height="36rem">
+					<Page title="Base XML ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+						<layoutData>
+							<l:SplitterLayoutData size="50%" resizable="true" />
+						</layoutData>
+						<content>
+							<ScrollContainer class="versionDetailXmlScroll" id="baseXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
+								<Table id="baseDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/baseXmlLines}" mode="None">
+									<columns>
+										<Column width="4rem"><Text text="#" /></Column>
+										<Column width="auto"><Text text="Line" /></Column>
+									</columns>
+									<items>
+										<ColumnListItem>
+											<cells>
+												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
+												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
+											</cells>
+										</ColumnListItem>
+									</items>
+								</Table>
+							</ScrollContainer>
+						</content>
+					</Page>
+					<Page title="Compare XML ({detailCompare>/compareDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+						<layoutData>
+							<l:SplitterLayoutData size="auto" />
+						</layoutData>
+						<content>
+							<ScrollContainer class="versionDetailXmlScroll" id="compareXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
+								<Table id="compareDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/compareXmlLines}" mode="None">
+									<columns>
+										<Column width="4rem"><Text text="#" /></Column>
+										<Column width="auto"><Text text="Line" /></Column>
+									</columns>
+									<items>
+										<ColumnListItem>
+											<cells>
+												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
+												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
+											</cells>
+										</ColumnListItem>
+									</items>
+								</Table>
+							</ScrollContainer>
+						</content>
+					</Page>
+				</l:Splitter>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

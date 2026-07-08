@@ -23,13 +23,13 @@ export default class VersionDetail extends BaseController {
 				selectedDetail: null,
 				selectedDetailXml: '',
 				selectedDetailBusy: false,
-				selectedDetailTree: [],
 				selectedNodeLine: 1,
 				selectedDetailLineStarts: [],
 				selectedDetailLines: [] as XmlLineEntry[]
 			}),
 			'versionDetail'
 		);
+		this.setModel(new JSONModel([]), 'treeModel');
 		this.getRouter().getRoute('versionDetail').attachPatternMatched(this.onRouteMatched, this);
 	}
 
@@ -62,7 +62,7 @@ export default class VersionDetail extends BaseController {
 
 	public onNodeSelectionChange(event: UI5Event): void {
 		const listItem = (event as any).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
-		const context = listItem?.getBindingContext('versionDetail');
+		const context = listItem?.getBindingContext('treeModel');
 		const node = context?.getObject();
 		if (!node) {
 			return;
@@ -80,7 +80,8 @@ export default class VersionDetail extends BaseController {
 			return;
 		}
 
-		this.scrollXmlToLine(line.lineNo);
+		const model = this.getModel('versionDetail') as JSONModel;
+		model.setProperty('/selectedNodeLine', line.lineNo);
 	}
 
 	private async loadVersion(): Promise<void> {
@@ -103,11 +104,11 @@ export default class VersionDetail extends BaseController {
 				selectedDetail: null,
 				selectedDetailXml: '',
 				selectedDetailBusy: false,
-				selectedDetailTree: [],
 				selectedNodeLine: 1,
 				selectedDetailLineStarts: [],
 				selectedDetailLines: []
 			});
+			(this.getModel('treeModel') as JSONModel).setData([]);
 			if (details[0]) {
 				await this.loadDetailWorkspace(details[0]);
 			}
@@ -124,7 +125,7 @@ export default class VersionDetail extends BaseController {
 		model.setProperty('/selectedDetailBusy', true);
 		model.setProperty('/selectedDetail', detail);
 		model.setProperty('/selectedDetailXml', '');
-		model.setProperty('/selectedDetailTree', []);
+		(this.getModel('treeModel') as JSONModel).setData([]);
 		model.setProperty('/selectedDetailLineStarts', []);
 		model.setProperty('/selectedDetailLines', []);
 		BusyIndicator.show(0);
@@ -134,15 +135,16 @@ export default class VersionDetail extends BaseController {
 				this.getOwnerComponent().getDetailService().getParsedDetail(detail.id),
 				this.getOwnerComponent().getDetailService().getNodeTree(detail.id)
 			]);
-			const rawXml = parsedDetail.metadataXml || loadedDetail.xml || '';
-			const prettyXml = prettyPrintXml(rawXml);
-			const lineMap = buildXmlLineMap(prettyXml);
+			let rawXml = parsedDetail.metadataXml || loadedDetail.xml || '';
+			// Filter out XML declaration because the backend offsets do not include it
+			rawXml = rawXml.replace(/<\?xml[^>]*\?>\s*/gi, '');
+			const { prettyXml, rawOffsets } = prettyPrintXml(rawXml);
 			const tree = buildNodeTree(nodeTree);
 			const root = tree.length > 0 ? tree : this.createFallbackNodeTree(loadedDetail);
-			this.applyLineNumbers(root, lineMap.lineStarts, prettyXml);
+			this.applyLineNumbers(root, rawOffsets, prettyXml);
 			model.setProperty('/selectedDetailXml', prettyXml);
-			model.setProperty('/selectedDetailTree', root);
-			model.setProperty('/selectedDetailLineStarts', lineMap.lineStarts);
+			(this.getModel('treeModel') as JSONModel).setData(root);
+			model.setProperty('/selectedDetailLineStarts', rawOffsets);
 			model.setProperty('/selectedDetailLines', this.buildXmlLines(prettyXml));
 			model.setProperty('/selectedNodeLine', 1);
 			this.selectXmlLine(1);
@@ -202,17 +204,49 @@ export default class VersionDetail extends BaseController {
 			return;
 		}
 
+		const triggerGrowToLine = () => {
+			const growingInfo = (table as any).getGrowingInfo?.();
+			const currentActual = growingInfo?.actual || 0;
+
+			if (lineNo > currentActual) {
+				const delegate = (table as any)._oGrowingDelegate;
+				if (delegate && typeof delegate.requestNewPage === 'function') {
+					const onUpdateFinished = () => {
+						table.detachEvent('updateFinished', onUpdateFinished);
+						triggerGrowToLine();
+					};
+					table.attachEvent('updateFinished', onUpdateFinished);
+					delegate.requestNewPage();
+					return;
+				}
+			}
+
+			// Item should be rendered now, give it a tiny bit of time for DOM layout
+			setTimeout(() => {
+				this.scrollToItem(table, lineNo);
+			}, 100);
+		};
+
+		triggerGrowToLine();
+	}
+
+	private scrollXmlToLine(line: number): void {
+		this.selectXmlLine(line);
+	}
+
+	private scrollToItem(table: Table, lineNo: number): void {
+		// Clear previous highlights
+		table.getItems().forEach((item) => {
+			item.removeStyleClass('versionDetailXmlHighlighted');
+		});
+
 		const item = table.getItems().find((listItem) => {
 			const context = listItem.getBindingContext('versionDetail');
 			return (context?.getObject() as XmlLineEntry | null)?.lineNo === lineNo;
 		});
 		if (item) {
-			table.setSelectedItem(item, true);
+			item.addStyleClass('versionDetailXmlHighlighted');
 			item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
 		}
-	}
-
-	private scrollXmlToLine(line: number): void {
-		this.selectXmlLine(line);
 	}
 }

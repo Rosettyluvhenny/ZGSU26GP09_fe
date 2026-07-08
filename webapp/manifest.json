@@ -95,6 +95,11 @@
 					"target": "versionCompare"
 				},
 				{
+					"pattern": "registries/{registryId}/versions/compare/{leftVersionId}/{rightVersionId}/detail/{baseDetailId}/{compareDetailId}",
+					"name": "detailCompare",
+					"target": "detailCompare"
+				},
+				{
 					"pattern": "jobs",
 					"name": "jobList",
 					"target": "jobList"
@@ -138,6 +143,13 @@
 				"versionCompare": {
 					"id": "versionCompare",
 					"name": "VersionCompare",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
+				},
+				"detailCompare": {
+					"id": "detailCompare",
+					"name": "DetailCompare",
 					"parent": "shell",
 					"controlId": "shellFcl",
 					"controlAggregation": "beginColumnPages"

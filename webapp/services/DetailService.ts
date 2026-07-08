@@ -138,8 +138,8 @@ export default class DetailService {
 		try {
 			const payload = normalizeODataEntity(
 				await this.client.postJson(
-					`/Detail/${formatGuidLiteral(detailId)}/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree`,
-					undefined,
+					`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree`,
+					{ DetailId: detailId },
 					{ headers: await this.client.ensureWriteHeaders('POST') }
 				)
 			) as NodeTreeActionResult;
@@ -208,8 +208,8 @@ export default class DetailService {
 
 	private async loadParsedMetadataFromBackend(detailId: string): Promise<DetailMetadataResult | null> {
 		const payload = await this.client.postJson(
-			`/Detail/${formatGuidLiteral(detailId)}/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getParseMetadata`,
-			undefined,
+			`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getParseMetadata`,
+			{ DetailId: detailId },
 			{ headers: await this.client.ensureWriteHeaders('POST') }
 		);
 		const entity = normalizeODataEntity(payload);
@@ -221,6 +221,20 @@ export default class DetailService {
 			detailId: String(entity.DetailId ?? detailId),
 			metadataXml: String(entity.MetadataXml ?? entity.metadataXml ?? '')
 		};
+	}
+
+	public async compareDetail(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[] | null> {
+		const payload = await this.client.postJson(
+			`Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree`,
+			{ base_detail_id: baseDetailId, compare_detail_id: compareDetailId },
+			{ headers: await this.client.ensureWriteHeaders('POST') }
+		);
+		const entity = normalizeODataEntity(payload);
+		if (!Object.keys(entity).length || !Array.isArray(entity.NODEDIFF)) {
+			return null;
+		}
+
+		return entity.NODEDIFF.map(mapNodeDiffItem);
 	}
 
 	private loadMockDetailForVersion(versionId: string): RegistryDetail | null {

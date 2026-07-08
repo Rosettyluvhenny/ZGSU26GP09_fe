@@ -180,6 +180,7 @@ export interface NodeTreeViewItem extends NodeTreeResponseItem {
 	detailId?: string;
 	isAttribute?: boolean;
 	isAttributeGroup?: boolean;
+	highlight?: string;
 }
 
 export interface NodeTreeActionResult {
@@ -219,3 +220,6 @@ export interface CompareVersionResult {
 	unchange: CompareVersionEntry[];
 }
 
+export interface DetailId {
+	DetailId: string;
+}

@@ -97,50 +97,7 @@
 					</content>
 				</Panel>
 
-				<Panel headerText="Detail Comparison" expandable="false" class="sapUiSmallMarginTop" busy="{versionCompare>/compareWorkspaceBusy}">
-					<content>
-						<VBox>
-							<HBox width="100%" alignItems="Start" class="sapUiSmallMarginBottom">
-								<Panel headerText="Base Node Tree" expandable="false" width="49%" class="sapUiTinyMarginEnd">
-									<content>
-										<ScrollContainer id="baseTreeScroll" height="34rem" vertical="true" horizontal="false">
-											<Tree items="{path: 'versionCompare>/baseTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onBaseTreeSelectionChange">
-												<StandardTreeItem title="{= ${versionCompare>label} + (${versionCompare>diffStatus} ? ' [' + ${versionCompare>diffStatus} + ']' : '') }" />
-											</Tree>
-										</ScrollContainer>
-									</content>
-								</Panel>
 
-								<Panel headerText="Compare Node Tree" expandable="false" width="49%">
-									<content>
-										<ScrollContainer id="compareTreeScroll" height="34rem" vertical="true" horizontal="false">
-											<Tree items="{path: 'versionCompare>/compareTree', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onCompareTreeSelectionChange">
-												<StandardTreeItem title="{= ${versionCompare>label} + (${versionCompare>diffStatus} ? ' [' + ${versionCompare>diffStatus} + ']' : '') }" />
-											</Tree>
-										</ScrollContainer>
-									</content>
-								</Panel>
-							</HBox>
-
-							<HBox width="100%" alignItems="Start">
-								<Panel headerText="Base XML" expandable="false" width="49%" class="sapUiTinyMarginEnd">
-									<content>
-										<ScrollContainer id="baseXmlScroll" height="36rem" vertical="true" horizontal="true">
-											<TextArea value="{versionCompare>/baseXml}" width="100%" rows="34" editable="false" />
-										</ScrollContainer>
-									</content>
-								</Panel>
-								<Panel headerText="Compare XML" expandable="false" width="49%">
-									<content>
-										<ScrollContainer id="compareXmlScroll" height="36rem" vertical="true" horizontal="true">
-											<TextArea value="{versionCompare>/compareXml}" width="100%" rows="34" editable="false" />
-										</ScrollContainer>
-									</content>
-								</Panel>
-							</HBox>
-						</VBox>
-					</content>
-				</Panel>
 			</VBox>
 		</f:content>
 	</f:DynamicPage>

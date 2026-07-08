@@ -2,8 +2,18 @@
 	width: 100%;
 }
 
+.versionDetailSplitPage {
+	height: 100%;
+}
+
 .versionDetailNodeTree .sapMLIB:hover {
 	cursor: pointer;
+}
+
+.versionDetailXmlScroll {
+	width: 100%;
+	height: 100%;
+	overflow: auto;
 }
 
 .versionDetailXmlTable .sapMListTbl {
@@ -21,6 +31,7 @@
 	padding-right: 0.75rem;
 	font-family: monospace;
 	color: var(--sapContent_LabelColor);
+	white-space: nowrap;
 }
 
 .versionDetailXmlText {
@@ -30,4 +41,20 @@
 
 .versionDetailXmlTable .sapMLIB:hover {
 	cursor: pointer;
+}
+
+.versionDetailXmlHighlighted {
+	background-color: var(--sapList_Hover_Background) !important;
+}
+
+li[data-diffstatus="Warning"] {
+	background-color: var(--sapWarningBackground, #fdf2e5) !important;
+}
+
+li[data-diffstatus="Success"] {
+	background-color: var(--sapSuccessBackground, #eaf6ea) !important;
+}
+
+li[data-diffstatus="Error"] {
+	background-color: var(--sapErrorBackground, #ffebee) !important;
 }

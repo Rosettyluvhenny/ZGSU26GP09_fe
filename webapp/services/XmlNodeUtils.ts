@@ -4,6 +4,11 @@ export interface XmlLineMap {
 	lineStarts: number[];
 }
 
+export interface PrettyXmlResult {
+	prettyXml: string;
+	rawOffsets: number[];
+}
+
 function asText(value: unknown): string {
 	return value === null || value === undefined ? '' : String(value);
 }
@@ -65,27 +70,25 @@ function createAttributeNodes(item: NodeTreeResponseItem): NodeTreeViewItem[] {
 	return [attributeGroup];
 }
 
-export function prettyPrintXml(rawXml: string): string {
-	const xml = asText(rawXml).trim();
+export function prettyPrintXml(rawXml: string): PrettyXmlResult {
+	const xml = asText(rawXml);
 	if (!xml) {
-		return '';
+		return { prettyXml: '', rawOffsets: [] };
 	}
 
-	const tokens = xml
-		.replace(/>\s+</g, '><')
-		.match(/<[^>]+>|[^<]+/g);
-	if (!tokens) {
-		return xml;
-	}
-
+	const regex = /(<[^>]+>)|([^<]+)/g;
+	let match;
 	const lines: string[] = [];
+	const rawOffsets: number[] = [];
 	let indent = 0;
-	for (const token of tokens) {
-		const text = token.trim();
+
+	while ((match = regex.exec(xml)) !== null) {
+		const text = match[0].trim();
 		if (!text) {
 			continue;
 		}
 
+		const rawOffset = match.index;
 		const isClosingTag = /^<\//.test(text);
 		const isOpeningTag = /^<[^!?/][^>]*>$/.test(text) && !/\/>$/.test(text);
 		const isSelfClosingTag = /\/>$/.test(text) || /^<\?/.test(text) || /^<!/.test(text);
@@ -95,13 +98,17 @@ export function prettyPrintXml(rawXml: string): string {
 		}
 
 		lines.push(`${'\t'.repeat(indent)}${text}`);
+		rawOffsets.push(rawOffset);
 
 		if (isOpeningTag && !isSelfClosingTag) {
 			indent += 1;
 		}
 	}
 
-	return lines.join('\n');
+	return {
+		prettyXml: lines.join('\n'),
+		rawOffsets
+	};
 }
 
 export function buildXmlLineMap(xml: string): XmlLineMap {
