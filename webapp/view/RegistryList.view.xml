@@ -45,11 +45,12 @@
 						<Column width="14rem"><Text text="Registry Name" /></Column>
 						<Column width="12rem"><Text text="Service Name" /></Column>
 						<Column width="8rem"><Text text="Service Type" /></Column>
+						<Column width="6rem"><Text text="Version No" /></Column>
 						<Column width="9rem"><Text text="Current Status" /></Column>
-						<Column width="11rem"><Text text="Created By" /></Column>
-						<Column width="11rem"><Text text="Created At" /></Column>
-						<Column width="11rem"><Text text="Last Changed By" /></Column>
-						<Column width="11rem"><Text text="Last Changed At" /></Column>
+						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Created By" /></Column>
+						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Created At" /></Column>
+						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Last Changed By" /></Column>
+						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Last Changed At" /></Column>
 						<Column width="10rem" visible="{registryList>/canUpdate}"><Text text="Actions" /></Column>
 					</columns>
 					<items>
@@ -58,6 +59,7 @@
 								<ObjectIdentifier title="{registryList>registryName}" text="{registryList>description}" />
 								<Text text="{registryList>serviceName}" />
 								<ObjectStatus text="{registryList>serviceType}" />
+								<Text text="{registryList>versionNo}" />
 								<ObjectStatus text="{registryList>statusText}" state="{path: 'registryList>status', formatter: '.formatStatusState'}" />
 								<Text text="{registryList>createdBy}" />
 								<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />

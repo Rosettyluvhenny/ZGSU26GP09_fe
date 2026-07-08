@@ -32,9 +32,9 @@
 										</Select>
 									</form:fields>
 								</form:FormElement>
-								<form:FormElement label="Version No" visible="{= ${registryDialog>/groupType} !== '002' }">
+								<form:FormElement label="Version No" visible="{= ${registryDialog>/groupType} !== '2' }">
 									<form:fields>
-										<Input value="{registryDialog>/versionNo}" required="{= ${registryDialog>/groupType} === '001' }" maxLength="6" placeholder="001" />
+										<Input value="{registryDialog>/versionNo}" required="{= ${registryDialog>/groupType} === '1' }" maxLength="6" placeholder="001" />
 									</form:fields>
 								</form:FormElement>
 							</form:formElements>

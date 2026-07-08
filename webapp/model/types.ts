@@ -1,4 +1,4 @@
-export type RegistryStatus = 'Publish' | 'Unpublish' | 'Archive';
+export type RegistryStatus = 'Published' | 'Unpublished' | 'Archive';
 
 export type JobStatus = 'Completed' | 'Running' | 'Failed' | 'Queued';
 
@@ -45,6 +45,8 @@ export interface Registry {
 	registryName: string;
 	serviceName: string;
 	serviceType: string;
+	etag?: string;
+	versionNo?: string;
 	status: RegistryStatus;
 	statusText: string;
 	description: string;

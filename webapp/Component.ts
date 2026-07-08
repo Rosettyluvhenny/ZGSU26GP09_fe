@@ -38,8 +38,28 @@ export default class Component extends UIComponent {
 
 		this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter(), this.authenticationService);
+		
+		this.setupRouteGuard();
 		void this.restoreSessionOnStartup();
 		this.getRouter().initialize();
+	}
+
+	private setupRouteGuard(): void {
+		this.getRouter().attachRouteMatched((event: any) => {
+			const routeName = event.getParameter('name') as string;
+			const sessionModel = this.getModel('session') as JSONModel;
+			const session = sessionModel.getData() as { authenticated?: boolean };
+
+			const isLoginRoute = !routeName || routeName === 'login';
+
+			if (session.authenticated && isLoginRoute) {
+				// Logged in but trying to reach login -> redirect to home (registry management)
+				this.getRouter().navTo('home', {}, undefined, true);
+			} else if (!session.authenticated && !isLoginRoute) {
+				// Not logged in but trying to reach protected page -> redirect to login
+				this.getRouter().navTo('login', {}, undefined, true);
+			}
+		});
 	}
 
 	private injectAppStylesheet(): void {

@@ -34,8 +34,7 @@ export default class VersionCompare extends BaseController {
 				baseLineStarts: [],
 				compareLineStarts: [],
 				selectedCompareEntry: null,
-				compareLineStarts: [],
-				selectedCompareEntry: null
+
 			}),
 			'versionCompare'
 		);

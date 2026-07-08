@@ -5,7 +5,7 @@ import MessageToast from 'sap/m/MessageToast';
 import Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
-import type { RegistryVersion } from '../model/types';
+import type { Registry, RegistryVersion } from '../model/types';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -49,12 +49,35 @@ export default class RegistryDetail extends BaseController {
 		}
 
 		const model = this.getModel('registryDetail') as JSONModel;
+		const registry = model.getProperty('/registry') as Registry;
 		model.setProperty('/generateBusy', true);
 		BusyIndicator.show(0);
 		try {
-			await this.getOwnerComponent().getRegistryService().generateVersion(this.registryId);
+			const response = await this.getOwnerComponent().getRegistryService().generateVersion(this.registryId, registry?.etag);
 			MessageToast.show('Created successfully');
-			await this.loadRegistry();
+
+			if (response) {
+				// Remove @odata.etag before merging so we don't update it
+				delete response['@odata.etag'];
+				const { mapRegistryEntity } = await import('../services/ODataParsers');
+				const mappedResponse = mapRegistryEntity(response);
+
+				// Update registry with all information except etag (which was removed)
+				const updatedRegistry = { ...registry };
+				(Object.keys(mappedResponse) as Array<keyof Registry>).forEach(key => {
+					if (mappedResponse[key] !== undefined && mappedResponse[key] !== '') {
+						// @ts-ignore
+						updatedRegistry[key] = mappedResponse[key];
+					}
+				});
+				model.setProperty('/registry', updatedRegistry);
+
+				// We also need to reload just the versions list
+				const versions = await this.getOwnerComponent().getVersionService().getVersions(this.registryId);
+				model.setProperty('/versions', versions);
+			} else {
+				await this.loadRegistry();
+			}
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {

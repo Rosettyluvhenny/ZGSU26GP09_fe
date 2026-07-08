@@ -1,6 +1,6 @@
 import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
-import { readMockData } from './MockStore';
+
 import type { CompareVersionEntry, CompareVersionResult, RegistryVersion, VersionCompareActionEntry, VersionCompareActionResult } from '../model/types';
 import { mapVersionEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 import DetailService from './DetailService';
@@ -52,96 +52,31 @@ export default class VersionService {
 	public constructor(private readonly detailService: DetailService) {}
 
 	public async getVersions(registryId: string): Promise<RegistryVersion[]> {
-		try {
-			const backendVersions = await this.loadVersionsFromBackend(registryId);
-			if (backendVersions.length > 0) {
-				return delay(backendVersions);
-			}
-		} catch {
-			// Fall back to mock data below.
-		}
-
-		const data = readMockData();
-		const registry = data.registries.find((item) => item.id === registryId);
-		if (!registry) {
-			throw new ServiceError(404, 'Registry not found.');
-		}
-
-		return delay(
-			registry.versions.map((version) => ({
-				...version,
-				metadata: { ...version.metadata }
-			}))
-		);
+		const backendVersions = await this.loadVersionsFromBackend(registryId);
+		return delay(backendVersions);
 	}
 
 	public async getVersion(versionId: string): Promise<RegistryVersion> {
-		try {
-			const backendVersion = await this.loadVersionFromBackend(versionId);
-			if (backendVersion) {
-				return delay(backendVersion);
-			}
-		} catch {
-			// Fall back to mock data below.
+		const backendVersion = await this.loadVersionFromBackend(versionId);
+		if (!backendVersion) {
+			throw new ServiceError(404, 'Version not found.');
 		}
-
-		const data = readMockData();
-		for (const registry of data.registries) {
-			const version = registry.versions.find((item) => item.id === versionId);
-			if (version) {
-				return delay({
-					...version,
-					metadata: { ...version.metadata }
-				});
-			}
-		}
-
-		throw new ServiceError(404, 'Version not found.');
+		return delay(backendVersion);
 	}
 
 	public async compareVersions(leftVersionId: string, rightVersionId: string): Promise<CompareVersionResult> {
-		try {
-			const headers = await this.client.ensureWriteHeaders('POST');
-			const payload = normalizeODataEntity(
-				await this.client.postJson(
-					'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
-					{
-						base_vrs_id: leftVersionId,
-						compare_vrs_id: rightVersionId
-					},
-					{ headers }
-				)
-			) as VersionCompareActionResult;
-			if (Object.keys(payload).length > 0) {
-				return delay(mapCompareResult(payload));
-			}
-		} catch (error) {
-			if (!(error instanceof TypeError) && !String(error).toLowerCase().includes('fetch')) {
-				throw error;
-			}
-		}
-
-		const [left, right] = await Promise.all([
-			this.getVersion(leftVersionId),
-			this.getVersion(rightVersionId)
-		]);
-
-		const toEntry = (serviceDefId: string, changeType: CompareVersionEntry['changeType']): CompareVersionEntry => ({
-			serviceDefId,
-			baseDetailId: left.id,
-			compareDetailId: right.id,
-			changeType
-		});
-
-		const leftLabel = left.metadata.entityTypes.join(', ') || left.versionNumber;
-		const rightLabel = right.metadata.entityTypes.join(', ') || right.versionNumber;
-		return delay({
-			baseVersionId: left.id,
-			compareVersionId: right.id,
-			change: leftLabel === rightLabel ? [] : [toEntry(leftLabel, 'CHANGED')],
-			differ: leftLabel === rightLabel ? [] : [toEntry(rightLabel, 'ADDED')],
-			unchange: leftLabel === rightLabel ? [toEntry(leftLabel, 'UNCHANGED')] : []
-		});
+		const headers = await this.client.ensureWriteHeaders('POST');
+		const payload = normalizeODataEntity(
+			await this.client.postJson(
+				'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
+				{
+					base_vrs_id: leftVersionId,
+					compare_vrs_id: rightVersionId
+				},
+				{ headers }
+			)
+		) as VersionCompareActionResult;
+		return delay(mapCompareResult(payload));
 	}
 
 	private async loadVersionsFromBackend(registryId: string): Promise<RegistryVersion[]> {

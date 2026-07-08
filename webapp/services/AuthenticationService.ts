@@ -1,5 +1,5 @@
 import ServiceError from './ServiceError';
-import { readSessionStorage, removeSessionStorage, writeSessionStorage } from './MockStore';
+import { readSessionStorage, removeSessionStorage, writeSessionStorage } from './SessionStorage';
 import type { SessionData } from '../model/types';
 
 const EMPTY_SESSION: SessionData = {

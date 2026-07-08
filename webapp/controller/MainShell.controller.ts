@@ -10,9 +10,19 @@ export default class MainShell extends BaseController {
 	private initialRedirectDone = false;
 
 	public onInit(): void {
+		this.getRouter().getRoute("home").attachPatternMatched(this.onRouteMatched, this);
+		
 		this.getView().addEventDelegate({
-			onAfterRendering: () => this.handleAfterRendering(),
+			onAfterRendering: () => this.flushPendingNavigation(),
 		});
+	}
+
+	public onRouteMatched(): void {
+		if (!this.initialRedirectDone) {
+			this.getUiModel().setProperty("/currentSection", "registries");
+			this.navigateWhenReady("registryList");
+			this.initialRedirectDone = true;
+		}
 	}
 
 	public onNavigateRegistries(): void {
@@ -39,16 +49,6 @@ export default class MainShell extends BaseController {
 
 	private navigateWhenReady(route: "registryList" | "jobList"): void {
 		this.pendingRoute = route;
-		this.flushPendingNavigation();
-	}
-
-	private handleAfterRendering(): void {
-		if (!this.initialRedirectDone && this.getCurrentHash() === "home") {
-			this.getUiModel().setProperty("/currentSection", "registries");
-			this.pendingRoute = "registryList";
-			this.initialRedirectDone = true;
-		}
-
 		this.flushPendingNavigation();
 	}
 

@@ -37,10 +37,10 @@ export default {
 
 	formatStatusState: (status: Registry['status'] | Job['status']): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' => {
 		switch (status) {
-			case 'Publish':
+			case 'Published':
 			case 'Completed':
 				return 'Success';
-			case 'Unpublish':
+			case 'Unpublished':
 			case 'Queued':
 				return 'Warning';
 			case 'Archive':

@@ -59,7 +59,7 @@ export default class DetailCompare extends BaseController {
 		this.attachScrollSync('baseXmlScroll', 'compareXmlScroll', false);
 	}
 
-	public onNavBack(): void {
+	public async onNavBack(): Promise<void> {
 		if (this.registryId && this.leftVersionId && this.rightVersionId) {
 			this.getRouter().navTo('versionCompare', {
 				registryId: this.registryId,
@@ -98,6 +98,8 @@ export default class DetailCompare extends BaseController {
 		model.setProperty('/baseDetailId', this.baseDetailId);
 		model.setProperty('/compareDetailId', this.compareDetailId);
 		model.setProperty('/compareWorkspaceBusy', true);
+		model.setProperty('/baseTree', []);
+		model.setProperty('/compareTree', []);
 		BusyIndicator.show(0);
 		try {
 			const [baseDetail, compareDetail, baseParsedDetail, compareParsedDetail, baseNodeTree, compareNodeTree, compareNodeDiff] = await Promise.all([
@@ -162,7 +164,7 @@ export default class DetailCompare extends BaseController {
 					if (status === 'DELETED') return 'Error'; // Red
 					return 'None';
 				};
-				const applyHighlight = (nodes: NodeTreeViewItem[], parentStatus?: string): boolean => {
+				const applyHighlight = (nodes: NodeTreeViewItem[], parentStatus?: string, isParentHighlighted = false): boolean => {
 					let anyExpanded = false;
 					for (const node of nodes) {
 						let status = newDiffMap.get(node.semanticId);
@@ -173,13 +175,19 @@ export default class DetailCompare extends BaseController {
 						}
 
 						node.highlight = mapHighlight(status);
+						
+						const thisNodeHighlighted = node.highlight !== 'None';
+						const effectivelyHighlightedParent = isParentHighlighted || thisNodeHighlighted;
 
 						let childrenExpanded = false;
 						if (node.children && node.children.length > 0) {
-							childrenExpanded = applyHighlight(node.children, status);
+							childrenExpanded = applyHighlight(node.children, status, effectivelyHighlightedParent);
 						}
 
-						if (node.highlight !== 'None' || childrenExpanded) {
+						if (childrenExpanded) {
+							(node as any).shouldExpand = true;
+							anyExpanded = true;
+						} else if (thisNodeHighlighted && !isParentHighlighted) {
 							(node as any).shouldExpand = true;
 							anyExpanded = true;
 						} else {
@@ -212,14 +220,24 @@ export default class DetailCompare extends BaseController {
 
 	private scheduleTreeExpansion(treeId: string): void {
 		const tree = this.byId(treeId) as any;
+		console.log(`[scheduleTreeExpansion] looking for "${treeId}"`, tree);
 		if (!tree) return;
 
 		tree.attachEventOnce('updateFinished', () => {
 			const binding = tree.getBinding('items');
-			if (!binding || typeof binding.expand !== 'function') return;
+			console.log(`[scheduleTreeExpansion] updateFinished fired for "${treeId}"`);
+			console.log(`[scheduleTreeExpansion] binding type`, binding?.getMetadata?.().getName());
+			
+			if (!binding || typeof binding.expand !== 'function') {
+				console.warn(`[scheduleTreeExpansion] missing binding or expand function`);
+				return;
+			}
 
 			let i = 0;
 			let limit = 0;
+			const length = binding.getLength();
+			console.log(`[scheduleTreeExpansion] starting loop... length:`, length);
+			
 			while (i < binding.getLength() && limit < 100000) {
 				limit++;
 				const context = binding.getContextByIndex(i);
@@ -227,11 +245,13 @@ export default class DetailCompare extends BaseController {
 				
 				if (node && node.shouldExpand && node.children && node.children.length > 0) {
 					if (typeof binding.isExpanded === 'function' && !binding.isExpanded(i)) {
+						console.log(`[scheduleTreeExpansion] expanding node at index ${i}:`, node.label || node.nodeName);
 						binding.expand(i);
 					}
 				}
 				i++;
 			}
+			console.log(`[scheduleTreeExpansion] loop finished after ${limit} iterations. New length:`, binding.getLength());
 		});
 	}
 

@@ -1,6 +1,6 @@
 import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
 import ServiceError from './ServiceError';
-import { readMockData, writeMockData } from './MockStore';
+
 import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem, RegistryVersion, VersionActionResult } from '../model/types';
 import { emptyMetadata, mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
@@ -10,30 +10,7 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	});
 }
 
-function createXml(registryName: string, versionNumber: string): string {
-	return [
-		`<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">`,
-		`  <edmx:DataServices>`,
-		`    <Schema Namespace="${registryName}" xmlns="http://docs.oasis-open.org/odata/ns/edm">`,
-		`      <EntityContainer Name="${registryName}Container">`,
-		`        <EntitySet Name="${registryName}Entities" EntityType="${registryName}.${registryName}Entity${versionNumber.replace(/\./g, '')}" />`,
-		`      </EntityContainer>`,
-		`    </Schema>`,
-		`  </edmx:DataServices>`,
-		`</edmx:Edmx>`
-	].join('\n');
-}
 
-function nextVersionNumber(version: string): string {
-	const parts = version.split('.').map((part) => Number.parseInt(part, 10));
-	if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
-		return '1.0.0';
-	}
-
-	parts[1] += 1;
-	parts[2] = 0;
-	return parts.join('.');
-}
 
 function normalizeGuid(value: string): string {
 	return value.replace(/[{}]/g, '').trim();
@@ -139,7 +116,7 @@ async function readJson(path: string): Promise<unknown> {
 	return response.json();
 }
 
-async function writeJson(path: string, method: 'POST' | 'PATCH', body: unknown, headers: Record<string, string>): Promise<unknown> {
+async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body: unknown, headers: Record<string, string>): Promise<unknown> {
 	const response = await fetch(buildServiceUrl(path), {
 		method,
 		credentials: 'include',
@@ -164,60 +141,7 @@ async function writeJson(path: string, method: 'POST' | 'PATCH', body: unknown, 
 	return text ? JSON.parse(text) : {};
 }
 
-function createMockRegistryFromInput(input: RegistryCreateInput, createdBy: string): Registry {
-	const now = new Date().toISOString();
-	const groupTypeText = input.groupType === '001' ? 'RAP' : input.groupType === '002' ? 'CDS' : input.groupType;
-	return {
-		id: `reg-${Date.now().toString(36)}`,
-		registryName: input.groupName,
-		serviceName: input.groupName.replace(/\s+/g, ''),
-		serviceType: groupTypeText,
-		status: 'Unpublish',
-		statusText: 'Unpublish',
-		description: '',
-		createdBy,
-		createdAt: now,
-		lastChangedBy: createdBy,
-		lastChangedAt: now,
-		serviceDefinition: '',
-		versions: []
-	};
-}
 
-function createMockVersion(registry: Registry, comment = 'Generated via frontend', changedBy = 'demo.user'): RegistryVersion {
-	const latest = registry.versions[registry.versions.length - 1];
-	const versionNumber = nextVersionNumber(latest?.versionNumber ?? '1.0.0');
-	return {
-		id: `${registry.id}-${versionNumber}`,
-		versionNumber,
-		createdBy: changedBy,
-		createdAt: new Date().toISOString(),
-		comment,
-		metadata: {
-			entityTypes: [`${registry.registryName}Entity${versionNumber.replace(/\./g, '')}`],
-			entitySets: [`${registry.registryName}Entities`],
-			properties: ['ID', 'Name', 'Status', 'ChangedAt'],
-			navigationProperties: ['to_Parent', 'to_Children'],
-			functionImports: ['GetOverview', 'GetStatus'],
-			actions: ['Activate', 'Deactivate', 'GenerateVersion'],
-			complexTypes: ['Address', 'AuditInfo']
-		},
-		xml: createXml(registry.registryName, versionNumber)
-	};
-}
-
-function mapGeneratedVersionResult(result: VersionActionResult): RegistryVersion {
-	return {
-		id: result.VersionId,
-		groupId: result.GroupId,
-		versionNumber: result.VersionNo,
-		createdBy: result.CreatedBy,
-		createdAt: result.CreatedAt ?? new Date().toISOString(),
-		comment: '',
-		metadata: emptyMetadata(),
-		xml: ''
-	};
-}
 
 export default class RegistryService {
 	private readonly client = new ODataClient();
@@ -238,81 +162,28 @@ export default class RegistryService {
 	}
 
 	public async getGroupTypes(): Promise<RegistryValueHelpItem[]> {
-		try {
-			const payload = await readJson('/ZI_GRP_TYPE_VH');
-			const items = toValueHelpItems(payload, ['TypeId']);
-			if (items.length > 0) {
-				return delay(items);
-			}
-		} catch (error) {
-			if (!isNetworkFailure(error)) {
-				throw error;
-			}
-		}
-
-		return delay([
-			{ key: '001', text: 'RAP' },
-			{ key: '002', text: 'CDS' }
-		]);
+		const payload = await readJson('/ZI_GRP_TYPE_VH');
+		const items = toValueHelpItems(payload, ['TypeId']);
+		return delay(items);
 	}
 
 	public async getStatuses(): Promise<RegistryValueHelpItem[]> {
-		try {
-			const payload = await readJson('/ZI_GRP_STAT_VH');
-			const items = toValueHelpItems(payload, ['StatusId']);
-			if (items.length > 0) {
-				return delay(items);
-			}
-		} catch (error) {
-			if (!isNetworkFailure(error)) {
-				throw error;
-			}
-		}
-
-		return delay([
-			{ key: 'P', text: 'Publish' },
-			{ key: 'U', text: 'Unpublish' },
-			{ key: 'A', text: 'Archive' }
-		]);
+		const payload = await readJson('/ZI_GRP_STAT_VH');
+		const items = toValueHelpItems(payload, ['StatusId']);
+		return delay(items);
 	}
 
 	public async getRegistries(search = '', status = 'All'): Promise<Registry[]> {
-		try {
-			const backendRegistries = await this.loadRegistriesFromBackend();
-			if (backendRegistries.length > 0) {
-				return delay(this.filterRegistries(backendRegistries, search, status));
-			}
-		} catch {
-			// Fall back to mock data below.
-		}
-
-		const data = readMockData();
-		return delay(
-			this.filterRegistries(
-				data.registries.map((registry) => JSON.parse(JSON.stringify(registry)) as Registry),
-				search,
-				status
-			)
-		);
+		const backendRegistries = await this.loadRegistriesFromBackend();
+		return delay(this.filterRegistries(backendRegistries, search, status));
 	}
 
 	public async getRegistry(registryId: string): Promise<Registry> {
-		try {
-			const backendRegistry = await this.loadRegistryFromBackend(registryId);
-			if (backendRegistry) {
-				return delay(backendRegistry);
-			}
-		} catch {
-			// Fall back to mock data below.
-		}
-
-		const data = readMockData();
-		const registry = data.registries.find((item) => item.id === registryId);
-		if (!registry) {
+		const backendRegistry = await this.loadRegistryFromBackend(registryId);
+		if (!backendRegistry) {
 			throw new ServiceError(404, 'Registry not found.');
 		}
-
-		return delay(JSON.parse(JSON.stringify(registry)) as Registry);
+		return delay(backendRegistry);
 	}
 
 	public async createRegistry(input: RegistryCreateInput, createdBy = 'demo.user'): Promise<Registry> {
@@ -321,31 +192,17 @@ export default class RegistryService {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
 		}
 
-		try {
-			const headers = await this.client.ensureWriteHeaders('POST');
-			const payload: Record<string, string> = {
-				GroupName: input.groupName.trim(),
-				GroupType: input.groupType.trim()
-			};
-			if (input.versionNo.trim()) {
-				payload.VersionNo = input.versionNo.trim();
-			}
-
-			const entity = normalizeODataEntity(await writeJson('/Registry', 'POST', payload, headers));
-			if (Object.keys(entity).length > 0) {
-				return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
-			}
-		} catch (error) {
-			if (!isNetworkFailure(error)) {
-				throw error;
-			}
+		const headers = await this.client.ensureWriteHeaders('POST');
+		const payload: Record<string, string> = {
+			GroupName: input.groupName.trim(),
+			GroupType: input.groupType.trim()
+		};
+		if (input.versionNo.trim()) {
+			payload.VersionNo = input.versionNo.trim();
 		}
 
-		const data = readMockData();
-		const registry = createMockRegistryFromInput(input, createdBy);
-		data.registries.unshift(registry);
-		writeMockData(data);
-		return delay(JSON.parse(JSON.stringify(registry)) as Registry);
+		const entity = normalizeODataEntity(await writeJson('/Registry', 'POST', payload, headers));
+		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
 	public async updateRegistry(registryId: string, input: RegistryUpdateInput, changedBy = 'demo.user'): Promise<Registry> {
@@ -354,81 +211,39 @@ export default class RegistryService {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
 		}
 
-		try {
-			const headers = await this.client.ensureWriteHeaders('PATCH');
-			const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: input.status.trim() }, headers));
-			if (Object.keys(entity).length > 0) {
-				return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
-			}
-		} catch (error) {
-			if (!isNetworkFailure(error)) {
-				throw error;
-			}
-		}
-
-		const data = readMockData();
-		const registry = data.registries.find((item) => item.id === registryId);
-		if (!registry) {
-			throw new ServiceError(404, 'Registry not found.');
-		}
-
-		registry.status = this.statusTextFromId(input.status) as Registry['status'];
-		registry.statusText = registry.status;
-		registry.lastChangedBy = changedBy;
-		registry.lastChangedAt = new Date().toISOString();
-		writeMockData(data);
-		return delay(JSON.parse(JSON.stringify(registry)) as Registry);
+		const headers = await this.client.ensureWriteHeaders('PATCH');
+		const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: input.status.trim() }, headers));
+		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
 	public async deleteRegistry(registryId: string): Promise<void> {
 		await this.client.ensureWriteHeaders('DELETE');
-		const data = readMockData();
-		data.registries = data.registries.filter((item) => item.id !== registryId);
-		writeMockData(data);
+		await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'DELETE', undefined, await this.client.ensureWriteHeaders('DELETE'));
 		return delay(undefined);
 	}
 
 	public async activateRegistry(registryId: string, changedBy = 'demo.user'): Promise<Registry> {
-		return this.changeStatus(registryId, 'Publish', changedBy);
+		return this.changeStatus(registryId, 'Published', changedBy);
 	}
 
 	public async deactivateRegistry(registryId: string, changedBy = 'demo.user'): Promise<Registry> {
-		return this.changeStatus(registryId, 'Unpublish', changedBy);
+		return this.changeStatus(registryId, 'Unpublished', changedBy);
 	}
 
-	public async generateVersion(registryId: string, comment = 'Generated via frontend', changedBy = 'demo.user'): Promise<RegistryVersion> {
-		try {
-			const headers = await this.client.ensureWriteHeaders('POST');
-			const payload = normalizeODataEntity(
-				await writeJson(
-					`/Registry/${formatGuidLiteral(registryId)}/com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion`,
-					'POST',
-					undefined,
-					headers
-				)
-			);
-			if (Object.keys(payload).length > 0) {
-				const generated = mapGeneratedVersionResult(payload as VersionActionResult);
-				return delay(generated, 350);
-			}
-		} catch (error) {
-			if (!isNetworkFailure(error)) {
-				throw error;
-			}
+	public async generateVersion(registryId: string, etag?: string, comment = 'Generated via frontend', changedBy = 'demo.user'): Promise<any> {
+		const headers = await this.client.ensureWriteHeaders('POST');
+		if (etag) {
+			headers['If-Match'] = etag;
 		}
-
-		const data = readMockData();
-		const registry = data.registries.find((item) => item.id === registryId);
-		if (!registry) {
-			throw new ServiceError(404, 'Registry not found.');
-		}
-
-		const version = createMockVersion(registry, comment, changedBy);
-		registry.versions.push(version);
-		registry.lastChangedBy = changedBy;
-		registry.lastChangedAt = new Date().toISOString();
-		writeMockData(data);
-		return delay(JSON.parse(JSON.stringify(version)) as RegistryVersion, 350);
+		const payload = normalizeODataEntity(
+			await writeJson(
+				`/Registry/${formatGuidLiteral(registryId)}/com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion`,
+				'POST',
+				undefined,
+				headers
+			)
+		);
+		return delay(payload, 350);
 	}
 
 	private filterRegistries(registries: Registry[], search: string, status: string): Registry[] {
@@ -469,19 +284,9 @@ export default class RegistryService {
 	}
 
 	private async changeStatus(registryId: string, status: Registry['status'], changedBy: string): Promise<Registry> {
-		await this.client.ensureWriteHeaders('PATCH');
-		const data = readMockData();
-		const registry = data.registries.find((item) => item.id === registryId);
-		if (!registry) {
-			throw new ServiceError(404, 'Registry not found.');
-		}
-
-		registry.status = status;
-		registry.statusText = status;
-		registry.lastChangedBy = changedBy;
-		registry.lastChangedAt = new Date().toISOString();
-		writeMockData(data);
-		return delay(JSON.parse(JSON.stringify(registry)) as Registry);
+		const headers = await this.client.ensureWriteHeaders('PATCH');
+		const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: status }, headers));
+		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
 	private validateCreateInput(input: RegistryCreateInput): string[] {
@@ -509,13 +314,13 @@ export default class RegistryService {
 	private statusTextFromId(statusId: string): Registry['status'] {
 		switch (statusId.trim().toUpperCase()) {
 			case 'P':
-				return 'Publish';
+				return 'Published';
 			case 'U':
-				return 'Unpublish';
+				return 'Unpublished';
 			case 'A':
 				return 'Archive';
 			default:
-				return 'Unpublish';
+				return 'Unpublished';
 		}
 	}
 }

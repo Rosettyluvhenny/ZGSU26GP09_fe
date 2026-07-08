@@ -5,6 +5,7 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:f="sap.f"
 	xmlns:l="sap.ui.layout"
+	xmlns:form="sap.ui.layout.form"
 	xmlns:core="sap.ui.core">
 
 	<f:DynamicPage id="versionDetailPage" toggleHeaderOnTitleClick="false">
@@ -28,45 +29,46 @@
 			<VBox class="sapUiSmallMargin" busy="{versionDetail>/busy}">
 				<Panel headerText="Version Summary" expandable="false">
 					<content>
-						<l:Grid defaultSpan="L6 M6 S12" hSpacing="1" vSpacing="1">
-							<Label text="Version Number" />
-							<Text text="{versionDetail>/version/versionNumber}" />
-							<Label text="Created By" />
-							<Text text="{versionDetail>/version/createdBy}" />
-							<Label text="Created At" />
-							<Text text="{path: 'versionDetail>/version/createdAt', formatter: '.formatDateTime'}" />
-							<Label text="Comment" />
-							<Text text="{versionDetail>/version/comment}" wrapping="true" />
-						</l:Grid>
+						<form:SimpleForm layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
+							<form:content>
+								<Label text="Version Number" />
+								<Text text="{versionDetail>/version/versionNumber}" />
+								<Label text="Created By" />
+								<Text text="{versionDetail>/version/createdBy}" />
+								<Label text="Created At" />
+								<Text text="{path: 'versionDetail>/version/createdAt', formatter: '.formatDateTime'}" />
+								<Label text="Comment" />
+								<Text text="{versionDetail>/version/comment}" wrapping="true" />
+							</form:content>
+						</form:SimpleForm>
 					</content>
 				</Panel>
 
 				<Panel headerText="Detail" expandable="false" class="sapUiSmallMarginTop">
 					<content>
-						<HBox width="100%" alignItems="Start">
-							<Select
-								class="versionDetailDetailSelect"
-								width="100%"
-								selectedKey="{versionDetail>/selectedDetail/id}"
-								change=".onDetailChange"
-								items="{versionDetail>/details}">
-									<core:Item key="{versionDetail>id}" text="{= ${versionDetail>serviceDefinition} + ' / ' + ${versionDetail>serviceHash} }" />
-								</Select>
-						</HBox>
-						<l:Grid class="sapUiSmallMarginTop" defaultSpan="L12 M12 S12" hSpacing="0.5" vSpacing="0.5">
-							<Label text="DetailId" />
-							<Text text="{versionDetail>/selectedDetail/id}" wrapping="true" />
-							<Label text="ServiceDefId" />
-							<Text text="{versionDetail>/selectedDetail/serviceDefinition}" wrapping="true" />
-							<Label text="ServiceHash" />
-							<Text text="{versionDetail>/selectedDetail/serviceHash}" wrapping="true" />
-							<Label text="VersionId" />
-							<Text text="{versionDetail>/selectedDetail/versionId}" wrapping="true" />
-							<Label text="GroupId" />
-							<Text text="{versionDetail>/selectedDetail/groupId}" wrapping="true" />
-							<Label text="LastChangeAt" />
-							<Text text="{path: 'versionDetail>/selectedDetail/lastChangedAt', formatter: '.formatDateTime'}" wrapping="true" />
-						</l:Grid>
+						<Select
+							width="100%"
+							selectedKey="{versionDetail>/selectedDetail/id}"
+							change=".onDetailChange"
+							items="{versionDetail>/details}">
+								<core:Item width="100%" key="{versionDetail>id}" text="{= ${versionDetail>serviceDefinition} }" />
+						</Select>
+						<form:SimpleForm class="sapUiSmallMarginTop" layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
+							<form:content>
+								<Label text="DetailId" />
+								<Text text="{versionDetail>/selectedDetail/id}" wrapping="true" />
+								<Label text="ServiceDefId" />
+								<Text text="{versionDetail>/selectedDetail/serviceDefinition}" wrapping="true" />
+								<Label text="ServiceHash" />
+								<Text text="{versionDetail>/selectedDetail/serviceHash}" wrapping="true" />
+								<Label text="VersionId" />
+								<Text text="{versionDetail>/selectedDetail/versionId}" wrapping="true" />
+								<Label text="GroupId" />
+								<Text text="{versionDetail>/selectedDetail/groupId}" wrapping="true" />
+								<Label text="LastChangeAt" />
+								<Text text="{path: 'versionDetail>/selectedDetail/lastChangedAt', formatter: '.formatDateTime'}" wrapping="true" />
+							</form:content>
+						</form:SimpleForm>
 					</content>
 				</Panel>
 
@@ -77,7 +79,7 @@
 						</layoutData>
 						<content>
 							<ScrollContainer height="100%" width="100%" vertical="true" horizontal="true">
-								<Tree class="versionDetailNodeTree" id="versionDetailTree" items="{path: 'treeModel>/', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onNodeSelectionChange">
+								<Tree class="versionDetailNodeTree" id="versionDetailTree" noDataText="{= ${versionDetail>/selectedDetailBusy} ? 'Loading...' : 'No data' }" items="{path: 'treeModel>/', parameters: { arrayNames: ['children'] }}" mode="SingleSelectMaster" selectionChange=".onNodeSelectionChange">
 									<StandardTreeItem title="{treeModel>label}" />
 								</Tree>
 							</ScrollContainer>

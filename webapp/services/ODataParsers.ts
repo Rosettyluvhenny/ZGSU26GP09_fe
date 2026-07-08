@@ -71,11 +71,11 @@ function asIsoDate(value: unknown): string {
 
 function mapRegistryStatus(code: unknown, text: unknown): Registry["status"] {
 	const normalizedText = asString(text).toLowerCase();
-	if (normalizedText.includes("publish") || normalizedText.includes("active")) {
-		return "Publish";
-	}
 	if (normalizedText.includes("unpublish") || normalizedText.includes("inactive") || normalizedText.includes("unassigned")) {
-		return "Unpublish";
+		return "Unpublished";
+	}
+	if (normalizedText.includes("publish") || normalizedText.includes("active")) {
+		return "Published";
 	}
 	if (normalizedText.includes("archive")) {
 		return "Archive";
@@ -84,13 +84,13 @@ function mapRegistryStatus(code: unknown, text: unknown): Registry["status"] {
 	const normalizedCode = asString(code).trim().toUpperCase();
 	switch (normalizedCode) {
 		case "P":
-			return "Publish";
+			return "Published";
 		case "U":
-			return "Unpublish";
+			return "Unpublished";
 		case "A":
 			return "Archive";
 		default:
-			return "Unpublish";
+			return "Unpublished";
 	}
 }
 
@@ -211,6 +211,8 @@ export function mapRegistryEntity(entity: ODataRecord, options: { versions?: Reg
 		registryName,
 		serviceName: registryName,
 		serviceType: serviceType || "RAP",
+		etag: asString(entity["@odata.etag"]),
+		versionNo: asString(entity.VersionNo) || asString(entity.versionNo) || "",
 		status,
 		statusText: asString(entity.StatusText) || status,
 		description: asString(entity.Description),

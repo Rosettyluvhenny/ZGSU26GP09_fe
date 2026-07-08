@@ -4,6 +4,7 @@
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:f="sap.f"
+	xmlns:form="sap.ui.layout.form"
 	xmlns:l="sap.ui.layout">
 
 	<f:DynamicPage id="registryDetailPage" toggleHeaderOnTitleClick="false">
@@ -33,16 +34,42 @@
 			<VBox class="sapUiSmallMargin" busy="{registryDetail>/busy}">
 				<Panel headerText="Registry Information" expandable="false">
 					<content>
-						<l:Grid defaultSpan="L6 M6 S12" hSpacing="1" vSpacing="1">
-							<Label text="Registry Name" />
-							<Text text="{registryDetail>/registry/registryName}" />
-							<Label text="Service Name" />
-							<Text text="{registryDetail>/registry/serviceName}" />
-							<Label text="Service Type" />
-							<Text text="{registryDetail>/registry/serviceType}" />
-							<Label text="Description" />
-							<Text text="{registryDetail>/registry/description}" wrapping="true" />
-						</l:Grid>
+						<form:SimpleForm layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
+							<form:content>
+							<Label text="ID" />
+    <Text text="{registryDetail>/registry/id}" />
+
+    <Label text="Registry Name" />
+    <Text text="{registryDetail>/registry/registryName}" />
+
+    <Label text="Service Name" />
+    <Text text="{registryDetail>/registry/serviceName}" />
+
+    <Label text="Service Type" />
+    <Text text="{registryDetail>/registry/serviceType}" />
+
+    <Label text="Status Code" />
+    <Text text="{registryDetail>/registry/status}" />
+
+    <Label text="Version No." />
+    <Text text="{registryDetail>/registry/versionNo}" />
+
+    <Label text="Created By" />
+    <Text text="{registryDetail>/registry/createdBy}" />
+
+    <Label text="Created At" />
+    <Text text="{registryDetail>/registry/createdAt}" />
+
+    <Label text="Last Changed By" />
+    <Text text="{registryDetail>/registry/lastChangedBy}" />
+
+    <Label text="Last Changed At" />
+    <Text text="{registryDetail>/registry/lastChangedAt}" />
+
+    <Label text="Description" />
+    <Text text="{registryDetail>/registry/description}" wrapping="true" />
+							</form:content>
+						</form:SimpleForm>
 					</content>
 				</Panel>
 

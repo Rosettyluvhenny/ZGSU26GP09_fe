@@ -2,7 +2,7 @@ import Device from 'sap/ui/Device';
 import BindingMode from 'sap/ui/model/BindingMode';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
-import { readSessionStorage } from '../services/MockStore';
+import { readSessionStorage } from '../services/SessionStorage';
 import type { SessionData } from './types';
 
 const EMPTY_SESSION: SessionData = {

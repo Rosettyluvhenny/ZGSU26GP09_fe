@@ -1,6 +1,6 @@
 import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
-import { readMockData } from './MockStore';
+
 import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail, RegistryVersion } from '../model/types';
 import { mapDetailEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
@@ -69,125 +69,61 @@ function mapNodeDiffItem(item: Record<string, any>): NodeDiffEntry {
 	};
 }
 
-function createMockDetail(registryId: string, serviceDefinition: string, version: RegistryVersion): RegistryDetail {
-	return {
-		id: `${version.id}-detail`,
-		versionId: version.id,
-		groupId: registryId,
-		serviceDefinition,
-		serviceHash: version.comment,
-		lastChangedAt: version.createdAt,
-		xml: version.xml
-	};
-}
+
 
 export default class DetailService {
 	private readonly client = new ODataClient();
 
 	public async getDetails(versionId: string): Promise<RegistryDetail[]> {
-		try {
-			const backendDetails = await this.loadDetailsFromBackend(versionId);
-			if (backendDetails.length > 0) {
-				return delay(backendDetails);
-			}
-		} catch {
-			// Fall back to mock data below.
-		}
-
-		const detail = this.loadMockDetailForVersion(versionId);
-		if (!detail) {
-			throw new ServiceError(404, 'Version not found.');
-		}
-
-		return delay([detail]);
+		const backendDetails = await this.loadDetailsFromBackend(versionId);
+		return delay(backendDetails);
 	}
 
 	public async getDetail(detailId: string): Promise<RegistryDetail> {
-		try {
-			const backendDetail = await this.loadDetailFromBackend(detailId);
-			if (backendDetail) {
-				return delay(backendDetail);
-			}
-		} catch {
-			// Fall back to mock data below.
-		}
-
-		const detail = this.findMockDetail(detailId);
-		if (!detail) {
+		const backendDetail = await this.loadDetailFromBackend(detailId);
+		if (!backendDetail) {
 			throw new ServiceError(404, 'Detail not found.');
 		}
-
-		return delay(JSON.parse(JSON.stringify(detail)) as RegistryDetail);
+		return delay(backendDetail);
 	}
 
 	public async getParsedDetail(detailId: string): Promise<DetailMetadataResult> {
-		try {
-			const parsedDetail = await this.loadParsedMetadataFromBackend(detailId);
-			if (parsedDetail) {
-				return delay(parsedDetail);
-			}
-		} catch {
-			// Fall back to mock data below.
+		const parsedDetail = await this.loadParsedMetadataFromBackend(detailId);
+		if (parsedDetail) {
+			return delay(parsedDetail);
 		}
-
 		const detail = await this.getDetail(detailId);
 		return delay({ detailId: detail.id, metadataXml: detail.xml });
 	}
 
 	public async getNodeTree(detailId: string): Promise<NodeTreeResponseItem[]> {
-		try {
-			const payload = normalizeODataEntity(
-				await this.client.postJson(
-					`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree`,
-					{ DetailId: detailId },
-					{ headers: await this.client.ensureWriteHeaders('POST') }
-				)
-			) as NodeTreeActionResult;
-			if (Array.isArray(payload.NODETREE)) {
-				return delay(payload.NODETREE.map(mapNodeTreeItem));
-			}
-		} catch {
-			// Fall back to the raw detail XML if the backend action is not available.
+		const payload = normalizeODataEntity(
+			await this.client.postJson(
+				`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree`,
+				{ DetailId: detailId },
+				{ headers: await this.client.ensureWriteHeaders('POST') }
+			)
+		) as NodeTreeActionResult;
+		if (Array.isArray(payload.NODETREE)) {
+			return delay(payload.NODETREE.map(mapNodeTreeItem));
 		}
-
-		const detail = await this.getDetail(detailId);
-		return delay([
-			{
-				nodeId: detail.id,
-				semanticId: detail.serviceDefinition || detail.id,
-				parentId: '',
-				nodePath: '1',
-				nodeType: 'Detail',
-				nodeName: detail.serviceDefinition || 'Detail',
-				nodeAlias: '',
-				offsetStart: 0,
-				offsetEnd: detail.xml.length,
-				seq: 1,
-				depth: 0,
-				attributes: []
-			}
-		]);
+		return delay([]);
 	}
 
 	public async compareNodeTree(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[]> {
-		try {
-			const payload = normalizeODataEntity(
-				await this.client.postJson(
-					'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree',
-					{
-						base_detail_id: baseDetailId,
-						compare_detail_id: compareDetailId
-					},
-					{ headers: await this.client.ensureWriteHeaders('POST') }
-				)
-			) as NodeDiffActionResult;
-			if (Array.isArray(payload.NODEDIFF)) {
-				return delay(payload.NODEDIFF.map(mapNodeDiffItem));
-			}
-		} catch {
-			// Fall back to an empty diff for local/mock usage.
+		const payload = normalizeODataEntity(
+			await this.client.postJson(
+				'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree',
+				{
+					base_detail_id: baseDetailId,
+					compare_detail_id: compareDetailId
+				},
+				{ headers: await this.client.ensureWriteHeaders('POST') }
+			)
+		) as NodeDiffActionResult;
+		if (Array.isArray(payload.NODEDIFF)) {
+			return delay(payload.NODEDIFF.map(mapNodeDiffItem));
 		}
-
 		return delay([]);
 	}
 
@@ -237,28 +173,5 @@ export default class DetailService {
 		return entity.NODEDIFF.map(mapNodeDiffItem);
 	}
 
-	private loadMockDetailForVersion(versionId: string): RegistryDetail | null {
-		const data = readMockData();
-		for (const registry of data.registries) {
-			const version = registry.versions.find((item) => item.id === versionId);
-			if (version) {
-				return createMockDetail(registry.id, registry.serviceDefinition, version);
-			}
-		}
 
-		return null;
-	}
-
-	private findMockDetail(detailId: string): RegistryDetail | null {
-		const data = readMockData();
-		for (const registry of data.registries) {
-			for (const version of registry.versions) {
-				if (`${version.id}-detail` === detailId) {
-					return createMockDetail(registry.id, registry.serviceDefinition, version);
-				}
-			}
-		}
-
-		return null;
-	}
 }

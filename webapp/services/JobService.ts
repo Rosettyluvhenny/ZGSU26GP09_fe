@@ -1,6 +1,6 @@
 import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
-import { readMockData, writeMockData } from './MockStore';
+
 import type { Job } from '../model/types';
 import { mapJobEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
@@ -32,31 +32,7 @@ export default class JobService {
 	}
 
 	public async runScanJob(registryId: string, registryName: string, executedBy = 'demo.user'): Promise<Job> {
-		await this.client.ensureWriteHeaders('POST');
-		const data = readMockData();
-		const startedAt = new Date().toISOString();
-		const finishedAt = new Date(Date.now() + 4 * 60 * 1000).toISOString();
-		const job: Job = {
-			id: `job-${Date.now().toString(36)}`,
-			registryId,
-			registryName,
-			status: 'Completed',
-			startedAt,
-			finishedAt,
-			durationMs: 4 * 60 * 1000,
-			executedBy,
-			logs: [
-				`[INFO] Manual scan started for ${registryName}`,
-				'[INFO] Metadata pulled from service definition',
-				'[INFO] Scan completed successfully'
-			],
-			errorMessage: '',
-			summary: 'Manual scan completed successfully.'
-		};
-
-		data.jobs.unshift(job);
-		writeMockData(data);
-		return delay(cloneJob(job), 400);
+		throw new ServiceError(501, 'runScanJob is not implemented on the backend.');
 	}
 
 	private filterJobs(jobs: Job[], search: string): Job[] {

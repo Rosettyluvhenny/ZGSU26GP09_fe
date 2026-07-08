@@ -79,14 +79,13 @@ export default abstract class BaseController extends Controller {
 
 	public formatStatusState(status: RegistryStatus | JobStatus): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' {
 		switch (status) {
-			case 'Publish':
+			case 'Published':
 			case 'Completed':
 				return 'Success';
-			case 'Unpublish':
+			case 'Unpublished':
 			case 'Queued':
 				return 'Warning';
 			case 'Archive':
-				return 'None';
 			case 'Failed':
 				return 'Error';
 			case 'Running':
@@ -98,10 +97,16 @@ export default abstract class BaseController extends Controller {
 
 	public async onNavBack(): Promise<void> {
 		const previousHash = History.getInstance().getPreviousHash();
-		if (previousHash !== undefined) {
+		// If previous hash is undefined (direct link) or empty (login page)
+		if (previousHash !== undefined && previousHash !== '') {
 			window.history.go(-1);
 		} else {
-			this.getRouter().navTo('login', {}, undefined, true);
+			const session = this.getSessionModel().getData() as { authenticated?: boolean };
+			if (session?.authenticated) {
+				this.getRouter().navTo('home', {}, undefined, true);
+			} else {
+				this.getRouter().navTo('login', {}, undefined, true);
+			}
 		}
 	}
 }
