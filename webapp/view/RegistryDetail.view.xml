@@ -58,13 +58,13 @@
     <Text text="{registryDetail>/registry/createdBy}" />
 
     <Label text="Created At" />
-    <Text text="{registryDetail>/registry/createdAt}" />
+    <Text text="{path: 'registryDetail>/registry/createdAt', formatter: '.formatDateTime'}" />
 
     <Label text="Last Changed By" />
     <Text text="{registryDetail>/registry/lastChangedBy}" />
 
     <Label text="Last Changed At" />
-    <Text text="{registryDetail>/registry/lastChangedAt}" />
+    <Text text="{path: 'registryDetail>/registry/lastChangedAt', formatter: '.formatDateTime'}" />
 
     <Label text="Description" />
     <Text text="{registryDetail>/registry/description}" wrapping="true" />

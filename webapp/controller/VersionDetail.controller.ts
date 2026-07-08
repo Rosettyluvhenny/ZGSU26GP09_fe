@@ -34,14 +34,15 @@ export default class VersionDetail extends BaseController {
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
-		const args = (event as any).getParameter('arguments') as { registryId?: string; versionId?: string };
+		const args = (event as any).getParameter('arguments') as { registryId?: string; versionId?: string; '?query'?: { detailId?: string } };
 		this.registryId = args.registryId ?? null;
 		this.versionId = args.versionId ?? null;
+		const queryDetailId = args['?query']?.detailId ?? null;
 		if (!this.registryId || !this.versionId) {
 			return;
 		}
 
-		await this.loadVersion();
+		await this.loadVersion(queryDetailId);
 	}
 
 	public async onRefresh(): Promise<void> {
@@ -84,7 +85,7 @@ export default class VersionDetail extends BaseController {
 		model.setProperty('/selectedNodeLine', line.lineNo);
 	}
 
-	private async loadVersion(): Promise<void> {
+	private async loadVersion(queryDetailId: string | null = null): Promise<void> {
 		if (!this.registryId || !this.versionId) {
 			return;
 		}
@@ -108,8 +109,9 @@ export default class VersionDetail extends BaseController {
 				selectedDetailLines: []
 			});
 			(this.getModel('treeModel') as JSONModel).setData([]);
-			if (details[0]) {
-				await this.loadDetailWorkspace(details[0]);
+			if (details.length > 0) {
+				const detailToLoad = queryDetailId ? details.find(d => d.id === queryDetailId) || details[0] : details[0];
+				await this.loadDetailWorkspace(detailToLoad);
 			}
 		} catch (error) {
 			await this.handleServiceError(error);

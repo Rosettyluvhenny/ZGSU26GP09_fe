@@ -82,6 +82,29 @@ export default class VersionCompare extends BaseController {
 		});
 	}
 
+	public onViewDifferentDetail(event: UI5Event): void {
+		const entry = this.getCompareEntryFromEvent(event);
+		if (!entry || !this.registryId) {
+			return;
+		}
+
+		const isBaseValid = entry.baseDetailId && entry.baseDetailId !== '00000000-0000-0000-0000-000000000000' && entry.baseDetailId.trim() !== '';
+		const validDetailId = isBaseValid ? entry.baseDetailId : entry.compareDetailId;
+		const targetVersionId = isBaseValid ? this.leftVersionId : this.rightVersionId;
+
+		if (!validDetailId || !targetVersionId) {
+			return;
+		}
+
+		this.getRouter().navTo('versionDetail', {
+			registryId: this.registryId,
+			versionId: targetVersionId,
+			query: {
+				detailId: validDetailId
+			}
+		});
+	}
+
 	// Tree selection and scrolling logic removed as it belongs to DetailCompare
 
 	private async loadComparison(): Promise<void> {

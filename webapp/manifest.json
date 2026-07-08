@@ -85,7 +85,7 @@
 					"target": "registryDetail"
 				},
 				{
-					"pattern": "registries/{registryId}/versions/{versionId}",
+					"pattern": "registries/{registryId}/versions/{versionId}:?query:",
 					"name": "versionDetail",
 					"target": "versionDetail"
 				},

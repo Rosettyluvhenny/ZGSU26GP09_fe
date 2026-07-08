@@ -65,7 +65,13 @@ function asIsoDate(value: unknown): string {
 		return new Date().toISOString();
 	}
 
-	const date = new Date(String(value));
+	let strValue = String(value);
+	// If the backend sends UTC time but without the 'Z' indicator, append it so JS parses it as UTC
+	if (!strValue.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(strValue)) {
+		strValue += 'Z';
+	}
+
+	const date = new Date(strValue);
 	return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
