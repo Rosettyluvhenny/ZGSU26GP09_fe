@@ -6,6 +6,7 @@ import Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
 import type { Registry, RegistryVersion } from '../model/types';
+import { mapRegistryEntity } from '../services/ODataParsers';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -59,7 +60,6 @@ export default class RegistryDetail extends BaseController {
 			if (response) {
 				// Remove @odata.etag before merging so we don't update it
 				delete response['@odata.etag'];
-				const { mapRegistryEntity } = await import('../services/ODataParsers');
 				const mappedResponse = mapRegistryEntity(response);
 
 				// Update registry with all information except etag (which was removed)

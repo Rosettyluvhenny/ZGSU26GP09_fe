@@ -1,4 +1,4 @@
-import BusyIndicator from 'sap/ui/core/BusyIndicator';
+
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
 import type Table from 'sap/m/Table';
@@ -91,7 +91,6 @@ export default class VersionDetail extends BaseController {
 
 		const model = this.getModel('versionDetail') as JSONModel;
 		model.setProperty('/busy', true);
-		BusyIndicator.show(0);
 		try {
 			const [version, details] = await Promise.all([
 				this.getOwnerComponent().getVersionService().getVersion(this.versionId),
@@ -116,7 +115,6 @@ export default class VersionDetail extends BaseController {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
-			BusyIndicator.hide();
 		}
 	}
 
@@ -128,7 +126,6 @@ export default class VersionDetail extends BaseController {
 		(this.getModel('treeModel') as JSONModel).setData([]);
 		model.setProperty('/selectedDetailLineStarts', []);
 		model.setProperty('/selectedDetailLines', []);
-		BusyIndicator.show(0);
 		try {
 			const [loadedDetail, parsedDetail, nodeTree] = await Promise.all([
 				this.getOwnerComponent().getDetailService().getDetail(detail.id),
@@ -152,7 +149,6 @@ export default class VersionDetail extends BaseController {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/selectedDetailBusy', false);
-			BusyIndicator.hide();
 		}
 	}
 

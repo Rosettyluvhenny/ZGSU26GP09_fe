@@ -147,6 +147,7 @@ export default class RegistryList extends BaseController {
 	}
 
 	private async refreshRegistryPage(): Promise<void> {
+		(this.getModel('registryList') as JSONModel).setProperty('/busy', true);
 		await this.loadPermissions();
 		await this.loadRegistries();
 	}

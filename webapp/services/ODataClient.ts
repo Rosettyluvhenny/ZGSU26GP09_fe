@@ -46,10 +46,19 @@ export default class ODataClient {
 		});
 
 		if (!response.ok) {
-			throw new Error(`GET ${path} failed (${response.status})`);
+			throw new ServiceError(response.status, `GET ${path} failed (${response.status})`);
 		}
 
-		return response.json();
+		const text = await response.text();
+		if (!text) {
+			return {};
+		}
+		
+		try {
+			return JSON.parse(text);
+		} catch {
+			return {};
+		}
 	}
 
 	private async requestText(path: string, options: ODataRequestOptions = {}): Promise<string> {
@@ -63,7 +72,7 @@ export default class ODataClient {
 		});
 
 		if (!response.ok) {
-			throw new Error(`GET ${path} failed (${response.status})`);
+			throw new ServiceError(response.status, `GET ${path} failed (${response.status})`);
 		}
 
 		return response.text();
@@ -82,10 +91,19 @@ export default class ODataClient {
 		});
 
 		if (!response.ok) {
-			throw new Error(`${method} ${path} failed (${response.status})`);
+			throw new ServiceError(response.status, `${method} ${path} failed (${response.status})`);
 		}
 
-		return response.json();
+		const text = await response.text();
+		if (!text) {
+			return {};
+		}
+		
+		try {
+			return JSON.parse(text);
+		} catch {
+			return {};
+		}
 	}
 
 	public async authenticate(userName: string, password: string): Promise<string> {
@@ -101,7 +119,7 @@ export default class ODataClient {
 		});
 
 		if (!response.ok) {
-			throw new Error(`Authentication failed (${response.status})`);
+			throw new ServiceError(response.status, `Authentication failed (${response.status})`);
 		}
 
 		const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';

@@ -49,7 +49,7 @@ function mapCompareResult(payload: VersionCompareActionResult): CompareVersionRe
 export default class VersionService {
 	private readonly client = new ODataClient();
 
-	public constructor(private readonly detailService: DetailService) {}
+	public constructor(private readonly detailService: DetailService) { }
 
 	public async getVersions(registryId: string): Promise<RegistryVersion[]> {
 		const backendVersions = await this.loadVersionsFromBackend(registryId);
@@ -98,16 +98,6 @@ export default class VersionService {
 	private async loadVersionFromEntity(entity: Record<string, any>): Promise<RegistryVersion> {
 		const versionId = asString(entity.VersionId) || asString(entity.id);
 		let parsedDetail: { detailId: string; metadataXml: string } | undefined;
-		try {
-			const details = await this.detailService.getDetails(versionId);
-			const primaryDetail = details[0];
-			if (primaryDetail) {
-				parsedDetail = await this.detailService.getParsedDetail(primaryDetail.id);
-			}
-		} catch {
-			parsedDetail = undefined;
-		}
-
 		return mapVersionEntity(entity, parsedDetail);
 	}
 }

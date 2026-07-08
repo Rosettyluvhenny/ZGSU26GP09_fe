@@ -113,7 +113,16 @@ async function readJson(path: string): Promise<unknown> {
 		throw await parseErrorResponse(response, `GET ${path}`);
 	}
 
-	return response.json();
+	const text = await response.text();
+	if (!text) {
+		return {};
+	}
+	
+	try {
+		return JSON.parse(text);
+	} catch {
+		return {};
+	}
 }
 
 async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body: unknown, headers: Record<string, string>): Promise<unknown> {
@@ -132,13 +141,16 @@ async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body
 		throw await parseErrorResponse(response, `${method} ${path}`);
 	}
 
-	const contentType = response.headers.get('content-type') ?? '';
-	if (contentType.includes('application/json')) {
-		return response.json();
-	}
-
 	const text = await response.text();
-	return text ? JSON.parse(text) : {};
+	if (!text) {
+		return {};
+	}
+	
+	try {
+		return JSON.parse(text);
+	} catch {
+		return {};
+	}
 }
 
 
