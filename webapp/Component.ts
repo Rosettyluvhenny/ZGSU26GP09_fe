@@ -38,7 +38,7 @@ export default class Component extends UIComponent {
 
 		this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter(), this.authenticationService);
-		
+
 		this.setupRouteGuard();
 		void this.restoreSessionOnStartup();
 		this.getRouter().initialize();
@@ -54,9 +54,11 @@ export default class Component extends UIComponent {
 
 			if (session.authenticated && isLoginRoute) {
 				// Logged in but trying to reach login -> redirect to home (registry management)
+				event.preventDefault();
 				this.getRouter().navTo('home', {}, undefined, true);
 			} else if (!session.authenticated && !isLoginRoute) {
 				// Not logged in but trying to reach protected page -> redirect to login
+				event.preventDefault();
 				this.getRouter().navTo('login', {}, undefined, true);
 			}
 		});

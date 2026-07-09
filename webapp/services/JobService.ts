@@ -31,8 +31,20 @@ export default class JobService {
 		return delay(backendJob);
 	}
 
-	public async runScanJob(registryId: string, registryName: string, executedBy = 'demo.user'): Promise<Job> {
-		throw new ServiceError(501, 'runScanJob is not implemented on the backend.');
+	public async runScanJob(): Promise<Job> {
+		const headers = await this.client.ensureWriteHeaders('POST');
+		const payload = await this.client.postJson(
+			'/ScanJob/com.sap.gateway.srvd_a2x.zsr_registry.v0001.runScan',
+			undefined,
+			{ headers }
+		);
+
+		const entity = normalizeODataEntity(payload);
+		if (!Object.keys(entity).length) {
+			throw new ServiceError(500, 'Invalid response from runScan action.');
+		}
+
+		return delay(mapJobEntity(entity));
 	}
 
 	private filterJobs(jobs: Job[], search: string): Job[] {
@@ -42,7 +54,7 @@ export default class JobService {
 				return true;
 			}
 
-			return [job.id, job.registryName, job.status, job.executedBy, job.summary].join(' ').toLowerCase().includes(normalized);
+			return [job.id, job.triggerType, job.status, job.executedBy, job.summary].join(' ').toLowerCase().includes(normalized);
 		});
 		return filtered;
 	}

@@ -267,13 +267,15 @@ export function mapJobEntity(entity: ODataRecord): Job {
 
 	return {
 		id: asString(entity.ScanJobId) || asString(entity.id),
-		registryId: asString(entity.TotalRegistry) || asString(entity.GroupId) || asString(entity.ScanJobId) || "",
-		registryName: `Scan Job ${asString(entity.TriggerType) || asString(entity.TriggeredBy) || ""}`.trim(),
 		status,
 		startedAt,
 		finishedAt: finishedAtValue,
 		durationMs: finishedAtValue ? new Date(finishedAtValue).getTime() - new Date(startedAt).getTime() : null,
 		executedBy: asString(entity.TriggeredBy) || "",
+		triggerType: asString(entity.TriggerType) || "",
+		totalRegistry: Number(entity.TotalRegistry) || 0,
+		changeCount: Number(entity.ChangeCount) || 0,
+		newVersionCount: Number(entity.NewVersionCount) || 0,
 		logs: [
 			`[INFO] Trigger type: ${asString(entity.TriggerType) || "unknown"}`,
 			`[INFO] Total registries: ${asString(entity.TotalRegistry) || "0"}`,

@@ -60,13 +60,17 @@ export interface Registry {
 
 export interface Job {
 	id: string;
-	registryId: string;
-	registryName: string;
 	status: JobStatus;
 	startedAt: string;
 	finishedAt: string | null;
 	durationMs: number | null;
 	executedBy: string;
+
+	triggerType: string;
+	totalRegistry: number;
+	changeCount: number;
+	newVersionCount: number;
+
 	logs: string[];
 	errorMessage: string;
 	summary: string;

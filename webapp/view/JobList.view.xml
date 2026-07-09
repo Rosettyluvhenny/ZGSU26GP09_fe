@@ -28,7 +28,7 @@
 			<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" growing="true" mode="None">
 				<columns>
 					<Column width="12rem"><Text text="Job ID" /></Column>
-					<Column width="14rem"><Text text="Registry" /></Column>
+					<Column width="14rem"><Text text="Trigger Type" /></Column>
 					<Column width="9rem"><Text text="Status" /></Column>
 					<Column width="11rem"><Text text="Started At" /></Column>
 					<Column width="11rem"><Text text="Finished At" /></Column>
@@ -39,7 +39,7 @@
 					<ColumnListItem type="Navigation" press=".onRowPress">
 						<cells>
 							<Text text="{jobList>id}" />
-							<ObjectIdentifier title="{jobList>registryName}" text="{jobList>registryId}" />
+							<ObjectIdentifier title="{jobList>triggerType}" text="Registries: {jobList>totalRegistry} | Changes: {jobList>changeCount}" />
 							<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
 							<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
 							<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />

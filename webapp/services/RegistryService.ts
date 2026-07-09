@@ -101,6 +101,7 @@ async function parseErrorResponse(response: Response, context: string): Promise<
 }
 
 async function readJson(path: string): Promise<unknown> {
+	await ODataClient.ensureAuth();
 	const response = await fetch(buildServiceUrl(path), {
 		method: 'GET',
 		credentials: 'include',
@@ -126,6 +127,7 @@ async function readJson(path: string): Promise<unknown> {
 }
 
 async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body: unknown, headers: Record<string, string>): Promise<unknown> {
+	await ODataClient.ensureAuth();
 	const response = await fetch(buildServiceUrl(path), {
 		method,
 		credentials: 'include',
@@ -159,7 +161,7 @@ export default class RegistryService {
 	private readonly client = new ODataClient();
 
 	public async getPermissions(): Promise<string[]> {
-		const csrfToken = await this.client.refreshCsrfToken();
+		const csrfToken = await this.client.fetchCsrfToken();
 		const payload = await this.client.postJson(
 			'/Registry/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getPermissions',
 			undefined,

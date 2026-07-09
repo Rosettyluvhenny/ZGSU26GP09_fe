@@ -4,28 +4,39 @@ import AuthenticationService from "./AuthenticationService";
 import type Router from "sap/ui/core/routing/Router";
 
 export default class ErrorHandler {
+	private handlingAuthError = false;
+
 	public constructor(
 		private readonly router: Router,
 		private readonly authenticationService: AuthenticationService
-	) {}
+	) { }
 
 	public async handle(error: unknown): Promise<void> {
 		if (error instanceof ServiceError) {
-			if (error.status === 401) {
+			if (error.status === 401 || error.status === 403) {
+				if (this.handlingAuthError) {
+					return;
+				}
+				this.handlingAuthError = true;
+
+				if (error.status === 403) {
+					try {
+						await this.authenticationService.fetchCsrfToken();
+						this.handlingAuthError = false;
+						return; // Recovered from 403 successfully
+					} catch {
+						// Fall through to logout
+					}
+				}
+
 				await this.safeLogout();
 				this.router.navTo("login", undefined, undefined, true);
-				MessageBox.error(error.message || "Your session expired. Please sign in again.");
-				return;
-			}
-
-			if (error.status === 403) {
-				try {
-					await this.authenticationService.fetchCsrfToken();
-				} catch {
-					await this.safeLogout();
-					this.router.navTo("login", undefined, undefined, true);
-				}
-				MessageBox.warning(error.message || "A CSRF token issue occurred. The token was refreshed.");
+				const message = error.status === 403 ? "Your session expired. Please sign in again." : "Your session expired. Please sign in again.";
+				MessageBox.error(message, {
+					onClose: () => {
+						this.handlingAuthError = false;
+					}
+				});
 				return;
 			}
 

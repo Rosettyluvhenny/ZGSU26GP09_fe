@@ -1,6 +1,7 @@
 import ServiceError from './ServiceError';
 import { readSessionStorage, removeSessionStorage, writeSessionStorage } from './SessionStorage';
 import type { SessionData } from '../model/types';
+import ODataClient from './ODataClient';
 
 const EMPTY_SESSION: SessionData = {
 	authenticated: false,
@@ -75,6 +76,11 @@ export default class AuthenticationService {
 			loginAt: new Date().toISOString()
 		};
 		writeSessionStorage(session);
+
+		if (payload.csrfToken) {
+			ODataClient.setSecurityState(payload.csrfToken, payload.eTag);
+		}
+
 		return delay(session);
 	}
 
@@ -84,16 +90,7 @@ export default class AuthenticationService {
 			throw new ServiceError(401, 'Session expired.');
 		}
 
-		if (session.csrfToken) {
-			return delay(session.csrfToken, 50);
-		}
-
-		const nextSession: SessionData = {
-			...session,
-			csrfToken: `offline-${Date.now().toString(36)}`
-		};
-		writeSessionStorage(nextSession);
-		return delay(nextSession.csrfToken, 50);
+		return ODataClient.fetchCsrfToken();
 	}
 
 	public async logout(): Promise<void> {
@@ -111,6 +108,7 @@ export default class AuthenticationService {
 			// Ignore redirect/network failures and finish local cleanup.
 		}
 
+		ODataClient.clearSecurityState();
 		removeSessionStorage();
 		clearBrowserCookies();
 		await delay(undefined, 50);

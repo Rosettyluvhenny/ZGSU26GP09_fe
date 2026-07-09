@@ -16,8 +16,66 @@ export interface ODataRequestOptions {
 }
 
 export default class ODataClient {
-	private csrfToken = '';
-	private etag = '*';
+	private static csrfToken = '';
+	private static etag = '*';
+	private static authPromise: Promise<string> | null = null;
+
+	public static setSecurityState(csrfToken: string, etag?: string): void {
+		if (csrfToken) ODataClient.csrfToken = csrfToken;
+		if (etag) ODataClient.etag = etag;
+	}
+
+	public static clearSecurityState(): void {
+		ODataClient.csrfToken = '';
+		ODataClient.etag = '*';
+		ODataClient.authPromise = null;
+	}
+
+	public static async checkAuthAndFetchCsrf(): Promise<string> {
+		if (ODataClient.authPromise) {
+			return ODataClient.authPromise;
+		}
+
+		ODataClient.authPromise = (async () => {
+			const response = await fetch(SERVICE_BASE_URL, {
+				method: 'GET',
+				credentials: 'include',
+				headers: {
+					Accept: 'application/json',
+					'X-CSRF-Token': 'Fetch'
+				}
+			});
+
+			if (!response.ok) {
+				ODataClient.authPromise = null;
+				throw new ServiceError(response.status, `Auth/CSRF check failed (${response.status})`);
+			}
+
+			const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
+			const etag = response.headers.get('etag');
+			ODataClient.setSecurityState(token, etag || undefined);
+			return ODataClient.csrfToken;
+		})();
+
+		try {
+			await ODataClient.authPromise;
+		} catch (error) {
+			// On error, let authPromise become null so next time it retries
+			ODataClient.authPromise = null;
+			throw error;
+		}
+		
+		return ODataClient.authPromise;
+	}
+
+	public static async ensureAuth(): Promise<void> {
+		// If we already have a csrf token, auth is good. 
+		if (ODataClient.csrfToken) {
+			return;
+		}
+		// Otherwise, wait for the check
+		await ODataClient.checkAuthAndFetchCsrf();
+	}
 
 	private buildUrl(path: string, query?: Record<string, ODataQueryValue>): string {
 		const normalizedPath = path.startsWith('http://') || path.startsWith('https://') || path.startsWith(SERVICE_ORIGIN)
@@ -36,11 +94,15 @@ export default class ODataClient {
 	}
 
 	private async requestJson(path: string, options: ODataRequestOptions = {}): Promise<unknown> {
+		await ODataClient.ensureAuth();
 		const response = await fetch(this.buildUrl(path, options.query), {
 			method: 'GET',
 			credentials: 'include',
+			cache: 'no-store',
 			headers: {
 				Accept: 'application/json',
+				'Cache-Control': 'no-cache',
+				Pragma: 'no-cache',
 				...options.headers
 			}
 		});
@@ -62,6 +124,7 @@ export default class ODataClient {
 	}
 
 	private async requestText(path: string, options: ODataRequestOptions = {}): Promise<string> {
+		await ODataClient.ensureAuth();
 		const response = await fetch(this.buildUrl(path, options.query), {
 			method: 'GET',
 			credentials: 'include',
@@ -79,6 +142,7 @@ export default class ODataClient {
 	}
 
 	private async requestWriteJson(path: string, method: ODataWriteMethod, body?: unknown, options: ODataRequestOptions = {}): Promise<unknown> {
+		await ODataClient.ensureAuth();
 		const response = await fetch(this.buildUrl(path, options.query), {
 			method,
 			credentials: 'include',
@@ -124,11 +188,8 @@ export default class ODataClient {
 
 		const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
 		const etag = response.headers.get('etag');
-		this.csrfToken = token || this.csrfToken;
-		if (etag) {
-			this.etag = etag;
-		}
-		return this.csrfToken;
+		ODataClient.setSecurityState(token, etag || undefined);
+		return ODataClient.csrfToken;
 	}
 
 	public async readJson(path: string, options: ODataRequestOptions = {}): Promise<unknown> {
@@ -144,48 +205,19 @@ export default class ODataClient {
 	}
 
 	public async refreshCsrfToken(): Promise<string> {
-		const response = await fetch(SERVICE_BASE_URL, {
-			method: 'GET',
-			credentials: 'include',
-			headers: {
-				Accept: 'application/json',
-				'X-CSRF-Token': 'Fetch'
-			}
-		});
-
-		if (!response.ok) {
-			throw new ServiceError(response.status, `CSRF token refresh failed (${response.status})`);
-		}
-
-		const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
-		const etag = response.headers.get('etag');
-		if (token) {
-			this.csrfToken = token;
-		}
-		if (etag) {
-			this.etag = etag;
-		}
-		return this.csrfToken;
+		return ODataClient.checkAuthAndFetchCsrf();
 	}
 
 	public clearSecurityState(): void {
-		this.csrfToken = '';
-		this.etag = '*';
+		ODataClient.clearSecurityState();
 	}
 
 	public async fetchCsrfToken(): Promise<string> {
-		if (this.csrfToken) {
-			return this.csrfToken;
+		if (ODataClient.csrfToken) {
+			return ODataClient.csrfToken;
 		}
 
-		try {
-			return await this.refreshCsrfToken();
-		} catch {
-			if (!this.csrfToken) {
-				this.csrfToken = `offline-${Date.now().toString(36)}`;
-			}
-			return this.csrfToken;
-		}
+		return await this.refreshCsrfToken();
 	}
 
 	public async ensureWriteHeaders(method: ODataWriteMethod, etag?: string): Promise<Record<string, string>> {
@@ -195,7 +227,7 @@ export default class ODataClient {
 		};
 
 		if (method === 'PATCH' || method === 'DELETE') {
-			headers['If-Match'] = etag ?? this.etag ?? '*';
+			headers['If-Match'] = etag ?? ODataClient.etag ?? '*';
 		}
 
 		return headers;

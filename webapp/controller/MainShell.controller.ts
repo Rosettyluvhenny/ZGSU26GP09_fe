@@ -15,6 +15,17 @@ export default class MainShell extends BaseController {
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
 		});
+
+		void this.loadGlobalPermissions();
+	}
+
+	private async loadGlobalPermissions(): Promise<void> {
+		try {
+			const permissions = await this.getOwnerComponent().getRegistryService().getPermissions();
+			this.getUiModel().setProperty("/canExecuteScanJob", permissions.includes("ScanJob.Execute"));
+		} catch {
+			this.getUiModel().setProperty("/canExecuteScanJob", false);
+		}
 	}
 
 	public onRouteMatched(): void {
