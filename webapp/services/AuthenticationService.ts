@@ -48,15 +48,16 @@ export default class AuthenticationService {
 		}
 
 		const authorization = `Basic ${btoa(`${userName.trim()}:${password}`)}`;
-		const response = await fetch('/auth/login', {
-			method: 'POST',
+		const response = await fetch('/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001', {
+			method: 'GET',
 			headers: {
 				Authorization: authorization,
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				userName: userName.trim()
-			})
+
+			}
+			// ,
+			// body: JSON.stringify({
+			// 	userName: userName.trim()
+			// })
 		});
 
 		if (!response.ok) {
