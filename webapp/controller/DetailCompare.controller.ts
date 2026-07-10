@@ -2,6 +2,7 @@ import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
+import History from 'sap/ui/core/routing/History';
 import type Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
@@ -60,14 +61,19 @@ export default class DetailCompare extends BaseController {
 	}
 
 	public async onNavBack(): Promise<void> {
-		if (this.registryId && this.leftVersionId && this.rightVersionId) {
-			this.getRouter().navTo('versionCompare', {
-				registryId: this.registryId,
-				leftVersionId: this.leftVersionId,
-				rightVersionId: this.rightVersionId
-			});
+		const previousHash = History.getInstance().getPreviousHash();
+		if (previousHash !== undefined && previousHash !== '') {
+			window.history.go(-1);
 		} else {
-			this.getRouter().navTo('home');
+			if (this.registryId && this.leftVersionId && this.rightVersionId) {
+				this.getRouter().navTo('versionCompare', {
+					registryId: this.registryId,
+					leftVersionId: this.leftVersionId,
+					rightVersionId: this.rightVersionId
+				}, undefined, true);
+			} else {
+				this.getRouter().navTo('home', {}, undefined, true);
+			}
 		}
 	}
 

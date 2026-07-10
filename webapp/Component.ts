@@ -45,7 +45,7 @@ export default class Component extends UIComponent {
 	}
 
 	private setupRouteGuard(): void {
-		this.getRouter().attachRouteMatched((event: any) => {
+		this.getRouter().attachBeforeRouteMatched((event: any) => {
 			const routeName = event.getParameter('name') as string;
 			const sessionModel = this.getModel('session') as JSONModel;
 			const session = sessionModel.getData() as { authenticated?: boolean };
@@ -55,11 +55,11 @@ export default class Component extends UIComponent {
 			if (session.authenticated && isLoginRoute) {
 				// Logged in but trying to reach login -> redirect to home (registry management)
 				event.preventDefault();
-				this.getRouter().navTo('home', {}, undefined, true);
+				this.getRouter().navTo('registries', {}, undefined, true);
 			} else if (!session.authenticated && !isLoginRoute) {
 				// Not logged in but trying to reach protected page -> redirect to login
 				event.preventDefault();
-				this.getRouter().navTo('login', {}, undefined, true);
+				this.getRouter().navTo('', {}, undefined, true);
 			}
 		});
 	}
@@ -87,7 +87,7 @@ export default class Component extends UIComponent {
 			await this.registryService.getPermissions();
 			const currentHash = window.location.hash.replace(/^#/, '');
 			if (!currentHash || currentHash === 'login') {
-				this.getRouter().navTo('home', {}, true);
+				this.getRouter().navTo('registryList', {}, true);
 			}
 		} catch {
 			await this.authenticationService.logout();

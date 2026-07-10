@@ -107,7 +107,10 @@
 				{
 					"pattern": "jobs/{jobId}",
 					"name": "jobDetail",
-					"target": ["jobList", "jobDetail"]
+					"target": [
+						"jobList",
+						"jobDetail"
+					]
 				}
 			],
 			"targets": {

@@ -90,7 +90,7 @@ export default class AuthenticationService {
 			throw new ServiceError(401, 'Session expired.');
 		}
 
-		return ODataClient.fetchCsrfToken();
+		return ODataClient.checkAuthAndFetchCsrf();
 	}
 
 	public async logout(): Promise<void> {
