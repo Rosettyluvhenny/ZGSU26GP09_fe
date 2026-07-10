@@ -118,7 +118,7 @@ async function readJson(path: string): Promise<unknown> {
 	if (!text) {
 		return {};
 	}
-	
+
 	try {
 		return JSON.parse(text);
 	} catch {
@@ -147,7 +147,7 @@ async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body
 	if (!text) {
 		return {};
 	}
-	
+
 	try {
 		return JSON.parse(text);
 	} catch {
@@ -187,7 +187,7 @@ export default class RegistryService {
 		return delay(items);
 	}
 
-	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): Promise<Registry[]> {
+	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string; searchField: string }): Promise<Registry[]> {
 		const backendRegistries = await this.loadRegistriesFromBackend(filter);
 		return delay(this.filterRegistries(backendRegistries, filter));
 	}
@@ -288,7 +288,7 @@ export default class RegistryService {
 		});
 	}
 
-	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): Promise<Registry[]> {
+	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string, searchField: string }): Promise<Registry[]> {
 		let url = '/Registry?$orderby=LastChangeAt desc';
 		const filterParts: string[] = [];
 		if (filter) {
@@ -311,7 +311,7 @@ export default class RegistryService {
 					const term = filter.search.replace(/'/g, "''");
 					let globalSearchFilter = '';
 					const isGuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(term);
-					
+
 					if (filter.searchField === 'registryName') {
 						globalSearchFilter = `contains(GroupName,'${term}')`;
 					} else if (filter.searchField === 'registryId') {

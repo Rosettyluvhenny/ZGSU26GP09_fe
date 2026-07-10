@@ -80,7 +80,7 @@
 								<Column width="10rem"><Text text="Version Number" /></Column>
 								<Column width="11rem"><Text text="Created By" /></Column>
 								<Column width="11rem"><Text text="Created At" /></Column>
-								<Column width="16rem"><Text text="Comment" /></Column>
+								<Column width="16rem"><Text text="TriggerType" /></Column>
 							</columns>
 							<items>
 								<ColumnListItem>
