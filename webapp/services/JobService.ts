@@ -60,7 +60,7 @@ export default class JobService {
 	}
 
 	private async loadJobsFromBackend(): Promise<Job[]> {
-		const payload = await this.client.readJson('/ScanJob');
+		const payload = await this.client.readJson('/ScanJob?$orderby=StartedAt desc');
 		return normalizeODataCollection(payload).map((entity) => mapJobEntity(entity));
 	}
 

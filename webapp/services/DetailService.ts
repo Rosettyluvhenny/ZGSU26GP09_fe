@@ -128,7 +128,7 @@ export default class DetailService {
 	}
 
 	private async loadDetailsFromBackend(versionId: string): Promise<RegistryDetail[]> {
-		const payload = await this.client.readJson(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail`);
+		const payload = await this.client.readJson(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail?$orderby=CreatedAt desc`);
 		return normalizeODataCollection(payload).map((entity) => mapDetailEntity(entity));
 	}
 

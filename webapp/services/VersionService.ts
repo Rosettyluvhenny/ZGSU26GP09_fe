@@ -80,13 +80,13 @@ export default class VersionService {
 	}
 
 	private async loadVersionsFromBackend(registryId: string): Promise<RegistryVersion[]> {
-		const payload = await this.client.readJson(`/Registry/${formatGuidLiteral(registryId)}/_Version`);
+		const payload = await this.client.readJson(`/Registry/${formatGuidLiteral(registryId)}/_Version?$orderby=CreatedAt desc`);
 		const versions = normalizeODataCollection(payload);
 		return Promise.all(versions.map((entity) => this.loadVersionFromEntity(entity)));
 	}
 
 	private async loadVersionFromBackend(versionId: string): Promise<RegistryVersion | null> {
-		const payload = await this.client.readJson(`/Version/${formatGuidLiteral(versionId)}`);
+		const payload = await this.client.readJson(`/Version/${formatGuidLiteral(versionId)}?$orderby=CreatedAt desc`);
 		const entity = normalizeODataEntity(payload);
 		if (!Object.keys(entity).length) {
 			return null;

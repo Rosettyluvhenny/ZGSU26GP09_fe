@@ -282,7 +282,7 @@ export default class RegistryService {
 	}
 
 	private async loadRegistriesFromBackend(): Promise<Registry[]> {
-		const payload = await readJson('/Registry');
+		const payload = await readJson('/Registry?$orderby=LastChangeAt desc');
 		const registries = normalizeODataCollection(payload);
 		return registries.map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
