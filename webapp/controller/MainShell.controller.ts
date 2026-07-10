@@ -8,6 +8,7 @@ import BaseController from "./BaseController";
 export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
 	private initialRedirectDone = false;
+	private permissionsPromise: Promise<void> | null = null;
 
 	public onInit(): void {
 		this.getRouter().attachRouteMatched(this.onGlobalRouteMatched, this);
@@ -15,8 +16,6 @@ export default class MainShell extends BaseController {
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
 		});
-
-		void this.loadGlobalPermissions();
 	}
 
 	private async loadGlobalPermissions(): Promise<void> {
@@ -28,12 +27,33 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	private onGlobalRouteMatched(event: any): void {
+	private async onGlobalRouteMatched(event: any): Promise<void> {
 		const routeName = event.getParameter("name") as string;
+		
+		if (routeName === "login") {
+			return;
+		}
+
+		const session = this.getSessionModel().getData() as any;
+		if (!session?.authenticated) {
+			return;
+		}
+
+		if (!this.permissionsPromise) {
+			this.permissionsPromise = this.loadGlobalPermissions();
+		}
+
+		await this.permissionsPromise;
+
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
 			this.getUiModel().setProperty("/currentSection", "registries");
 		} else if (routeName.startsWith("job")) {
-			this.getUiModel().setProperty("/currentSection", "jobs");
+			const canExecute = this.getUiModel().getProperty("/canExecuteScanJob");
+			if (canExecute) {
+				this.getUiModel().setProperty("/currentSection", "jobs");
+			} else {
+				this.navTo("home", {}, true);
+			}
 		} else if (routeName === "home") {
 			this.getUiModel().setProperty("/currentSection", "home");
 		}
@@ -58,6 +78,8 @@ export default class MainShell extends BaseController {
 			csrfToken: "",
 			loginAt: null,
 		});
+		this.permissionsPromise = null;
+		this.getUiModel().setProperty("/canExecuteScanJob", false);
 		this.navTo("login", {}, true);
 	}
 
