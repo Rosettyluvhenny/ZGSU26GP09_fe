@@ -187,9 +187,9 @@ export default class RegistryService {
 		return delay(items);
 	}
 
-	public async getRegistries(search = '', status = 'All'): Promise<Registry[]> {
-		const backendRegistries = await this.loadRegistriesFromBackend();
-		return delay(this.filterRegistries(backendRegistries, search, status));
+	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): Promise<Registry[]> {
+		const backendRegistries = await this.loadRegistriesFromBackend(filter);
+		return delay(this.filterRegistries(backendRegistries, filter));
 	}
 
 	public async getRegistry(registryId: string): Promise<Registry> {
@@ -260,29 +260,80 @@ export default class RegistryService {
 		return delay(payload, 350);
 	}
 
-	private filterRegistries(registries: Registry[], search: string, status: string): Registry[] {
-		const normalizedSearch = search.trim().toLowerCase();
-		const normalizedStatus = status.toLowerCase();
+	private filterRegistries(registries: Registry[], filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): Registry[] {
+		const normalizedSearch = filter.search.trim().toLowerCase();
+
 		return registries.filter((registry) => {
 			const matchesSearch =
 				!normalizedSearch ||
 				[
+					registry.id,
 					registry.registryName,
 					registry.serviceName,
 					registry.serviceType,
+					registry.versionNo,
+					registry.status,
+					registry.statusText,
 					registry.description,
-					registry.status
+					registry.createdBy,
+					registry.createdAt,
+					registry.lastChangedBy,
+					registry.lastChangedAt
 				]
 					.join(' ')
 					.toLowerCase()
 					.includes(normalizedSearch);
-			const matchesStatus = normalizedStatus === 'all' || registry.status.toLowerCase() === normalizedStatus;
-			return matchesSearch && matchesStatus;
+
+			return matchesSearch;
 		});
 	}
 
-	private async loadRegistriesFromBackend(): Promise<Registry[]> {
-		const payload = await readJson('/Registry?$orderby=LastChangeAt desc');
+	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): Promise<Registry[]> {
+		let url = '/Registry?$orderby=LastChangeAt desc';
+		const filterParts: string[] = [];
+		if (filter) {
+			if (filter.status && filter.status.toLowerCase() !== 'all') {
+				filterParts.push(`Status eq '${filter.status}'`);
+			}
+			if (filter.groupType && filter.groupType.toLowerCase() !== 'all') {
+				filterParts.push(`GroupType eq '${filter.groupType}'`);
+			}
+			if (filter.registryName) {
+				filterParts.push(`contains(GroupName,'${filter.registryName}')`);
+			}
+			if (filter.createdBy) {
+				filterParts.push(`contains(RegisteredBy,'${filter.createdBy}')`);
+			}
+
+			if (filterParts.length > 0 || filter.search) {
+				const queryParts = [...filterParts];
+				if (filter.search) {
+					const term = filter.search.replace(/'/g, "''");
+					let globalSearchFilter = '';
+					const isGuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(term);
+					
+					if (filter.searchField === 'registryName') {
+						globalSearchFilter = `contains(GroupName,'${term}')`;
+					} else if (filter.searchField === 'registryId') {
+						if (isGuid) {
+							globalSearchFilter = `GroupId eq ${term}`;
+						} else {
+							globalSearchFilter = `GroupId eq 00000000-0000-0000-0000-000000000000`;
+						}
+					} else {
+						if (isGuid) {
+							globalSearchFilter = `(contains(GroupName,'${term}') or GroupId eq ${term})`;
+						} else {
+							globalSearchFilter = `contains(GroupName,'${term}')`;
+						}
+					}
+					queryParts.push(globalSearchFilter);
+				}
+				url += `&$filter=${encodeURIComponent(queryParts.join(' and '))}`;
+			}
+		}
+
+		const payload = await readJson(url);
 		const registries = normalizeODataCollection(payload);
 		return registries.map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}

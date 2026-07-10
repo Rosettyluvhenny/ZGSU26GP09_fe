@@ -3,6 +3,7 @@ import Dialog from 'sap/m/Dialog';
 import Fragment from 'sap/ui/core/Fragment';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import MessageToast from 'sap/m/MessageToast';
+import Sorter from 'sap/ui/model/Sorter';
 import type ListItemBase from 'sap/m/ListItemBase';
 import type UI5Event from 'sap/ui/base/Event';
 
@@ -24,7 +25,13 @@ export default class RegistryList extends BaseController {
 				items: [],
 				busy: false,
 				search: '',
+				searchField: 'all',
 				status: 'All',
+				groupType: 'All',
+				registryName: '',
+				createdBy: '',
+				groupTypes: [],
+				statuses: [],
 				canCreate: false,
 				canUpdate: false
 			}),
@@ -43,16 +50,36 @@ export default class RegistryList extends BaseController {
 		await this.refreshRegistryPage();
 	}
 
-	public async onSearchLiveChange(event: UI5Event): Promise<void> {
-		const source = event.getSource() as unknown as { getValue: () => string };
-		(this.getModel('registryList') as JSONModel).setProperty('/search', source.getValue());
+	public async onFilterChange(): Promise<void> {
 		await this.loadRegistries();
 	}
 
-	public async onStatusChange(event: UI5Event): Promise<void> {
-		const source = event.getSource() as unknown as { getSelectedKey: () => string };
-		(this.getModel('registryList') as JSONModel).setProperty('/status', source.getSelectedKey());
-		await this.loadRegistries();
+	public async onSortPress(): Promise<void> {
+		const view = this.getView();
+		if (!view.byId('registryListSortDialog')) {
+			const fragment = await Fragment.load({
+				id: view.getId(),
+				name: 'com.zgp9.fe.view.fragments.RegistryListSortDialog',
+				controller: this
+			});
+			view.addDependent(fragment as sap.ui.core.Control);
+		}
+		const dialog = view.byId('registryListSortDialog') as sap.m.ViewSettingsDialog;
+		dialog.open();
+	}
+
+	public onSortConfirm(event: UI5Event): void {
+		const sortItem = event.getParameter('sortItem') as sap.m.ViewSettingsItem;
+		const sortDescending = event.getParameter('sortDescending') as boolean;
+
+		const table = this.getView().byId('registryTable') as sap.m.Table;
+		const binding = table.getBinding('items') as sap.ui.model.ListBinding;
+
+		if (sortItem && binding) {
+			const path = sortItem.getKey();
+			const sorter = new Sorter(path, sortDescending);
+			binding.sort(sorter);
+		}
 	}
 
 	public onGroupTypeChange(event: UI5Event): void {
@@ -148,8 +175,28 @@ export default class RegistryList extends BaseController {
 
 	private async refreshRegistryPage(): Promise<void> {
 		(this.getModel('registryList') as JSONModel).setProperty('/busy', true);
-		await this.loadPermissions();
+		await Promise.all([
+			this.loadPermissions(),
+			this.loadFilterValueHelps()
+		]);
 		await this.loadRegistries();
+	}
+
+	private async loadFilterValueHelps(): Promise<void> {
+		const model = this.getModel('registryList') as JSONModel;
+		if (model.getProperty('/groupTypes').length > 0) {
+			return; // Already loaded
+		}
+		try {
+			const [groupTypes, statuses] = await Promise.all([
+				this.getOwnerComponent().getRegistryService().getGroupTypes(),
+				this.getOwnerComponent().getRegistryService().getStatuses()
+			]);
+			model.setProperty('/groupTypes', [{ key: 'All', text: 'All Service Types' }, ...groupTypes]);
+			model.setProperty('/statuses', [{ key: 'All', text: 'All Statuses' }, ...statuses]);
+		} catch (error) {
+			// Silently fail if value helps cannot be loaded
+		}
 	}
 
 	private async loadPermissions(): Promise<void> {
@@ -173,10 +220,15 @@ export default class RegistryList extends BaseController {
 		const model = this.getModel('registryList') as JSONModel;
 		model.setProperty('/busy', true);
 		try {
-			const data = await this.getOwnerComponent().getRegistryService().getRegistries(
-				model.getProperty('/search') as string,
-				model.getProperty('/status') as string
-			);
+			const filterState = {
+				search: model.getProperty('/search') as string,
+				searchField: model.getProperty('/searchField') as string,
+				status: model.getProperty('/status') as string,
+				groupType: model.getProperty('/groupType') as string,
+				registryName: model.getProperty('/registryName') as string,
+				createdBy: model.getProperty('/createdBy') as string
+			};
+			const data = await this.getOwnerComponent().getRegistryService().getRegistries(filterState);
 			model.setProperty('/items', data);
 		} catch (error) {
 			await this.handleServiceError(error);

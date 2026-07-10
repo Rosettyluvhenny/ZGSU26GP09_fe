@@ -1,0 +1,20 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+	<ViewSettingsDialog
+		id="registryListSortDialog"
+		title="Sort Registries"
+		confirm=".onSortConfirm">
+		<sortItems>
+			<ViewSettingsItem text="Registry Name" key="registryName" selected="true" />
+			<ViewSettingsItem text="Service Name" key="serviceName" />
+			<ViewSettingsItem text="Service Type" key="serviceType" />
+			<ViewSettingsItem text="Version No" key="versionNo" />
+			<ViewSettingsItem text="Current Status" key="statusText" />
+			<ViewSettingsItem text="Created By" key="createdBy" />
+			<ViewSettingsItem text="Created At" key="createdAt" />
+			<ViewSettingsItem text="Last Changed By" key="lastChangedBy" />
+			<ViewSettingsItem text="Last Changed At" key="lastChangedAt" />
+		</sortItems>
+	</ViewSettingsDialog>
+</core:FragmentDefinition>

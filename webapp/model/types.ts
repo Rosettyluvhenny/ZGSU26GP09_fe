@@ -111,7 +111,11 @@ export interface JobRunInput {
 
 export interface RegistryFilterState {
 	search: string;
+	searchField: string;
 	status: string;
+	groupType: string;
+	registryName: string;
+	createdBy: string;
 }
 
 export interface MetadataSearchResult {
