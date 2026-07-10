@@ -17,9 +17,9 @@
 		</tnt:header>
 		<tnt:sideContent>
 			<tnt:SideNavigation expanded="true">
-				<tnt:NavigationList>
-					<tnt:NavigationListItem text="Registry Management" icon="sap-icon://business-objects-experience" select=".onNavigateRegistries" />
-					<tnt:NavigationListItem text="Scan Job Management" icon="sap-icon://activity-items" select=".onNavigateJobs" visible="{ui>/canExecuteScanJob}" />
+				<tnt:NavigationList selectedKey="{ui>/currentSection}">
+					<tnt:NavigationListItem key="registries" text="Registry Management" icon="sap-icon://business-objects-experience" select=".onNavigateRegistries" />
+					<tnt:NavigationListItem key="jobs" text="Scan Job Management" icon="sap-icon://activity-items" select=".onNavigateJobs" visible="{ui>/canExecuteScanJob}" />
 				</tnt:NavigationList>
 			</tnt:SideNavigation>
 		</tnt:sideContent>

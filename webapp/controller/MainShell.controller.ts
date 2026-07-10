@@ -10,7 +10,7 @@ export default class MainShell extends BaseController {
 	private initialRedirectDone = false;
 
 	public onInit(): void {
-		this.getRouter().getRoute("home").attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter().attachRouteMatched(this.onGlobalRouteMatched, this);
 		
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
@@ -28,11 +28,14 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	public onRouteMatched(): void {
-		if (!this.initialRedirectDone) {
+	private onGlobalRouteMatched(event: any): void {
+		const routeName = event.getParameter("name") as string;
+		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
 			this.getUiModel().setProperty("/currentSection", "registries");
-			this.navigateWhenReady("registryList");
-			this.initialRedirectDone = true;
+		} else if (routeName.startsWith("job")) {
+			this.getUiModel().setProperty("/currentSection", "jobs");
+		} else if (routeName === "home") {
+			this.getUiModel().setProperty("/currentSection", "home");
 		}
 	}
 

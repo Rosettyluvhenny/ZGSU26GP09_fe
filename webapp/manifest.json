@@ -72,7 +72,7 @@
 				{
 					"pattern": "home",
 					"name": "home",
-					"target": "shell"
+					"target": "homePage"
 				},
 				{
 					"pattern": "registries",
@@ -121,6 +121,13 @@
 				"shell": {
 					"id": "shell",
 					"name": "MainShell"
+				},
+				"homePage": {
+					"id": "homePage",
+					"name": "Home",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
 				},
 				"registryList": {
 					"id": "registryList",
