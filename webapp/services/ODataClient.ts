@@ -64,7 +64,7 @@ export default class ODataClient {
 			ODataClient.authPromise = null;
 			throw error;
 		}
-		
+
 		return ODataClient.authPromise;
 	}
 
@@ -115,7 +115,7 @@ export default class ODataClient {
 		if (!text) {
 			return {};
 		}
-		
+
 		try {
 			return JSON.parse(text);
 		} catch {
@@ -162,7 +162,7 @@ export default class ODataClient {
 		if (!text) {
 			return {};
 		}
-		
+
 		try {
 			return JSON.parse(text);
 		} catch {

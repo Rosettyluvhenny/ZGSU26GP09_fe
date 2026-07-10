@@ -19,7 +19,11 @@ export default class JobList extends BaseController {
 			}),
 			'jobList'
 		);
-		this.getRouter().getRoute('jobList').attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter()
+			.getRoute("jobList")
+			.attachPatternMatched((event) => {
+				void this.onRouteMatched();
+			});
 	}
 
 	public async onRouteMatched(): Promise<void> {

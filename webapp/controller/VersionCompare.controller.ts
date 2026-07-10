@@ -1,11 +1,11 @@
+import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import MessageToast from 'sap/m/MessageToast';
 
 import BaseController from './BaseController';
-import type { CompareVersionEntry, CompareVersionResult, NodeTreeViewItem } from '../model/types';
-import { applyNodeDiffStatus, buildNodeTree, buildXmlLineMap, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import type { CompareVersionEntry } from '../model/types';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -38,11 +38,15 @@ export default class VersionCompare extends BaseController {
 			}),
 			'versionCompare'
 		);
-		this.getRouter().getRoute('versionCompare').attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter()
+			.getRoute("versionCompare")
+			.attachPatternMatched((event) => {
+				void this.onRouteMatched(event);
+			});
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
-		const args = (event as any).getParameter('arguments') as { registryId?: string; leftVersionId?: string; rightVersionId?: string };
+		const args = (event as Route$PatternMatchedEvent).getParameter('arguments') as { registryId?: string; leftVersionId?: string; rightVersionId?: string };
 		this.registryId = args.registryId ?? null;
 		this.leftVersionId = args.leftVersionId ?? null;
 		this.rightVersionId = args.rightVersionId ?? null;
@@ -53,18 +57,30 @@ export default class VersionCompare extends BaseController {
 		await this.loadComparison();
 	}
 
-	public onAfterRendering(): void {
-		// Nothing to sync here anymore
-	}
-
 	public onCopyLeftXml(): void {
-		const model = this.getModel('versionCompare') as JSONModel;
-		navigator.clipboard.writeText(model.getProperty('/baseXml') as string).then(() => MessageToast.show('Left XML copied.'));
+		const model = this.getModel("versionCompare") as JSONModel;
+
+		void navigator.clipboard
+			.writeText(model.getProperty("/baseXml") as string)
+			.then(() => {
+				MessageToast.show("Left XML copied.");
+			})
+			.catch(() => {
+				MessageToast.show("Failed to copy XML.");
+			});
 	}
 
 	public onCopyRightXml(): void {
-		const model = this.getModel('versionCompare') as JSONModel;
-		navigator.clipboard.writeText(model.getProperty('/compareXml') as string).then(() => MessageToast.show('Right XML copied.'));
+		const model = this.getModel("versionCompare") as JSONModel;
+
+		void navigator.clipboard
+			.writeText(model.getProperty("/compareXml") as string)
+			.then(() => {
+				MessageToast.show("Right XML copied.");
+			})
+			.catch(() => {
+				MessageToast.show("Failed to copy XML.");
+			});
 	}
 
 	public onViewDetail(event: UI5Event): void {
@@ -116,7 +132,7 @@ export default class VersionCompare extends BaseController {
 		model.setProperty('/busy', true);
 		BusyIndicator.show(0);
 		try {
-			const result = (await this.getOwnerComponent().getVersionService().compareVersions(this.leftVersionId, this.rightVersionId)) as CompareVersionResult;
+			const result = (await this.getOwnerComponent().getVersionService().compareVersions(this.leftVersionId, this.rightVersionId));
 			model.setProperty('/result', result);
 			model.setProperty('/change', result.change);
 			model.setProperty('/differ', result.differ);

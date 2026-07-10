@@ -1,3 +1,6 @@
+import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
+import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
+import TreeTable from 'sap/ui/table/TreeTable';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
@@ -6,8 +9,16 @@ import History from 'sap/ui/core/routing/History';
 import type Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
+interface ExtendedTreeBinding {
+	expand(index: number): void;
+	getLength(): number;
+	getContextByIndex(index: number): { getObject: () => NodeTreeViewItem } | undefined;
+	isExpanded(index: number): boolean;
+	getMetadata?(): { getName(): string };
+}
+
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { applyNodeDiffStatus, buildNodeTree, buildXmlLineMap, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { applyNodeDiffStatus, buildNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -37,11 +48,15 @@ export default class DetailCompare extends BaseController {
 			}),
 			'detailCompare'
 		);
-		this.getRouter().getRoute('detailCompare').attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter()
+			.getRoute("detailCompare")
+			.attachPatternMatched((event) => {
+				void this.onRouteMatched(event);
+			});
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
-		const args = (event as any).getParameter('arguments') as { registryId?: string; leftVersionId?: string; rightVersionId?: string; baseDetailId?: string; compareDetailId?: string };
+		const args = (event as Route$PatternMatchedEvent).getParameter('arguments') as { registryId?: string; leftVersionId?: string; rightVersionId?: string; baseDetailId?: string; compareDetailId?: string };
 		this.registryId = args.registryId ?? null;
 		this.leftVersionId = args.leftVersionId ?? null;
 		this.rightVersionId = args.rightVersionId ?? null;
@@ -60,7 +75,7 @@ export default class DetailCompare extends BaseController {
 		this.attachScrollSync('baseXmlScroll', 'compareXmlScroll', false);
 	}
 
-	public async onNavBack(): Promise<void> {
+	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();
 		if (previousHash !== undefined && previousHash !== '') {
 			window.history.go(-1);
@@ -174,14 +189,14 @@ export default class DetailCompare extends BaseController {
 					let anyExpanded = false;
 					for (const node of nodes) {
 						let status = newDiffMap.get(node.semanticId);
-						
+
 						// Inherit status for attributes if they don't have their own diff status
 						if ((node.isAttribute || node.isAttributeGroup) && !status && parentStatus) {
 							status = parentStatus;
 						}
 
 						node.highlight = mapHighlight(status);
-						
+
 						const thisNodeHighlighted = node.highlight !== 'None';
 						const effectivelyHighlightedParent = isParentHighlighted || thisNodeHighlighted;
 
@@ -191,13 +206,13 @@ export default class DetailCompare extends BaseController {
 						}
 
 						if (childrenExpanded) {
-							(node as any).shouldExpand = true;
+							node.shouldExpand = true;
 							anyExpanded = true;
 						} else if (thisNodeHighlighted && !isParentHighlighted) {
-							(node as any).shouldExpand = true;
+							node.shouldExpand = true;
 							anyExpanded = true;
 						} else {
-							(node as any).shouldExpand = false;
+							node.shouldExpand = false;
 						}
 					}
 					return anyExpanded;
@@ -205,7 +220,7 @@ export default class DetailCompare extends BaseController {
 
 				applyHighlight(baseTree);
 				applyHighlight(compareTreeMapped);
-				
+
 				model.setProperty('/baseTree', baseTree);
 				model.setProperty('/compareTree', compareTreeMapped);
 
@@ -225,15 +240,15 @@ export default class DetailCompare extends BaseController {
 
 
 	private scheduleTreeExpansion(treeId: string): void {
-		const tree = this.byId(treeId) as any;
+		const tree = this.byId(treeId) as TreeTable;
 		console.log(`[scheduleTreeExpansion] looking for "${treeId}"`, tree);
 		if (!tree) return;
 
 		tree.attachEventOnce('updateFinished', () => {
-			const binding = tree.getBinding('items');
+			const binding = tree.getBinding('items') as unknown as ExtendedTreeBinding;
 			console.log(`[scheduleTreeExpansion] updateFinished fired for "${treeId}"`);
 			console.log(`[scheduleTreeExpansion] binding type`, binding?.getMetadata?.().getName());
-			
+
 			if (!binding || typeof binding.expand !== 'function') {
 				console.warn(`[scheduleTreeExpansion] missing binding or expand function`);
 				return;
@@ -243,12 +258,12 @@ export default class DetailCompare extends BaseController {
 			let limit = 0;
 			const length = binding.getLength();
 			console.log(`[scheduleTreeExpansion] starting loop... length:`, length);
-			
+
 			while (i < binding.getLength() && limit < 100000) {
 				limit++;
 				const context = binding.getContextByIndex(i);
 				const node = context?.getObject();
-				
+
 				if (node && node.shouldExpand && node.children && node.children.length > 0) {
 					if (typeof binding.isExpanded === 'function' && !binding.isExpanded(i)) {
 						console.log(`[scheduleTreeExpansion] expanding node at index ${i}:`, node.label || node.nodeName);
@@ -301,11 +316,11 @@ export default class DetailCompare extends BaseController {
 			return null;
 		}
 
-		return domRef.querySelector('.sapMScrollContScroll') as HTMLElement | null;
+		return domRef.querySelector('.sapMScrollContScroll');
 	}
 
 	private getNodeFromEvent(event: UI5Event): NodeTreeViewItem | null {
-		const item = (event as any).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
+		const item = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
 		const context = item?.getBindingContext('detailCompare');
 		return context?.getObject() ?? null;
 	}
@@ -327,11 +342,15 @@ export default class DetailCompare extends BaseController {
 		}
 
 		const triggerGrowToLine = () => {
-			const growingInfo = (table as any).getGrowingInfo?.();
+			const tableExtended = table as unknown as {
+				getGrowingInfo?: () => { actual?: number } | undefined;
+				_oGrowingDelegate?: { requestNewPage?: () => void };
+			};
+			const growingInfo = tableExtended.getGrowingInfo?.();
 			const currentActual = growingInfo?.actual || 0;
 
 			if (lineNo > currentActual) {
-				const delegate = (table as any)._oGrowingDelegate;
+				const delegate = tableExtended._oGrowingDelegate;
 				if (delegate && typeof delegate.requestNewPage === 'function') {
 					const onUpdateFinished = () => {
 						table.detachEvent('updateFinished', onUpdateFinished);

@@ -10,9 +10,6 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	});
 }
 
-function cloneJob(job: Job): Job {
-	return JSON.parse(JSON.stringify(job)) as Job;
-}
 
 export default class JobService {
 	private readonly client = new ODataClient();

@@ -95,7 +95,7 @@ export default abstract class BaseController extends Controller {
 		}
 	}
 
-	public async onNavBack(): Promise<void> {
+	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();
 		// If previous hash is undefined (direct link) or empty (login page)
 		if (previousHash !== undefined && previousHash !== '') {

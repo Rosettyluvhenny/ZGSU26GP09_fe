@@ -1,7 +1,7 @@
 import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 
-import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail, RegistryVersion } from '../model/types';
+import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail } from '../model/types';
 import { mapDetailEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
@@ -31,7 +31,7 @@ function asNumber(value: unknown): number {
 	return Number.isFinite(numeric) ? numeric : 0;
 }
 
-function mapNodeTreeItem(item: Record<string, any>): NodeTreeResponseItem {
+function mapNodeTreeItem(item: Record<string, unknown>): NodeTreeResponseItem {
 	return {
 		nodeId: asString(item.NODE_ID),
 		semanticId: asString(item.SEMANTIC_ID),
@@ -45,7 +45,7 @@ function mapNodeTreeItem(item: Record<string, any>): NodeTreeResponseItem {
 		seq: asNumber(item.SEQ),
 		depth: asNumber(item.DEPTH),
 		attributes: Array.isArray(item.ATTRIBUTES)
-			? item.ATTRIBUTES.map((attribute: Record<string, any>) => ({
+			? item.ATTRIBUTES.map((attribute: Record<string, unknown>) => ({
 				name: asString(attribute.NAME),
 				value: asString(attribute.VALUE)
 			}))
@@ -53,12 +53,12 @@ function mapNodeTreeItem(item: Record<string, any>): NodeTreeResponseItem {
 	};
 }
 
-function mapNodeDiffItem(item: Record<string, any>): NodeDiffEntry {
+function mapNodeDiffItem(item: Record<string, unknown>): NodeDiffEntry {
 	return {
 		SEMANTIC_ID: asString(item.SEMANTIC_ID),
 		STATUS: asString(item.STATUS),
 		ATTRIBUTEDIFF: Array.isArray(item.ATTRIBUTEDIFF)
-			? item.ATTRIBUTEDIFF.map((attribute: Record<string, any>) => ({
+			? item.ATTRIBUTEDIFF.map((attribute: Record<string, unknown>) => ({
 				SEMANTIC_ID: asString(attribute.SEMANTIC_ID),
 				NAME: asString(attribute.NAME),
 				STATUS: asString(attribute.STATUS),
@@ -103,7 +103,7 @@ export default class DetailService {
 				{ DetailId: detailId },
 				{ headers: await this.client.ensureWriteHeaders('POST') }
 			)
-		) as NodeTreeActionResult;
+		) as unknown as NodeTreeActionResult;
 		if (Array.isArray(payload.NODETREE)) {
 			return delay(payload.NODETREE.map(mapNodeTreeItem));
 		}
@@ -120,7 +120,7 @@ export default class DetailService {
 				},
 				{ headers: await this.client.ensureWriteHeaders('POST') }
 			)
-		) as NodeDiffActionResult;
+		) as unknown as NodeDiffActionResult;
 		if (Array.isArray(payload.NODEDIFF)) {
 			return delay(payload.NODEDIFF.map(mapNodeDiffItem));
 		}
@@ -128,7 +128,7 @@ export default class DetailService {
 	}
 
 	private async loadDetailsFromBackend(versionId: string): Promise<RegistryDetail[]> {
-		const payload = await this.client.readJson(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail?$orderby=CreatedAt desc`);
+		const payload = await this.client.readJson(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail`);
 		return normalizeODataCollection(payload).map((entity) => mapDetailEntity(entity));
 	}
 

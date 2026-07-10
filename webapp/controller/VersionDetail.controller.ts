@@ -1,3 +1,5 @@
+import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
+import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
@@ -5,7 +7,7 @@ import type Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { buildNodeTree, buildXmlLineMap, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { buildNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -30,11 +32,15 @@ export default class VersionDetail extends BaseController {
 			'versionDetail'
 		);
 		this.setModel(new JSONModel([]), 'treeModel');
-		this.getRouter().getRoute('versionDetail').attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter()
+			.getRoute("versionDetail")
+			.attachPatternMatched((event) => {
+				void this.onRouteMatched(event);
+			});
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
-		const args = (event as any).getParameter('arguments') as { registryId?: string; versionId?: string; '?query'?: { detailId?: string } };
+		const args = (event as Route$PatternMatchedEvent).getParameter('arguments') as { registryId?: string; versionId?: string; '?query'?: { detailId?: string } };
 		this.registryId = args.registryId ?? null;
 		this.versionId = args.versionId ?? null;
 		const queryDetailId = args['?query']?.detailId ?? null;
@@ -62,7 +68,7 @@ export default class VersionDetail extends BaseController {
 	}
 
 	public onNodeSelectionChange(event: UI5Event): void {
-		const listItem = (event as any).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
+		const listItem = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
 		const context = listItem?.getBindingContext('treeModel');
 		const node = context?.getObject();
 		if (!node) {
@@ -203,11 +209,16 @@ export default class VersionDetail extends BaseController {
 		}
 
 		const triggerGrowToLine = () => {
-			const growingInfo = (table as any).getGrowingInfo?.();
+			type TableWithGrowing = {
+				getGrowingInfo?: () => { actual?: number };
+				_oGrowingDelegate?: { requestNewPage?: () => void };
+			};
+			const growingTable = table as unknown as TableWithGrowing;
+			const growingInfo = growingTable.getGrowingInfo?.();
 			const currentActual = growingInfo?.actual || 0;
 
 			if (lineNo > currentActual) {
-				const delegate = (table as any)._oGrowingDelegate;
+				const delegate = growingTable._oGrowingDelegate;
 				if (delegate && typeof delegate.requestNewPage === 'function') {
 					const onUpdateFinished = () => {
 						table.detachEvent('updateFinished', onUpdateFinished);
@@ -228,9 +239,9 @@ export default class VersionDetail extends BaseController {
 		triggerGrowToLine();
 	}
 
-	private scrollXmlToLine(line: number): void {
-		this.selectXmlLine(line);
-	}
+	// private scrollXmlToLine(line: number): void {
+	// 	this.selectXmlLine(line);
+	// }
 
 	private scrollToItem(table: Table, lineNo: number): void {
 		// Clear previous highlights

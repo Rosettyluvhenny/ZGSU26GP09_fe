@@ -1,6 +1,6 @@
 import type { Job, MetadataDetails, Registry, RegistryDetail, RegistryVersion } from "../model/types";
 
-type ODataRecord = Record<string, any>;
+type ODataRecord = Record<string, unknown>;
 
 export function emptyMetadata(): MetadataDetails {
 	return {

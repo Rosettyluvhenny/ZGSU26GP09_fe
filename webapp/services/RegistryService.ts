@@ -1,8 +1,8 @@
 import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
 import ServiceError from './ServiceError';
 
-import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem, RegistryVersion, VersionActionResult } from '../model/types';
-import { emptyMetadata, mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
+import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem } from '../model/types';
+import { mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
@@ -20,9 +20,9 @@ function formatGuidLiteral(value: string): string {
 	return normalizeGuid(value);
 }
 
-function isNetworkFailure(error: unknown): boolean {
-	return error instanceof TypeError || String(error).toLowerCase().includes('fetch');
-}
+// function isNetworkFailure(error: unknown): boolean {
+// 	return error instanceof TypeError || String(error).toLowerCase().includes('fetch');
+// }
 
 function asString(value: unknown): string {
 	if (value === null || value === undefined) {
@@ -79,7 +79,7 @@ async function parseErrorResponse(response: Response, context: string): Promise<
 				const payload = JSON.parse(text) as Record<string, unknown>;
 				const error = payload.error as Record<string, unknown> | undefined;
 				if (error) {
-					message = asString(error.message) || asString((error as any).value) || message;
+					message = asString(error.message) || asString((error as { value?: string }).value) || message;
 					const inner = error.details as Array<Record<string, unknown>> | undefined;
 					if (Array.isArray(inner)) {
 						details.push(...inner.map((item) => asString(item.message)).filter((item) => Boolean(item)));
@@ -200,7 +200,7 @@ export default class RegistryService {
 		return delay(backendRegistry);
 	}
 
-	public async createRegistry(input: RegistryCreateInput, createdBy = 'demo.user'): Promise<Registry> {
+	public async createRegistry(input: RegistryCreateInput): Promise<Registry> {
 		const validationMessages = this.validateCreateInput(input);
 		if (validationMessages.length > 0) {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
@@ -219,7 +219,7 @@ export default class RegistryService {
 		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
-	public async updateRegistry(registryId: string, input: RegistryUpdateInput, changedBy = 'demo.user'): Promise<Registry> {
+	public async updateRegistry(registryId: string, input: RegistryUpdateInput): Promise<Registry> {
 		const validationMessages = this.validateUpdateInput(input);
 		if (validationMessages.length > 0) {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
@@ -244,7 +244,7 @@ export default class RegistryService {
 		return this.changeStatus(registryId, 'Unpublished', changedBy);
 	}
 
-	public async generateVersion(registryId: string, etag?: string, comment = 'Generated via frontend', changedBy = 'demo.user'): Promise<any> {
+	public async generateVersion(registryId: string, etag?: string): Promise<unknown> {
 		const headers = await this.client.ensureWriteHeaders('POST');
 		if (etag) {
 			headers['If-Match'] = etag;

@@ -164,7 +164,7 @@ export function buildNodeTree(items: NodeTreeResponseItem[]): NodeTreeViewItem[]
 		}
 
 		if (item.parentId && byId.has(item.parentId)) {
-			byId.get(item.parentId)!.children.push(node);
+			byId.get(item.parentId).children.push(node);
 		} else {
 			roots.push(node);
 		}

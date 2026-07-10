@@ -1,3 +1,7 @@
+import ListBinding from 'sap/ui/model/ListBinding';
+import Table from 'sap/m/Table';
+import ViewSettingsItem from 'sap/m/ViewSettingsItem';
+import ViewSettingsDialog, { type ViewSettingsDialog$ConfirmEvent } from 'sap/m/ViewSettingsDialog';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import Dialog from 'sap/m/Dialog';
 import Fragment from 'sap/ui/core/Fragment';
@@ -6,6 +10,7 @@ import MessageToast from 'sap/m/MessageToast';
 import Sorter from 'sap/ui/model/Sorter';
 import type ListItemBase from 'sap/m/ListItemBase';
 import type UI5Event from 'sap/ui/base/Event';
+import Control from 'sap/ui/core/Control';
 
 import BaseController from './BaseController';
 import ServiceError from '../services/ServiceError';
@@ -62,18 +67,18 @@ export default class RegistryList extends BaseController {
 				name: 'com.zgp9.fe.view.fragments.RegistryListSortDialog',
 				controller: this
 			});
-			view.addDependent(fragment as sap.ui.core.Control);
+			view.addDependent(fragment as Control);
 		}
-		const dialog = view.byId('registryListSortDialog') as sap.m.ViewSettingsDialog;
+		const dialog = view.byId('registryListSortDialog') as ViewSettingsDialog;
 		dialog.open();
 	}
 
-	public onSortConfirm(event: UI5Event): void {
-		const sortItem = event.getParameter('sortItem') as sap.m.ViewSettingsItem;
+	public onSortConfirm(event: ViewSettingsDialog$ConfirmEvent): void {
+		const sortItem = event.getParameter('sortItem') as ViewSettingsItem;
 		const sortDescending = event.getParameter('sortDescending') as boolean;
 
-		const table = this.getView().byId('registryTable') as sap.m.Table;
-		const binding = table.getBinding('items') as sap.ui.model.ListBinding;
+		const table = this.getView().byId('registryTable') as Table;
+		const binding = table.getBinding('items') as ListBinding;
 
 		if (sortItem && binding) {
 			const path = sortItem.getKey();

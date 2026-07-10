@@ -1,5 +1,3 @@
-import JSONModel from "sap/ui/model/json/JSONModel";
-
 import BaseController from "./BaseController";
 
 /**
@@ -7,12 +5,11 @@ import BaseController from "./BaseController";
  */
 export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
-	private initialRedirectDone = false;
 	private permissionsPromise: Promise<void> | null = null;
 
 	public onInit(): void {
 		this.getRouter().attachRouteMatched(this.onGlobalRouteMatched, this);
-		
+
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
 		});
@@ -27,14 +24,14 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	private async onGlobalRouteMatched(event: any): Promise<void> {
+	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
 		const routeName = event.getParameter("name") as string;
-		
+
 		if (routeName === "login") {
 			return;
 		}
 
-		const session = this.getSessionModel().getData() as any;
+		const session = this.getSessionModel().getData() as { authenticated?: boolean };
 		if (!session?.authenticated) {
 			return;
 		}
@@ -72,7 +69,7 @@ export default class MainShell extends BaseController {
 	public async onLogout(): Promise<void> {
 		const auth = this.getOwnerComponent().getAuthenticationService();
 		await auth.logout();
-		(this.getSessionModel() as JSONModel).setData({
+		(this.getSessionModel()).setData({
 			authenticated: false,
 			userName: "",
 			csrfToken: "",

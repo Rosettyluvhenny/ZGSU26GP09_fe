@@ -1,8 +1,10 @@
+import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
+import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
+import type Table from 'sap/m/Table';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
 import MessageToast from 'sap/m/MessageToast';
-import Table from 'sap/m/Table';
 
 import BaseController from './BaseController';
 import type { Registry, RegistryVersion } from '../model/types';
@@ -27,11 +29,15 @@ export default class RegistryDetail extends BaseController {
 			}),
 			'registryDetail'
 		);
-		this.getRouter().getRoute('registryDetail').attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter()
+			.getRoute("registryDetail")
+			.attachPatternMatched((event) => {
+				void this.onRouteMatched(event);
+			});
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
-		const args = (event as any).getParameter('arguments') as { registryId?: string };
+		const args = (event as Route$PatternMatchedEvent).getParameter('arguments') as { registryId?: string };
 		this.registryId = args.registryId ?? null;
 		if (!this.registryId) {
 			return;
@@ -58,10 +64,10 @@ export default class RegistryDetail extends BaseController {
 			MessageToast.show('Created successfully');
 
 			if (response) {
+				const responseRecord = response as Record<string, unknown>;
 				// Remove @odata.etag before merging so we don't update it
-				delete response['@odata.etag'];
-				const mappedResponse = mapRegistryEntity(response);
-
+				delete responseRecord['@odata.etag'];
+				const mappedResponse = mapRegistryEntity(responseRecord);
 				// Update registry with all information except etag (which was removed)
 				const updatedRegistry = { ...registry };
 				(Object.keys(mappedResponse) as Array<keyof Registry>).forEach(key => {
@@ -91,7 +97,7 @@ export default class RegistryDetail extends BaseController {
 		const model = this.getModel('registryDetail') as JSONModel;
 		const selectedItems = table.getSelectedItems();
 		if (selectedItems.length > 2) {
-			const changedItem = (event as any).getParameter('listItem') as any;
+			const changedItem = (event as ListBase$ItemPressEvent).getParameter('listItem');
 			if (changedItem) {
 				table.setSelectedItem(changedItem, false);
 			}

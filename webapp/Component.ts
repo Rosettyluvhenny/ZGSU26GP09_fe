@@ -2,6 +2,8 @@ import UIComponent from 'sap/ui/core/UIComponent';
 import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
 import JSONModel from 'sap/ui/model/json/JSONModel';
+import type { Router$BeforeRouteMatchedEvent } from 'sap/ui/core/routing/Router';
+import MessageModel from 'sap/ui/model/message/MessageModel';
 
 import AuthenticationService from './services/AuthenticationService';
 import DetailService from './services/DetailService';
@@ -34,7 +36,7 @@ export default class Component extends UIComponent {
 		this.setModel(models.createDeviceModel(), 'device');
 		this.setModel(models.createSessionModel(), 'session');
 		this.setModel(models.createUiModel(), 'ui');
-		this.setModel((Messaging as any).getMessageModel(), 'message');
+		this.setModel((Messaging as unknown as { getMessageModel: () => MessageModel }).getMessageModel(), 'message');
 
 		this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter(), this.authenticationService);
@@ -45,8 +47,8 @@ export default class Component extends UIComponent {
 	}
 
 	private setupRouteGuard(): void {
-		this.getRouter().attachBeforeRouteMatched((event: any) => {
-			const routeName = event.getParameter('name') as string;
+		this.getRouter().attachBeforeRouteMatched((event: Router$BeforeRouteMatchedEvent) => {
+			const routeName = event.getParameter('name');
 			const sessionModel = this.getModel('session') as JSONModel;
 			const session = sessionModel.getData() as { authenticated?: boolean };
 
@@ -138,7 +140,7 @@ export default class Component extends UIComponent {
 		return this.errorHandler;
 	}
 
-	public getMessageManager(): any {
+	public getMessageManager(): typeof Messaging {
 		return Messaging;
 	}
 }

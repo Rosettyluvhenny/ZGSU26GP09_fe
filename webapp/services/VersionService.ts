@@ -75,7 +75,7 @@ export default class VersionService {
 				},
 				{ headers }
 			)
-		) as VersionCompareActionResult;
+		) as unknown as VersionCompareActionResult;
 		return delay(mapCompareResult(payload));
 	}
 
@@ -86,7 +86,7 @@ export default class VersionService {
 	}
 
 	private async loadVersionFromBackend(versionId: string): Promise<RegistryVersion | null> {
-		const payload = await this.client.readJson(`/Version/${formatGuidLiteral(versionId)}?$orderby=CreatedAt desc`);
+		const payload = await this.client.readJson(`/Version/${formatGuidLiteral(versionId)}`);
 		const entity = normalizeODataEntity(payload);
 		if (!Object.keys(entity).length) {
 			return null;
@@ -95,8 +95,7 @@ export default class VersionService {
 		return this.loadVersionFromEntity(entity);
 	}
 
-	private async loadVersionFromEntity(entity: Record<string, any>): Promise<RegistryVersion> {
-		const versionId = asString(entity.VersionId) || asString(entity.id);
+	private loadVersionFromEntity(entity: Record<string, unknown>): RegistryVersion {
 		let parsedDetail: { detailId: string; metadataXml: string } | undefined;
 		return mapVersionEntity(entity, parsedDetail);
 	}

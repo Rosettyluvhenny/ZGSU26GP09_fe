@@ -150,7 +150,7 @@ export interface VersionCompareActionEntry {
 	SERVICEDEFID: string;
 	BASEDETAILID: string;
 	COMPAREDETAILID: string;
-	CHANGETYPE: 'CHANGED' | 'ADDED' | 'DELETED' | 'UNCHANGED' | string;
+	CHANGETYPE: string;
 }
 
 export interface VersionCompareActionResult {
@@ -191,10 +191,11 @@ export interface NodeTreeViewItem extends NodeTreeResponseItem {
 	isAttribute?: boolean;
 	isAttributeGroup?: boolean;
 	highlight?: string;
+	shouldExpand?: boolean;
 }
 
 export interface NodeTreeActionResult {
-	NODETREE: NodeTreeResponseItem[];
+	NODETREE: Record<string, unknown>[];
 }
 
 export interface NodeDiffAttribute {
@@ -212,7 +213,7 @@ export interface NodeDiffEntry {
 }
 
 export interface NodeDiffActionResult {
-	NODEDIFF: NodeDiffEntry[];
+	NODEDIFF: Record<string, unknown>[];
 }
 
 export interface CompareVersionEntry {
