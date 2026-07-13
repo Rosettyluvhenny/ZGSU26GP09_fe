@@ -76,6 +76,18 @@ export interface Job {
 	summary: string;
 }
 
+export interface LogEntry {
+	id: string;
+	actionType: string;
+	actor: string;
+	actionAt: string;
+	ipAddress: string;
+	remarks: string;
+	logResult: string;
+	objectId: string;
+	objectIdType: string;
+}
+
 export interface SessionData {
 	authenticated: boolean;
 	userName: string;

@@ -42,6 +42,8 @@ export default class MainShell extends BaseController {
 			this.getUiModel().setProperty("/currentSection", "jobs");
 		} else if (routeName === "home") {
 			this.getUiModel().setProperty("/currentSection", "home");
+		} else if (routeName === "logs") {
+			this.getUiModel().setProperty("/currentSection", "logs");
 		}
 
 		if (!this.permissionsPromise) {
@@ -71,6 +73,11 @@ export default class MainShell extends BaseController {
 		this.navigateWhenReady("jobList");
 	}
 
+	public onNavigateLogs(): void {
+		this.getUiModel().setProperty("/currentSection", "logs");
+		this.navigateWhenReady("logs");
+	}
+
 	public async onLogout(): Promise<void> {
 		const auth = this.getOwnerComponent().getAuthenticationService();
 		await auth.logout();
@@ -85,7 +92,7 @@ export default class MainShell extends BaseController {
 		this.navTo("login", {}, true);
 	}
 
-	private navigateWhenReady(route: "home" | "registryList" | "jobList"): void {
+	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {
 		this.pendingRoute = route;
 		this.flushPendingNavigation();
 	}

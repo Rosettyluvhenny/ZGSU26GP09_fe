@@ -9,6 +9,7 @@ import AuthenticationService from './services/AuthenticationService';
 import DetailService from './services/DetailService';
 import ErrorHandler from './services/ErrorHandler';
 import JobService from './services/JobService';
+import LogService from './services/LogService';
 import RegistryService from './services/RegistryService';
 import VersionService from './services/VersionService';
 import models from './model/models';
@@ -27,6 +28,7 @@ export default class Component extends UIComponent {
 	private readonly registryService = new RegistryService();
 	private readonly versionService = new VersionService(this.detailService);
 	private readonly jobService = new JobService();
+	private readonly logService = new LogService();
 	private errorHandler!: ErrorHandler;
 	private contentDensityClass: string;
 
@@ -134,6 +136,10 @@ export default class Component extends UIComponent {
 
 	public getJobService(): JobService {
 		return this.jobService;
+	}
+
+	public getLogService(): LogService {
+		return this.logService;
 	}
 
 	public getErrorHandler(): ErrorHandler {

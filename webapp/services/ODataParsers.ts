@@ -1,4 +1,4 @@
-import type { Job, MetadataDetails, Registry, RegistryDetail, RegistryVersion } from "../model/types";
+import type { Job, LogEntry, MetadataDetails, Registry, RegistryDetail, RegistryVersion } from "../model/types";
 
 type ODataRecord = Record<string, unknown>;
 
@@ -257,6 +257,20 @@ export function mapDetailEntity(entity: ODataRecord): RegistryDetail {
 		serviceHash: asString(entity.ServiceHash),
 		lastChangedAt: asIsoDate(entity.LastChangeAt),
 		xml: getMetadataXml(entity)
+	};
+}
+
+export function mapLogEntity(entity: ODataRecord): LogEntry {
+	return {
+		id: asString(entity.LogId) || asString(entity.id),
+		actionType: asString(entity.ActionType),
+		actor: asString(entity.Actor),
+		actionAt: asIsoDate(entity.ActionAt),
+		ipAddress: asString(entity.IpAddress),
+		remarks: asString(entity.Remarks),
+		logResult: asString(entity.LogResult),
+		objectId: asString(entity.ObjectId),
+		objectIdType: asString(entity.objectIdType)
 	};
 }
 

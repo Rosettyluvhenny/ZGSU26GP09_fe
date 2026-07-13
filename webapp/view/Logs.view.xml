@@ -1,0 +1,53 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.Logs"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:f="sap.f">
+
+	<f:DynamicPage id="logsPage" toggleHeaderOnTitleClick="false">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Logs" level="H1" />
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<Toolbar>
+					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+					<ToolbarSpacer />
+					<SearchField width="18rem" placeholder="Search logs" liveChange=".onSearchLiveChange" />
+				</Toolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<Table id="logTable" items="{logList>/items}" busy="{logList>/busy}" growing="true" growingThreshold="50" mode="None" noDataText="No log entries found.">
+				<columns>
+					<Column width="11rem"><Text text="Timestamp" /></Column>
+					<Column width="7rem"><Text text="Action" /></Column>
+					<Column width="9rem"><Text text="Result" /></Column>
+					<Column width="9rem"><Text text="Actor" /></Column>
+					<Column width="9rem"><Text text="Object Type" /></Column>
+					<Column width="auto"><Text text="Remarks" /></Column>
+				</columns>
+				<items>
+					<ColumnListItem
+						type="{= ${logList>objectIdType} === 'REGISTRY' ? 'Navigation' : 'Inactive'}"
+						press=".onRowPress">
+						<cells>
+							<Text text="{path: 'logList>actionAt', formatter: '.formatDateTime'}" />
+							<Text text="{logList>actionType}" />
+							<ObjectStatus text="{logList>logResult}" state="{path: 'logList>logResult', formatter: '.formatLogResultState'}" />
+							<Text text="{logList>actor}" />
+							<Text text="{logList>objectIdType}" />
+							<Text text="{logList>remarks}" wrapping="true" />
+						</cells>
+					</ColumnListItem>
+				</items>
+			</Table>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>
