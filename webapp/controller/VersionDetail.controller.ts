@@ -124,6 +124,19 @@ export default class VersionDetail extends BaseController {
 		MessageToast.show(copied ? 'XML copied to clipboard.' : 'Unable to copy XML.');
 	}
 
+	public onDownloadXml(): void {
+		const model = this.getModel('versionDetail') as JSONModel;
+		const xml = model.getProperty('/selectedDetailXml') as string;
+		if (!xml) {
+			MessageToast.show('No XML content to download.');
+			return;
+		}
+
+		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+		const baseName = (detail?.serviceDefinition || detail?.id || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
+		this.downloadTextFile(`${baseName}.xml`, xml);
+	}
+
 	public onXmlLineSelectionChange(event: UI5Event): void {
 		const source = event.getSource() as unknown as Table;
 		const selectedItem = source.getSelectedItem();
@@ -261,6 +274,18 @@ export default class VersionDetail extends BaseController {
 		} catch {
 			return false;
 		}
+	}
+
+	private downloadTextFile(fileName: string, content: string): void {
+		const blob = new Blob([content], { type: 'application/xml' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
 	}
 
 	private createFallbackNodeTree(detail: RegistryDetail): NodeTreeViewItem[] {
