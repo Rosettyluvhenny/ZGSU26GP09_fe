@@ -132,6 +132,7 @@ export interface XmlLineEntry {
 	lineNo: number;
 	text: string;
 	isWhitespace: boolean;
+	highlight?: string;
 }
 
 export interface VersionActionResult {

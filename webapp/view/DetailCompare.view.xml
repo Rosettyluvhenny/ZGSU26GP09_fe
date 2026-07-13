@@ -72,7 +72,10 @@
 										<Column width="auto"><Text text="Line" /></Column>
 									</columns>
 									<items>
-										<ColumnListItem>
+										<ColumnListItem highlight="{detailCompare>highlight}">
+											<customData>
+												<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
+											</customData>
 											<cells>
 												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
 												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
@@ -95,7 +98,10 @@
 										<Column width="auto"><Text text="Line" /></Column>
 									</columns>
 									<items>
-										<ColumnListItem>
+										<ColumnListItem highlight="{detailCompare>highlight}">
+											<customData>
+												<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
+											</customData>
 											<cells>
 												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
 												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />

@@ -18,7 +18,7 @@ interface ExtendedTreeBinding {
 }
 
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { applyNodeDiffStatus, buildNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -154,10 +154,11 @@ export default class DetailCompare extends BaseController {
 
 			const compareTreeMapped = applyNodeDiffStatus(compareTree, diffMap);
 
+			let baseXmlLines = this.buildXmlLines(baseXml);
+			let compareXmlLines = this.buildXmlLines(compareXml);
+
 			model.setProperty('/baseDetail', baseDetail);
 			model.setProperty('/compareDetail', compareDetail);
-			model.setProperty('/baseXmlLines', this.buildXmlLines(baseXml));
-			model.setProperty('/compareXmlLines', this.buildXmlLines(compareXml));
 			model.setProperty('/baseTree', baseTree);
 			model.setProperty('/compareTree', compareTreeMapped);
 			model.setProperty('/baseLineStarts', baseLineStarts);
@@ -221,14 +222,21 @@ export default class DetailCompare extends BaseController {
 				applyHighlight(baseTree);
 				applyHighlight(compareTreeMapped);
 
+				const baseLineHighlights = buildLineHighlightMap(baseTree);
+				const compareLineHighlights = buildLineHighlightMap(compareTreeMapped);
+				baseXmlLines = this.applyLineHighlights(baseXmlLines, baseLineHighlights);
+				compareXmlLines = this.applyLineHighlights(compareXmlLines, compareLineHighlights);
+
 				model.setProperty('/baseTree', baseTree);
 				model.setProperty('/compareTree', compareTreeMapped);
 
 				this.scheduleTreeExpansion('baseTree');
 				this.scheduleTreeExpansion('compareTree');
-
-				model.refresh(true);
 			}
+
+			model.setProperty('/baseXmlLines', baseXmlLines);
+			model.setProperty('/compareXmlLines', compareXmlLines);
+			model.refresh(true);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
@@ -408,7 +416,15 @@ export default class DetailCompare extends BaseController {
 		return xml.split('\n').map((text, index) => ({
 			lineNo: index + 1,
 			text,
-			isWhitespace: text.trim().length === 0
+			isWhitespace: text.trim().length === 0,
+			highlight: 'None'
+		}));
+	}
+
+	private applyLineHighlights(lines: XmlLineEntry[], lineHighlights: Map<number, string>): XmlLineEntry[] {
+		return lines.map((line) => ({
+			...line,
+			highlight: lineHighlights.get(line.lineNo) ?? 'None'
 		}));
 	}
 

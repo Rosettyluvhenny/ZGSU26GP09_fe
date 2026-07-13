@@ -206,6 +206,29 @@ export function applyNodeDiffStatus(nodes: NodeTreeViewItem[], statusBySemanticI
 	}));
 }
 
+export function buildLineHighlightMap(nodes: NodeTreeViewItem[]): Map<number, string> {
+	const lineHighlights = new Map<number, string>();
+	const highlightedNodes = flattenNodeTree(nodes)
+		.filter((node) => node.highlight && node.highlight !== 'None')
+		.sort((left, right) => right.depth - left.depth);
+
+	for (const node of highlightedNodes) {
+		const start = node.lineStart || 0;
+		const end = node.lineEnd || start;
+		if (start <= 0) {
+			continue;
+		}
+
+		for (let line = start; line <= end; line += 1) {
+			if (!lineHighlights.has(line)) {
+				lineHighlights.set(line, node.highlight);
+			}
+		}
+	}
+
+	return lineHighlights;
+}
+
 export function buildLineIndexFromXml(xml: string): number[] {
 	const lineStarts: number[] = [0];
 	for (let index = 0; index < xml.length; index += 1) {
