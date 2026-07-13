@@ -31,6 +31,8 @@
 					<Select selectedKey="{logList>/objectIdType}" items="{logList>/objectIdTypeOptions}" change=".onFilterChange">
 						<core:Item key="{logList>key}" text="{logList>text}" />
 					</Select>
+					<Label text="Time" />
+					<DateRangeSelection width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
 					<SearchField width="16rem" placeholder="Search logs" liveChange=".onSearchLiveChange" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>

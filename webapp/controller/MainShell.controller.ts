@@ -11,7 +11,6 @@ const DARK_THEME = "sap_horizon_dark";
  */
 export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
-	private permissionsPromise: Promise<void> | null = null;
 
 	public onInit(): void {
 		this.getRouter().attachRouteMatched(this.onGlobalRouteMatched, this);
@@ -52,11 +51,7 @@ export default class MainShell extends BaseController {
 			this.getUiModel().setProperty("/currentSection", "logs");
 		}
 
-		if (!this.permissionsPromise) {
-			this.permissionsPromise = this.loadGlobalPermissions();
-		}
-
-		await this.permissionsPromise;
+		await this.loadGlobalPermissions();
 
 		if (routeName.startsWith("job") && !this.getUiModel().getProperty("/canExecuteScanJob")) {
 			this.getUiModel().setProperty("/currentSection", "home");
@@ -101,7 +96,6 @@ export default class MainShell extends BaseController {
 			csrfToken: "",
 			loginAt: null,
 		});
-		this.permissionsPromise = null;
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
 		this.navTo("login", {}, true);
 	}

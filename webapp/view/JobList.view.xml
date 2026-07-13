@@ -17,7 +17,7 @@
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
 				<Toolbar>
-					<Button text="Run Scan Job" type="Emphasized" press=".onRunScanJob" />
+					<Button text="Run Scan Job" type="Emphasized" press=".onRunScanJob" visible="{ui>/canExecuteScanJob}" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
 					<SearchField width="18rem" placeholder="Search jobs" liveChange=".onSearchLiveChange" />

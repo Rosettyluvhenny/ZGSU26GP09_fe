@@ -17,6 +17,8 @@ interface FilterOption {
 export default class Logs extends BaseController {
 	private allLogs: LogEntry[] = [];
 	private detailDialog?: Dialog;
+	private dateFrom: Date | null = null;
+	private dateTo: Date | null = null;
 
 	public onInit(): void {
 		this.setModel(
@@ -53,6 +55,13 @@ export default class Logs extends BaseController {
 	}
 
 	public onFilterChange(): void {
+		this.applyFilters();
+	}
+
+	public onDateRangeChange(event: UI5Event): void {
+		const source = event.getSource() as unknown as { getDateValue: () => Date | null; getSecondDateValue: () => Date | null };
+		this.dateFrom = source.getDateValue();
+		this.dateTo = source.getSecondDateValue();
 		this.applyFilters();
 	}
 
@@ -125,6 +134,18 @@ export default class Logs extends BaseController {
 			if (objectIdType !== 'All' && log.objectIdType !== objectIdType) {
 				return false;
 			}
+			if (this.dateFrom || this.dateTo) {
+				const actionAt = new Date(log.actionAt).getTime();
+				if (Number.isNaN(actionAt)) {
+					return false;
+				}
+				if (this.dateFrom && actionAt < this.startOfDay(this.dateFrom).getTime()) {
+					return false;
+				}
+				if (this.dateTo && actionAt > this.endOfDay(this.dateTo).getTime()) {
+					return false;
+				}
+			}
 			if (search) {
 				const haystack = [log.id, log.actionType, log.actor, log.remarks, log.logResult, log.objectIdType, log.ipAddress]
 					.join(' ')
@@ -137,6 +158,18 @@ export default class Logs extends BaseController {
 		});
 
 		model.setProperty('/items', filtered);
+	}
+
+	private startOfDay(date: Date): Date {
+		const result = new Date(date);
+		result.setHours(0, 0, 0, 0);
+		return result;
+	}
+
+	private endOfDay(date: Date): Date {
+		const result = new Date(date);
+		result.setHours(23, 59, 59, 999);
+		return result;
 	}
 
 	private buildFilterOptions(): void {
