@@ -9,42 +9,47 @@
 		<content>
 			<VBox class="sapUiMediumMargin">
 				<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" class="sapUiSmallMarginBottom" />
-				<Text text="Here's a snapshot of your registries and scan jobs." class="sapUiLargeMarginBottom" />
+				<Text text="Here's a snapshot of your registries and scan jobs." class="sapUiMediumMarginBottom" />
 
-				<l:Grid defaultSpan="L3 M6 S12" class="sapUiSmallMarginBottom">
-					<Panel class="homeStatTile homeStatTile__total">
-						<content>
-							<VBox alignItems="Center" class="sapUiSmallMargin">
-								<Title text="{home>/registryStats/total}" level="H1" />
-								<Text text="Total Registries" />
-							</VBox>
-						</content>
-					</Panel>
-					<Panel class="homeStatTile homeStatTile__success">
-						<content>
-							<VBox alignItems="Center" class="sapUiSmallMargin">
-								<Title text="{home>/registryStats/published}" level="H1" />
-								<Text text="Published" />
-							</VBox>
-						</content>
-					</Panel>
-					<Panel class="homeStatTile homeStatTile__warning">
-						<content>
-							<VBox alignItems="Center" class="sapUiSmallMargin">
-								<Title text="{home>/registryStats/unpublished}" level="H1" />
-								<Text text="Unpublished" />
-							</VBox>
-						</content>
-					</Panel>
-					<Panel class="homeStatTile homeStatTile__error">
-						<content>
-							<VBox alignItems="Center" class="sapUiSmallMargin">
-								<Title text="{home>/registryStats/archive}" level="H1" />
-								<Text text="Archived" />
-							</VBox>
-						</content>
-					</Panel>
-				</l:Grid>
+				<!-- KPI tiles -->
+				<HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+					<GenericTile header="Total Registries" subheader="All services" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+						<tileContent>
+							<TileContent>
+								<content>
+									<NumericContent value="{home>/registryStats/total}" icon="sap-icon://database" withMargin="false" />
+								</content>
+							</TileContent>
+						</tileContent>
+					</GenericTile>
+					<GenericTile header="Published" subheader="Live services" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+						<tileContent>
+							<TileContent>
+								<content>
+									<NumericContent value="{home>/registryStats/published}" icon="sap-icon://sys-enter-2" valueColor="Good" withMargin="false" />
+								</content>
+							</TileContent>
+						</tileContent>
+					</GenericTile>
+					<GenericTile header="Unpublished" subheader="Not live" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+						<tileContent>
+							<TileContent>
+								<content>
+									<NumericContent value="{home>/registryStats/unpublished}" icon="sap-icon://pending" valueColor="Critical" withMargin="false" />
+								</content>
+							</TileContent>
+						</tileContent>
+					</GenericTile>
+					<GenericTile header="Archived" subheader="Retired" press=".onNavigateRegistries" class="sapUiTinyMarginBottom">
+						<tileContent>
+							<TileContent>
+								<content>
+									<NumericContent value="{home>/registryStats/archive}" icon="sap-icon://box" valueColor="Error" withMargin="false" />
+								</content>
+							</TileContent>
+						</tileContent>
+					</GenericTile>
+				</HBox>
 
 				<Panel headerText="Quick Actions" expandable="false" class="sapUiSmallMarginBottom">
 					<content>
@@ -56,13 +61,15 @@
 					</content>
 				</Panel>
 
+				<!-- Recent activity -->
 				<l:Grid defaultSpan="L6 M12 S12">
 					<Panel headerText="Recently Changed Registries" expandable="false">
 						<content>
 							<List items="{home>/recentRegistries}" noDataText="No registries yet.">
 								<StandardListItem
+									icon="sap-icon://database"
 									title="{home>registryName}"
-									description="{= ${home>serviceType} + ' · ' + ${home>lastChangedBy} }"
+									description="{= ${home>serviceType} + ' · ' + ${home>lastChangedBy} + ' · ' + ${path: 'home>lastChangedAt', formatter: '.formatRelativeTime'} }"
 									info="{home>statusText}"
 									infoState="{path: 'home>status', formatter: '.formatStatusState'}"
 									type="Active"
@@ -75,8 +82,9 @@
 						<content>
 							<List items="{home>/recentJobs}" noDataText="No scan jobs yet.">
 								<StandardListItem
+									icon="sap-icon://activity-items"
 									title="{= 'Job ' + ${home>id} }"
-									description="{= ${home>triggerType} + ' · ' + ${home>executedBy} }"
+									description="{= ${home>triggerType} + ' · ' + ${home>executedBy} + ' · ' + ${path: 'home>startedAt', formatter: '.formatRelativeTime'} }"
 									info="{home>status}"
 									infoState="{path: 'home>status', formatter: '.formatStatusState'}"
 									type="Active"

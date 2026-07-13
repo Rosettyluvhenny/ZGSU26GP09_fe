@@ -1,4 +1,10 @@
+import Theming from "sap/ui/core/Theming";
+
 import BaseController from "./BaseController";
+import { writeThemePreference } from "../services/SessionStorage";
+
+const LIGHT_THEME = "sap_horizon";
+const DARK_THEME = "sap_horizon_dark";
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -76,6 +82,14 @@ export default class MainShell extends BaseController {
 	public onNavigateLogs(): void {
 		this.getUiModel().setProperty("/currentSection", "logs");
 		this.navigateWhenReady("logs");
+	}
+
+	public onToggleTheme(): void {
+		const nextIsDark = !this.getUiModel().getProperty("/isDarkTheme");
+		const nextTheme = nextIsDark ? DARK_THEME : LIGHT_THEME;
+		Theming.setTheme(nextTheme);
+		writeThemePreference(nextTheme);
+		this.getUiModel().setProperty("/isDarkTheme", nextIsDark);
 	}
 
 	public async onLogout(): Promise<void> {

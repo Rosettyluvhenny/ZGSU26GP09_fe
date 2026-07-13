@@ -1,15 +1,20 @@
 import UIComponent from 'sap/ui/core/UIComponent';
 import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
+import Theming from 'sap/ui/core/Theming';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type { Router$BeforeRouteMatchedEvent } from 'sap/ui/core/routing/Router';
 import MessageModel from 'sap/ui/model/message/MessageModel';
+
+import { readThemePreference, writeSessionStorage } from './services/SessionStorage';
+import type { SessionData } from './model/types';
 
 import AuthenticationService from './services/AuthenticationService';
 import DetailService from './services/DetailService';
 import ErrorHandler from './services/ErrorHandler';
 import JobService from './services/JobService';
 import LogService from './services/LogService';
+import ODataClient from './services/ODataClient';
 import RegistryService from './services/RegistryService';
 import VersionService from './services/VersionService';
 import models from './model/models';
@@ -35,6 +40,7 @@ export default class Component extends UIComponent {
 	public init(): void {
 		super.init();
 
+		this.applyStoredTheme();
 		this.setModel(models.createDeviceModel(), 'device');
 		this.setModel(models.createSessionModel(), 'session');
 		this.setModel(models.createUiModel(), 'ui');
@@ -46,6 +52,13 @@ export default class Component extends UIComponent {
 		this.setupRouteGuard();
 		void this.restoreSessionOnStartup();
 		this.getRouter().initialize();
+	}
+
+	private applyStoredTheme(): void {
+		const storedTheme = readThemePreference();
+		if (storedTheme && storedTheme !== Theming.getTheme()) {
+			Theming.setTheme(storedTheme);
+		}
 	}
 
 	private setupRouteGuard(): void {
@@ -82,27 +95,73 @@ export default class Component extends UIComponent {
 
 	private async restoreSessionOnStartup(): Promise<void> {
 		const sessionModel = this.getModel('session') as JSONModel;
-		const session = sessionModel.getData() as { authenticated?: boolean };
-		if (!session.authenticated) {
-			return;
+		const session = sessionModel.getData() as SessionData;
+
+		// Case 1: a session is already stored locally -> validate it against the backend.
+		if (session.authenticated) {
+			try {
+				await this.registryService.getPermissions();
+				this.navigateAfterAutoLogin();
+				return;
+			} catch {
+				// Stored session is stale; fall through to a fresh backend probe below.
+			}
 		}
 
+		// Case 2: no valid local session. When the app is served from the authenticated
+		// SAP system (deployed), the browser already holds a valid session cookie, so this
+		// probe succeeds and we can skip the custom login form. Running standalone/locally
+		// it fails with 401 and the login form is shown as usual.
 		try {
-			await this.registryService.getPermissions();
-			const currentHash = window.location.hash.replace(/^#/, '');
-			if (!currentHash || currentHash === 'login') {
-				this.getRouter().navTo('home', {}, true);
-			}
+			await ODataClient.checkAuthAndFetchCsrf();
+			const restored: SessionData = {
+				authenticated: true,
+				userName: await this.resolveCurrentUser(),
+				csrfToken: '',
+				loginAt: new Date().toISOString()
+			};
+			sessionModel.setData(restored);
+			writeSessionStorage(restored);
+			this.navigateAfterAutoLogin();
 		} catch {
-			await this.authenticationService.logout();
+			// Not authenticated at the server -> keep the custom login form.
 			sessionModel.setData({
 				authenticated: false,
 				userName: '',
 				csrfToken: '',
 				loginAt: null
 			});
-			this.getRouter().navTo('login', {}, true);
 		}
+	}
+
+	private navigateAfterAutoLogin(): void {
+		const currentHash = window.location.hash.replace(/^#/, '');
+		if (!currentHash || currentHash === 'login') {
+			this.getRouter().navTo('home', {}, true);
+		}
+	}
+
+	private async resolveCurrentUser(): Promise<string> {
+		// Best-effort lookup of the logged-in user for display in the shell header.
+		// When served from the SAP system the standard start_up service exposes it.
+		try {
+			const response = await fetch('/sap/bc/ui2/start_up?sap-client=324', {
+				method: 'GET',
+				credentials: 'include',
+				headers: { Accept: 'application/json' }
+			});
+			if (response.ok) {
+				const data = (await response.json()) as { CURRENT_USER?: string; currentUser?: string };
+				const user = (data.CURRENT_USER ?? data.currentUser ?? '').trim();
+				if (user) {
+					return user;
+				}
+			}
+		} catch {
+			// Ignore and fall back to a generic label.
+		}
+
+		return 'SAP User';
 	}
 
 	public getContentDensityClass(): string {

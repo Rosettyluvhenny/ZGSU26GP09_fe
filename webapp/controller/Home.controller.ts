@@ -61,6 +61,36 @@ export default class Home extends BaseController {
 		this.navTo('jobDetail', { jobId: job.id });
 	}
 
+	public formatRelativeTime(value: string): string {
+		if (!value) {
+			return '';
+		}
+
+		const then = new Date(value).getTime();
+		if (Number.isNaN(then)) {
+			return '';
+		}
+
+		const diffMs = Date.now() - then;
+		const minutes = Math.floor(diffMs / 60000);
+		if (minutes < 1) {
+			return 'just now';
+		}
+		if (minutes < 60) {
+			return `${minutes} min ago`;
+		}
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) {
+			return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+		}
+		const days = Math.floor(hours / 24);
+		if (days < 30) {
+			return `${days} day${days === 1 ? '' : 's'} ago`;
+		}
+
+		return this.formatDateTime(value);
+	}
+
 	private async loadDashboard(): Promise<void> {
 		const model = this.getModel('home') as JSONModel;
 		model.setProperty('/busy', true);

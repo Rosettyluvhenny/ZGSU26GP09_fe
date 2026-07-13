@@ -2,7 +2,7 @@ import Device from 'sap/ui/Device';
 import BindingMode from 'sap/ui/model/BindingMode';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
-import { readSessionStorage } from '../services/SessionStorage';
+import { readSessionStorage, readThemePreference } from '../services/SessionStorage';
 import type { SessionData } from './types';
 
 const EMPTY_SESSION: SessionData = {
@@ -33,7 +33,8 @@ export default {
 			loginBusy: false,
 			searchRegistry: '',
 			searchJob: '',
-			selectedRegistryStatus: 'All'
+			selectedRegistryStatus: 'All',
+			isDarkTheme: (readThemePreference() ?? 'sap_horizon').includes('dark')
 		});
 		model.setDefaultBindingMode(BindingMode.TwoWay);
 		return model;

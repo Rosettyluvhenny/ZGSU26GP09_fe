@@ -12,6 +12,11 @@
 				<Title text="Registry Control Center" level="H3" />
 				<ToolbarSpacer />
 				<ObjectStatus text="{session>/userName}" state="Information" />
+				<Button
+					icon="{= ${ui>/isDarkTheme} ? 'sap-icon://light-mode' : 'sap-icon://dark-mode' }"
+					tooltip="{= ${ui>/isDarkTheme} ? 'Switch to light theme' : 'Switch to dark theme' }"
+					press=".onToggleTheme"
+					type="Transparent" />
 				<Button icon="sap-icon://log" text="Logout" press=".onLogout" type="Transparent" />
 			</OverflowToolbar>
 		</tnt:header>
