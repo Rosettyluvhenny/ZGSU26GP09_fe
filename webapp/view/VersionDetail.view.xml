@@ -22,6 +22,7 @@
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
+					<Button text="Copy XML" icon="sap-icon://copy" tooltip="Copy full XML content" press=".onCopyXml" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
@@ -71,6 +72,12 @@
 						</form:SimpleForm>
 					</content>
 				</Panel>
+
+				<OverflowToolbar class="sapUiSmallMarginTop">
+					<SearchField width="20rem" placeholder="Search by name or type" value="{versionDetail>/treeSearch}" liveChange=".onTreeSearch" search=".onTreeSearch" />
+					<Text text="{= ${versionDetail>/treeSearch} ? ${versionDetail>/treeSearchMatchCount} + ' match(es) found' : '' }" class="sapUiTinyMarginBegin" />
+					<ToolbarSpacer />
+				</OverflowToolbar>
 
 				<l:Splitter width="100%" height="40rem" class="sapUiSmallMarginTop">
 					<Page title="Node Tree" showHeader="true" enableScrolling="false" busy="{versionDetail>/selectedDetailBusy}" class="versionDetailSplitPage">

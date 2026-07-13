@@ -198,6 +198,17 @@ export function flattenNodeTree(nodes: NodeTreeViewItem[]): NodeTreeViewItem[] {
 	return nodes.flatMap((node) => [node, ...flattenNodeTree(node.children)]);
 }
 
+export function filterNodeTree(nodes: NodeTreeViewItem[], predicate: (node: NodeTreeViewItem) => boolean): NodeTreeViewItem[] {
+	const result: NodeTreeViewItem[] = [];
+	for (const node of nodes) {
+		const filteredChildren = filterNodeTree(node.children, predicate);
+		if (predicate(node) || filteredChildren.length > 0) {
+			result.push({ ...node, children: filteredChildren });
+		}
+	}
+	return result;
+}
+
 export function applyNodeDiffStatus(nodes: NodeTreeViewItem[], statusBySemanticId: Map<string, string>): NodeTreeViewItem[] {
 	return nodes.map((node) => ({
 		...node,
