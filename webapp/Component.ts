@@ -55,9 +55,9 @@ export default class Component extends UIComponent {
 			const isLoginRoute = !routeName || routeName === 'login';
 
 			if (session.authenticated && isLoginRoute) {
-				// Logged in but trying to reach login -> redirect to home (registry management)
+				// Logged in but trying to reach login -> redirect to home
 				event.preventDefault();
-				this.getRouter().navTo('registries', {}, undefined, true);
+				this.getRouter().navTo('home', {}, undefined, true);
 			} else if (!session.authenticated && !isLoginRoute) {
 				// Not logged in but trying to reach protected page -> redirect to login
 				event.preventDefault();
@@ -89,7 +89,7 @@ export default class Component extends UIComponent {
 			await this.registryService.getPermissions();
 			const currentHash = window.location.hash.replace(/^#/, '');
 			if (!currentHash || currentHash === 'login') {
-				this.getRouter().navTo('registryList', {}, true);
+				this.getRouter().navTo('home', {}, true);
 			}
 		} catch {
 			await this.authenticationService.logout();

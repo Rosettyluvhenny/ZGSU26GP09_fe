@@ -2,13 +2,89 @@
 	controllerName="com.zgp9.fe.controller.Home"
 	displayBlock="true"
 	xmlns="sap.m"
-	xmlns:mvc="sap.ui.core.mvc">
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:l="sap.ui.layout">
 
-	<Page id="homePage" title="Home" showHeader="false">
+	<Page id="homePage" title="Home" showHeader="false" busy="{home>/busy}">
 		<content>
-			<VBox alignItems="Center" justifyContent="Center" class="sapUiMediumMargin">
-				<Title text="Welcome to Home" level="H2"/>
-				<Text text="This is an empty page. UI will be added later." />
+			<VBox class="sapUiMediumMargin">
+				<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" class="sapUiSmallMarginBottom" />
+				<Text text="Here's a snapshot of your registries and scan jobs." class="sapUiLargeMarginBottom" />
+
+				<l:Grid defaultSpan="L3 M6 S12" class="sapUiSmallMarginBottom">
+					<Panel class="homeStatTile homeStatTile__total">
+						<content>
+							<VBox alignItems="Center" class="sapUiSmallMargin">
+								<Title text="{home>/registryStats/total}" level="H1" />
+								<Text text="Total Registries" />
+							</VBox>
+						</content>
+					</Panel>
+					<Panel class="homeStatTile homeStatTile__success">
+						<content>
+							<VBox alignItems="Center" class="sapUiSmallMargin">
+								<Title text="{home>/registryStats/published}" level="H1" />
+								<Text text="Published" />
+							</VBox>
+						</content>
+					</Panel>
+					<Panel class="homeStatTile homeStatTile__warning">
+						<content>
+							<VBox alignItems="Center" class="sapUiSmallMargin">
+								<Title text="{home>/registryStats/unpublished}" level="H1" />
+								<Text text="Unpublished" />
+							</VBox>
+						</content>
+					</Panel>
+					<Panel class="homeStatTile homeStatTile__error">
+						<content>
+							<VBox alignItems="Center" class="sapUiSmallMargin">
+								<Title text="{home>/registryStats/archive}" level="H1" />
+								<Text text="Archived" />
+							</VBox>
+						</content>
+					</Panel>
+				</l:Grid>
+
+				<Panel headerText="Quick Actions" expandable="false" class="sapUiSmallMarginBottom">
+					<content>
+						<OverflowToolbar>
+							<Button text="Manage Registries" icon="sap-icon://business-objects-experience" type="Emphasized" press=".onNavigateRegistries" />
+							<Button text="Scan Job Management" icon="sap-icon://activity-items" press=".onNavigateJobs" visible="{ui>/canExecuteScanJob}" />
+							<ToolbarSpacer />
+						</OverflowToolbar>
+					</content>
+				</Panel>
+
+				<l:Grid defaultSpan="L6 M12 S12">
+					<Panel headerText="Recently Changed Registries" expandable="false">
+						<content>
+							<List items="{home>/recentRegistries}" noDataText="No registries yet.">
+								<StandardListItem
+									title="{home>registryName}"
+									description="{= ${home>serviceType} + ' · ' + ${home>lastChangedBy} }"
+									info="{home>statusText}"
+									infoState="{path: 'home>status', formatter: '.formatStatusState'}"
+									type="Active"
+									press=".onRegistryPress" />
+							</List>
+						</content>
+					</Panel>
+
+					<Panel headerText="Recent Scan Jobs" expandable="false">
+						<content>
+							<List items="{home>/recentJobs}" noDataText="No scan jobs yet.">
+								<StandardListItem
+									title="{= 'Job ' + ${home>id} }"
+									description="{= ${home>triggerType} + ' · ' + ${home>executedBy} }"
+									info="{home>status}"
+									infoState="{path: 'home>status', formatter: '.formatStatusState'}"
+									type="Active"
+									press=".onJobPress" />
+							</List>
+						</content>
+					</Panel>
+				</l:Grid>
 			</VBox>
 		</content>
 	</Page>

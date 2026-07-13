@@ -36,24 +36,29 @@ export default class MainShell extends BaseController {
 			return;
 		}
 
+		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
+			this.getUiModel().setProperty("/currentSection", "registries");
+		} else if (routeName.startsWith("job")) {
+			this.getUiModel().setProperty("/currentSection", "jobs");
+		} else if (routeName === "home") {
+			this.getUiModel().setProperty("/currentSection", "home");
+		}
+
 		if (!this.permissionsPromise) {
 			this.permissionsPromise = this.loadGlobalPermissions();
 		}
 
 		await this.permissionsPromise;
 
-		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
-			this.getUiModel().setProperty("/currentSection", "registries");
-		} else if (routeName.startsWith("job")) {
-			const canExecute = this.getUiModel().getProperty("/canExecuteScanJob");
-			if (canExecute) {
-				this.getUiModel().setProperty("/currentSection", "jobs");
-			} else {
-				this.navTo("home", {}, true);
-			}
-		} else if (routeName === "home") {
+		if (routeName.startsWith("job") && !this.getUiModel().getProperty("/canExecuteScanJob")) {
 			this.getUiModel().setProperty("/currentSection", "home");
+			this.navTo("home", {}, true);
 		}
+	}
+
+	public onNavigateHome(): void {
+		this.getUiModel().setProperty("/currentSection", "home");
+		this.navigateWhenReady("home");
 	}
 
 	public onNavigateRegistries(): void {
@@ -80,7 +85,7 @@ export default class MainShell extends BaseController {
 		this.navTo("login", {}, true);
 	}
 
-	private navigateWhenReady(route: "registryList" | "jobList"): void {
+	private navigateWhenReady(route: "home" | "registryList" | "jobList"): void {
 		this.pendingRoute = route;
 		this.flushPendingNavigation();
 	}

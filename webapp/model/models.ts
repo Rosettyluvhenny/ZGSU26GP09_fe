@@ -27,7 +27,7 @@ export default {
 		const model = new JSONModel({
 			busy: false,
 			layout: 'OneColumn',
-			currentSection: 'registries',
+			currentSection: 'home',
 			selectedRegistryId: '',
 			selectedJobId: '',
 			loginBusy: false,

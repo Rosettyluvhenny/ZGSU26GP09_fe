@@ -61,3 +61,29 @@ li[data-diffstatus="Error"],
 tr[data-diffstatus="Error"] {
 	background-color: var(--sapErrorBackground, #ffebee) !important;
 }
+
+.homeStatTile {
+	text-align: center;
+	border-left: 0.25rem solid var(--sapContent_ForegroundBorderColor);
+}
+
+.homeStatTile .sapMTitle {
+	font-size: 2.25rem;
+	line-height: 1.2;
+}
+
+.homeStatTile__total {
+	border-left-color: var(--sapBrandColor, #0a6ed1);
+}
+
+.homeStatTile__success {
+	border-left-color: var(--sapPositiveColor, #2b7d2b);
+}
+
+.homeStatTile__warning {
+	border-left-color: var(--sapCriticalColor, #e9730c);
+}
+
+.homeStatTile__error {
+	border-left-color: var(--sapNegativeColor, #b00);
+}

@@ -18,6 +18,7 @@
 		<tnt:sideContent>
 			<tnt:SideNavigation expanded="true">
 				<tnt:NavigationList selectedKey="{ui>/currentSection}">
+					<tnt:NavigationListItem key="home" text="Home" icon="sap-icon://home" select=".onNavigateHome" />
 					<tnt:NavigationListItem key="registries" text="Registry Management" icon="sap-icon://business-objects-experience" select=".onNavigateRegistries" />
 					<tnt:NavigationListItem key="jobs" text="Scan Job Management" icon="sap-icon://activity-items" select=".onNavigateJobs" visible="{ui>/canExecuteScanJob}" />
 				</tnt:NavigationList>
