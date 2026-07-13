@@ -142,15 +142,17 @@ export default class Component extends UIComponent {
 	}
 
 	private async resolveCurrentUser(): Promise<string> {
-		// The CSRF probe against our own OData service already echoes the
-		// authenticated user's name in its body, same as the login form response.
-		const probedUserName = ODataClient.getProbedUserName();
-		if (probedUserName) {
-			return probedUserName;
+		// After a cookie/SSO/basic-auth (popup) login there is no typed user name and
+		// our OData service does not echo it back, so we have to ask the SAP system.
+
+		// 1) The SAP session cookie often carries the logon user, e.g.
+		//    "sap-usercontext=sap-user=DEV-173&sap-client=324". No round-trip needed.
+		const cookieUser = this.readUserFromCookie();
+		if (cookieUser) {
+			return cookieUser;
 		}
 
-		// Best-effort lookup of the logged-in user for display in the shell header.
-		// When served from the SAP system the standard start_up service exposes it.
+		// 2) The /UI2/ start_up service exposes the user profile when available.
 		try {
 			const response = await fetch('/sap/bc/ui2/start_up?sap-client=324', {
 				method: 'GET',
@@ -158,8 +160,8 @@ export default class Component extends UIComponent {
 				headers: { Accept: 'application/json' }
 			});
 			if (response.ok) {
-				const data = (await response.json()) as { CURRENT_USER?: string; currentUser?: string };
-				const user = (data.CURRENT_USER ?? data.currentUser ?? '').trim();
+				const data = (await response.json()) as Record<string, unknown>;
+				const user = this.extractUserName(data);
 				if (user) {
 					return user;
 				}
@@ -169,6 +171,31 @@ export default class Component extends UIComponent {
 		}
 
 		return 'SAP User';
+	}
+
+	private readUserFromCookie(): string {
+		if (typeof document === 'undefined') {
+			return '';
+		}
+		const match = /sap-user=([^;&]+)/i.exec(document.cookie);
+		return match ? decodeURIComponent(match[1]).trim() : '';
+	}
+
+	private extractUserName(data: Record<string, unknown>): string {
+		// start_up shapes vary by system; the profile may be nested under "user".
+		const source = (data.user as Record<string, unknown>) ?? data;
+		const candidateKeys = ['fullName', 'displayName', 'id', 'CURRENT_USER', 'currentUser', 'name', 'userName'];
+		for (const key of candidateKeys) {
+			const value = source[key];
+			if (typeof value === 'string' && value.trim()) {
+				return value.trim();
+			}
+		}
+
+		const firstName = typeof source.firstName === 'string' ? source.firstName.trim() : '';
+		const lastName = typeof source.lastName === 'string' ? source.lastName.trim() : '';
+		const combined = `${firstName} ${lastName}`.trim();
+		return combined;
 	}
 
 	public getContentDensityClass(): string {

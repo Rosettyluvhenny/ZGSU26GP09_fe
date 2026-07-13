@@ -19,7 +19,6 @@ export default class ODataClient {
 	private static csrfToken = '';
 	private static etag = '*';
 	private static authPromise: Promise<string> | null = null;
-	private static probedUserName = '';
 
 	public static setSecurityState(csrfToken: string, etag?: string): void {
 		if (csrfToken) ODataClient.csrfToken = csrfToken;
@@ -30,11 +29,6 @@ export default class ODataClient {
 		ODataClient.csrfToken = '';
 		ODataClient.etag = '*';
 		ODataClient.authPromise = null;
-		ODataClient.probedUserName = '';
-	}
-
-	public static getProbedUserName(): string {
-		return ODataClient.probedUserName;
 	}
 
 	public static async checkAuthAndFetchCsrf(): Promise<string> {
@@ -60,17 +54,6 @@ export default class ODataClient {
 			const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
 			const etag = response.headers.get('etag');
 			ODataClient.setSecurityState(token, etag || undefined);
-
-			try {
-				const text = await response.text();
-				const payload = text ? (JSON.parse(text) as { userName?: string }) : {};
-				if (payload.userName) {
-					ODataClient.probedUserName = payload.userName;
-				}
-			} catch {
-				// Body isn't JSON or doesn't carry a username; nothing to capture.
-			}
-
 			return ODataClient.csrfToken;
 		})();
 
