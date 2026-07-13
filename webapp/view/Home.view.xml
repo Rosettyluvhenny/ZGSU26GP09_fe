@@ -3,7 +3,8 @@
 	displayBlock="true"
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
-	xmlns:l="sap.ui.layout">
+	xmlns:l="sap.ui.layout"
+	xmlns:core="sap.ui.core">
 
 	<Page id="homePage" title="Home" showHeader="false" busy="{home>/busy}">
 		<content>
@@ -23,6 +24,9 @@
 						</tileContent>
 					</GenericTile>
 					<GenericTile header="Published" subheader="Live services" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+						<customData>
+							<core:CustomData key="status" value="P" />
+						</customData>
 						<tileContent>
 							<TileContent>
 								<content>
@@ -32,6 +36,9 @@
 						</tileContent>
 					</GenericTile>
 					<GenericTile header="Unpublished" subheader="Not live" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+						<customData>
+							<core:CustomData key="status" value="U" />
+						</customData>
 						<tileContent>
 							<TileContent>
 								<content>
@@ -41,6 +48,9 @@
 						</tileContent>
 					</GenericTile>
 					<GenericTile header="Archived" subheader="Retired" press=".onNavigateRegistries" class="sapUiTinyMarginBottom">
+						<customData>
+							<core:CustomData key="status" value="A" />
+						</customData>
 						<tileContent>
 							<TileContent>
 								<content>

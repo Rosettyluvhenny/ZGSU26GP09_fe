@@ -35,8 +35,10 @@ export default class Home extends BaseController {
 			});
 	}
 
-	public onNavigateRegistries(): void {
-		this.navTo('registryList');
+	public onNavigateRegistries(event?: UI5Event): void {
+		const source = event?.getSource() as unknown as { data?: (key: string) => string | null } | undefined;
+		const status = source?.data?.('status');
+		this.navTo('registryList', status ? { query: { status } } : {});
 	}
 
 	public onNavigateJobs(): void {

@@ -142,6 +142,13 @@ export default class Component extends UIComponent {
 	}
 
 	private async resolveCurrentUser(): Promise<string> {
+		// The CSRF probe against our own OData service already echoes the
+		// authenticated user's name in its body, same as the login form response.
+		const probedUserName = ODataClient.getProbedUserName();
+		if (probedUserName) {
+			return probedUserName;
+		}
+
 		// Best-effort lookup of the logged-in user for display in the shell header.
 		// When served from the SAP system the standard start_up service exposes it.
 		try {

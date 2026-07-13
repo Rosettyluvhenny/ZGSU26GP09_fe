@@ -75,7 +75,7 @@
 					"target": "homePage"
 				},
 				{
-					"pattern": "registries",
+					"pattern": "registries:?query:",
 					"name": "registryList",
 					"target": "registryList"
 				},

@@ -10,6 +10,7 @@ import MessageToast from 'sap/m/MessageToast';
 import Sorter from 'sap/ui/model/Sorter';
 import type ListItemBase from 'sap/m/ListItemBase';
 import type UI5Event from 'sap/ui/base/Event';
+import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 import Control from 'sap/ui/core/Control';
 
 import BaseController from './BaseController';
@@ -44,11 +45,28 @@ export default class RegistryList extends BaseController {
 		);
 
 		this.getRouter().getRoute('registryList').attachPatternMatched(this.onRouteMatched, this);
+		this.applyStatusFromCurrentHash();
 		void this.refreshRegistryPage();
 	}
 
-	public async onRouteMatched(): Promise<void> {
+	public async onRouteMatched(event: UI5Event): Promise<void> {
+		const args = (event as Route$PatternMatchedEvent).getParameter('arguments') as { '?query'?: { status?: string } };
+		const statusFromQuery = args['?query']?.status;
+		if (statusFromQuery) {
+			(this.getModel('registryList') as JSONModel).setProperty('/status', statusFromQuery);
+		}
 		await this.refreshRegistryPage();
+	}
+
+	private applyStatusFromCurrentHash(): void {
+		const queryIndex = window.location.hash.indexOf('?');
+		if (queryIndex === -1) {
+			return;
+		}
+		const status = new URLSearchParams(window.location.hash.substring(queryIndex + 1)).get('status');
+		if (status) {
+			(this.getModel('registryList') as JSONModel).setProperty('/status', status);
+		}
 	}
 
 	public async onRefresh(): Promise<void> {
