@@ -2,12 +2,20 @@ import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 
 import JSONModel from 'sap/ui/model/json/JSONModel';
+import MessageToast from 'sap/m/MessageToast';
 import type UI5Event from 'sap/ui/base/Event';
 import type Table from 'sap/m/Table';
+import type Tree from 'sap/m/Tree';
 
 import BaseController from './BaseController';
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { buildNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { buildNodeTree, filterNodeTree, flattenNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+
+interface ExtendedTreeBinding {
+	expand(index: number): void;
+	getLength(): number;
+	isExpanded(index: number): boolean;
+}
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -15,6 +23,7 @@ import { buildNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNode
 export default class VersionDetail extends BaseController {
 	private registryId: string | null = null;
 	private versionId: string | null = null;
+	private fullTree: NodeTreeViewItem[] = [];
 
 	public onInit(): void {
 		this.setModel(
@@ -27,7 +36,9 @@ export default class VersionDetail extends BaseController {
 				selectedDetailBusy: false,
 				selectedNodeLine: 1,
 				selectedDetailLineStarts: [],
-				selectedDetailLines: [] as XmlLineEntry[]
+				selectedDetailLines: [] as XmlLineEntry[],
+				treeSearch: '',
+				treeSearchMatchCount: 0
 			}),
 			'versionDetail'
 		);
@@ -78,6 +89,54 @@ export default class VersionDetail extends BaseController {
 		this.selectXmlLine(node.lineStart || offsetToLine(node.offsetStart, (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetailLineStarts') as number[]));
 	}
 
+	public onTreeSearch(event: UI5Event): void {
+		const source = event.getSource() as unknown as { getValue: () => string };
+		const query = (source.getValue() || '').trim().toLowerCase();
+		const model = this.getModel('versionDetail') as JSONModel;
+		const treeModel = this.getModel('treeModel') as JSONModel;
+
+		if (!query) {
+			model.setProperty('/treeSearchMatchCount', 0);
+			treeModel.setData(this.fullTree);
+			return;
+		}
+
+		const matchesQuery = (node: NodeTreeViewItem): boolean =>
+			node.nodeName.toLowerCase().includes(query) || node.nodeType.toLowerCase().includes(query);
+
+		const filteredTree = filterNodeTree(this.fullTree, matchesQuery);
+		const matchCount = flattenNodeTree(filteredTree).filter(matchesQuery).length;
+
+		model.setProperty('/treeSearchMatchCount', matchCount);
+		treeModel.setData(filteredTree);
+		this.expandAllTreeNodes('versionDetailTree');
+	}
+
+	public async onCopyXml(): Promise<void> {
+		const model = this.getModel('versionDetail') as JSONModel;
+		const xml = model.getProperty('/selectedDetailXml') as string;
+		if (!xml) {
+			MessageToast.show('No XML content to copy.');
+			return;
+		}
+
+		const copied = await this.copyTextToClipboard(xml);
+		MessageToast.show(copied ? 'XML copied to clipboard.' : 'Unable to copy XML.');
+	}
+
+	public onDownloadXml(): void {
+		const model = this.getModel('versionDetail') as JSONModel;
+		const xml = model.getProperty('/selectedDetailXml') as string;
+		if (!xml) {
+			MessageToast.show('No XML content to download.');
+			return;
+		}
+
+		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+		const baseName = (detail?.serviceDefinition || detail?.id || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
+		this.downloadTextFile(`${baseName}.xml`, xml);
+	}
+
 	public onXmlLineSelectionChange(event: UI5Event): void {
 		const source = event.getSource() as unknown as Table;
 		const selectedItem = source.getSelectedItem();
@@ -112,8 +171,11 @@ export default class VersionDetail extends BaseController {
 				selectedDetailBusy: false,
 				selectedNodeLine: 1,
 				selectedDetailLineStarts: [],
-				selectedDetailLines: []
+				selectedDetailLines: [],
+				treeSearch: '',
+				treeSearchMatchCount: 0
 			});
+			this.fullTree = [];
 			(this.getModel('treeModel') as JSONModel).setData([]);
 			if (details.length > 0) {
 				const detailToLoad = queryDetailId ? details.find(d => d.id === queryDetailId) || details[0] : details[0];
@@ -131,6 +193,9 @@ export default class VersionDetail extends BaseController {
 		model.setProperty('/selectedDetailBusy', true);
 		model.setProperty('/selectedDetail', detail);
 		model.setProperty('/selectedDetailXml', '');
+		model.setProperty('/treeSearch', '');
+		model.setProperty('/treeSearchMatchCount', 0);
+		this.fullTree = [];
 		(this.getModel('treeModel') as JSONModel).setData([]);
 		model.setProperty('/selectedDetailLineStarts', []);
 		model.setProperty('/selectedDetailLines', []);
@@ -147,6 +212,7 @@ export default class VersionDetail extends BaseController {
 			const tree = buildNodeTree(nodeTree);
 			const root = tree.length > 0 ? tree : this.createFallbackNodeTree(loadedDetail);
 			this.applyLineNumbers(root, rawOffsets, prettyXml);
+			this.fullTree = root;
 			model.setProperty('/selectedDetailXml', prettyXml);
 			(this.getModel('treeModel') as JSONModel).setData(root);
 			model.setProperty('/selectedDetailLineStarts', rawOffsets);
@@ -158,6 +224,68 @@ export default class VersionDetail extends BaseController {
 		} finally {
 			model.setProperty('/selectedDetailBusy', false);
 		}
+	}
+
+	private expandAllTreeNodes(treeId: string): void {
+		const tree = this.byId(treeId) as Tree;
+		if (!tree) {
+			return;
+		}
+
+		tree.attachEventOnce('updateFinished', () => {
+			const binding = tree.getBinding('items') as unknown as ExtendedTreeBinding;
+			if (!binding || typeof binding.expand !== 'function') {
+				return;
+			}
+
+			let index = 0;
+			let iterations = 0;
+			while (index < binding.getLength() && iterations < 100000) {
+				iterations += 1;
+				if (typeof binding.isExpanded === 'function' && !binding.isExpanded(index)) {
+					binding.expand(index);
+				}
+				index += 1;
+			}
+		});
+	}
+
+	private async copyTextToClipboard(text: string): Promise<boolean> {
+		if (navigator.clipboard && window.isSecureContext) {
+			try {
+				await navigator.clipboard.writeText(text);
+				return true;
+			} catch {
+				// fall through to the legacy fallback below
+			}
+		}
+
+		try {
+			const textarea = document.createElement('textarea');
+			textarea.value = text;
+			textarea.style.position = 'fixed';
+			textarea.style.opacity = '0';
+			document.body.appendChild(textarea);
+			textarea.focus();
+			textarea.select();
+			const success = document.execCommand('copy');
+			document.body.removeChild(textarea);
+			return success;
+		} catch {
+			return false;
+		}
+	}
+
+	private downloadTextFile(fileName: string, content: string): void {
+		const blob = new Blob([content], { type: 'application/xml' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = fileName;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
 	}
 
 	private createFallbackNodeTree(detail: RegistryDetail): NodeTreeViewItem[] {

@@ -1,0 +1,44 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:form="sap.ui.layout.form">
+
+	<Dialog id="logDetailDialog" title="Log Entry Detail" draggable="true" resizable="true" contentWidth="40rem">
+		<content>
+			<form:SimpleForm layout="ResponsiveGridLayout" columnsL="1" columnsM="1" editable="false" class="sapUiContentPadding">
+				<form:content>
+					<Label text="Log ID" />
+					<Text text="{logList>/selectedLog/id}" />
+					<Label text="Timestamp" />
+					<Text text="{path: 'logList>/selectedLog/actionAt', formatter: '.formatDateTime'}" />
+					<Label text="Action Type" />
+					<Text text="{logList>/selectedLog/actionType}" />
+					<Label text="Result" />
+					<ObjectStatus text="{logList>/selectedLog/logResult}" state="{path: 'logList>/selectedLog/logResult', formatter: '.formatLogResultState'}" />
+					<Label text="Actor" />
+					<Text text="{logList>/selectedLog/actor}" />
+					<Label text="IP Address" />
+					<Text text="{= ${logList>/selectedLog/ipAddress} || '—' }" />
+					<Label text="Object Type" />
+					<Text text="{logList>/selectedLog/objectIdType}" />
+					<Label text="Object ID" />
+					<Text text="{= ${logList>/selectedLog/objectId} || '—' }" />
+					<Label text="Remarks" />
+					<Text text="{logList>/selectedLog/remarks}" />
+				</form:content>
+			</form:SimpleForm>
+		</content>
+		<beginButton>
+			<Button
+				text="Open Registry"
+				type="Emphasized"
+				icon="sap-icon://business-objects-experience"
+				visible="{= ${logList>/selectedLog/objectIdType} === 'REGISTRY' &amp;&amp; !!${logList>/selectedLog/objectId} }"
+				press=".onNavigateToObject" />
+		</beginButton>
+		<endButton>
+			<Button text="Close" press=".onCloseDetailDialog" />
+		</endButton>
+	</Dialog>
+
+</core:FragmentDefinition>

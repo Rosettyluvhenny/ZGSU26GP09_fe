@@ -1,11 +1,16 @@
+import Theming from "sap/ui/core/Theming";
+
 import BaseController from "./BaseController";
+import { writeThemePreference } from "../services/SessionStorage";
+
+const LIGHT_THEME = "sap_horizon";
+const DARK_THEME = "sap_horizon_dark";
 
 /**
  * @namespace com.zgp9.fe.controller
  */
 export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
-	private permissionsPromise: Promise<void> | null = null;
 
 	public onInit(): void {
 		this.getRouter().attachRouteMatched(this.onGlobalRouteMatched, this);
@@ -36,24 +41,27 @@ export default class MainShell extends BaseController {
 			return;
 		}
 
-		if (!this.permissionsPromise) {
-			this.permissionsPromise = this.loadGlobalPermissions();
-		}
-
-		await this.permissionsPromise;
-
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
 			this.getUiModel().setProperty("/currentSection", "registries");
 		} else if (routeName.startsWith("job")) {
-			const canExecute = this.getUiModel().getProperty("/canExecuteScanJob");
-			if (canExecute) {
-				this.getUiModel().setProperty("/currentSection", "jobs");
-			} else {
-				this.navTo("home", {}, true);
-			}
+			this.getUiModel().setProperty("/currentSection", "jobs");
 		} else if (routeName === "home") {
 			this.getUiModel().setProperty("/currentSection", "home");
+		} else if (routeName === "logs") {
+			this.getUiModel().setProperty("/currentSection", "logs");
 		}
+
+		await this.loadGlobalPermissions();
+
+		if (routeName.startsWith("job") && !this.getUiModel().getProperty("/canExecuteScanJob")) {
+			this.getUiModel().setProperty("/currentSection", "home");
+			this.navTo("home", {}, true);
+		}
+	}
+
+	public onNavigateHome(): void {
+		this.getUiModel().setProperty("/currentSection", "home");
+		this.navigateWhenReady("home");
 	}
 
 	public onNavigateRegistries(): void {
@@ -66,6 +74,19 @@ export default class MainShell extends BaseController {
 		this.navigateWhenReady("jobList");
 	}
 
+	public onNavigateLogs(): void {
+		this.getUiModel().setProperty("/currentSection", "logs");
+		this.navigateWhenReady("logs");
+	}
+
+	public onToggleTheme(): void {
+		const nextIsDark = !this.getUiModel().getProperty("/isDarkTheme");
+		const nextTheme = nextIsDark ? DARK_THEME : LIGHT_THEME;
+		Theming.setTheme(nextTheme);
+		writeThemePreference(nextTheme);
+		this.getUiModel().setProperty("/isDarkTheme", nextIsDark);
+	}
+
 	public async onLogout(): Promise<void> {
 		const auth = this.getOwnerComponent().getAuthenticationService();
 		await auth.logout();
@@ -75,12 +96,11 @@ export default class MainShell extends BaseController {
 			csrfToken: "",
 			loginAt: null,
 		});
-		this.permissionsPromise = null;
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
 		this.navTo("login", {}, true);
 	}
 
-	private navigateWhenReady(route: "registryList" | "jobList"): void {
+	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {
 		this.pendingRoute = route;
 		this.flushPendingNavigation();
 	}

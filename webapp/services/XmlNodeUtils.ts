@@ -198,12 +198,46 @@ export function flattenNodeTree(nodes: NodeTreeViewItem[]): NodeTreeViewItem[] {
 	return nodes.flatMap((node) => [node, ...flattenNodeTree(node.children)]);
 }
 
+export function filterNodeTree(nodes: NodeTreeViewItem[], predicate: (node: NodeTreeViewItem) => boolean): NodeTreeViewItem[] {
+	const result: NodeTreeViewItem[] = [];
+	for (const node of nodes) {
+		const filteredChildren = filterNodeTree(node.children, predicate);
+		if (predicate(node) || filteredChildren.length > 0) {
+			result.push({ ...node, children: filteredChildren });
+		}
+	}
+	return result;
+}
+
 export function applyNodeDiffStatus(nodes: NodeTreeViewItem[], statusBySemanticId: Map<string, string>): NodeTreeViewItem[] {
 	return nodes.map((node) => ({
 		...node,
 		diffStatus: statusBySemanticId.get(node.semanticId),
 		children: applyNodeDiffStatus(node.children, statusBySemanticId)
 	}));
+}
+
+export function buildLineHighlightMap(nodes: NodeTreeViewItem[]): Map<number, string> {
+	const lineHighlights = new Map<number, string>();
+	const highlightedNodes = flattenNodeTree(nodes)
+		.filter((node) => node.highlight && node.highlight !== 'None')
+		.sort((left, right) => right.depth - left.depth);
+
+	for (const node of highlightedNodes) {
+		const start = node.lineStart || 0;
+		const end = node.lineEnd || start;
+		if (start <= 0) {
+			continue;
+		}
+
+		for (let line = start; line <= end; line += 1) {
+			if (!lineHighlights.has(line)) {
+				lineHighlights.set(line, node.highlight);
+			}
+		}
+	}
+
+	return lineHighlights;
 }
 
 export function buildLineIndexFromXml(xml: string): number[] {

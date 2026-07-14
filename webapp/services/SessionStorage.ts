@@ -1,4 +1,5 @@
 const SESSION_KEY = 'com.zgp9.fe.session';
+const THEME_KEY = 'com.zgp9.fe.theme';
 
 function isBrowserStorageAvailable(): boolean {
 	return typeof window !== 'undefined' && Boolean(window.localStorage);
@@ -35,4 +36,20 @@ export function removeSessionStorage(): void {
 	}
 
 	window.localStorage.removeItem(SESSION_KEY);
+}
+
+export function readThemePreference(): string | null {
+	if (!isBrowserStorageAvailable()) {
+		return null;
+	}
+
+	return window.localStorage.getItem(THEME_KEY);
+}
+
+export function writeThemePreference(theme: string): void {
+	if (!isBrowserStorageAvailable()) {
+		return;
+	}
+
+	window.localStorage.setItem(THEME_KEY, theme);
 }

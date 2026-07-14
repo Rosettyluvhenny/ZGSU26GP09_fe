@@ -47,14 +47,18 @@
 	background-color: var(--sapList_Hover_Background) !important;
 }
 
-li[data-diffstatus="Warning"] {
+li[data-diffstatus="Warning"],
+tr[data-diffstatus="Warning"] {
 	background-color: var(--sapWarningBackground, #fdf2e5) !important;
 }
 
-li[data-diffstatus="Success"] {
+li[data-diffstatus="Success"],
+tr[data-diffstatus="Success"] {
 	background-color: var(--sapSuccessBackground, #eaf6ea) !important;
 }
 
-li[data-diffstatus="Error"] {
+li[data-diffstatus="Error"],
+tr[data-diffstatus="Error"] {
 	background-color: var(--sapErrorBackground, #ffebee) !important;
 }
+

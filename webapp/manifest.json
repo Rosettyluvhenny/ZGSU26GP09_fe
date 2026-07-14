@@ -75,7 +75,7 @@
 					"target": "homePage"
 				},
 				{
-					"pattern": "registries",
+					"pattern": "registries:?query:",
 					"name": "registryList",
 					"target": "registryList"
 				},
@@ -111,6 +111,11 @@
 						"jobList",
 						"jobDetail"
 					]
+				},
+				{
+					"pattern": "logs",
+					"name": "logs",
+					"target": "logs"
 				}
 			],
 			"targets": {
@@ -177,6 +182,13 @@
 					"parent": "shell",
 					"controlId": "shellFcl",
 					"controlAggregation": "midColumnPages"
+				},
+				"logs": {
+					"id": "logs",
+					"name": "Logs",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
 				}
 			}
 		}
