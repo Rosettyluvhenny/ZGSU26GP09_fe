@@ -1,6 +1,5 @@
 import ListBinding from 'sap/ui/model/ListBinding';
 import Table from 'sap/m/Table';
-import ViewSettingsItem from 'sap/m/ViewSettingsItem';
 import ViewSettingsDialog, { type ViewSettingsDialog$ConfirmEvent } from 'sap/m/ViewSettingsDialog';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import Dialog from 'sap/m/Dialog';
@@ -44,7 +43,7 @@ export default class RegistryList extends BaseController {
 			'registryList'
 		);
 
-		this.getRouter().getRoute('registryList').attachPatternMatched(this.onRouteMatched, this);
+		this.getRouter().getRoute('registryList').attachPatternMatched((event) => { void this.onRouteMatched(event); });
 		this.applyStatusFromCurrentHash();
 		void this.refreshRegistryPage();
 	}
@@ -92,8 +91,8 @@ export default class RegistryList extends BaseController {
 	}
 
 	public onSortConfirm(event: ViewSettingsDialog$ConfirmEvent): void {
-		const sortItem = event.getParameter('sortItem') as ViewSettingsItem;
-		const sortDescending = event.getParameter('sortDescending') as boolean;
+		const sortItem = event.getParameter('sortItem');
+		const sortDescending = event.getParameter('sortDescending');
 
 		const table = this.getView().byId('registryTable') as Table;
 		const binding = table.getBinding('items') as ListBinding;
@@ -207,7 +206,7 @@ export default class RegistryList extends BaseController {
 
 	private async loadFilterValueHelps(): Promise<void> {
 		const model = this.getModel('registryList') as JSONModel;
-		if (model.getProperty('/groupTypes').length > 0) {
+		if ((model.getProperty('/groupTypes') as unknown[]).length > 0) {
 			return; // Already loaded
 		}
 		try {
@@ -217,7 +216,7 @@ export default class RegistryList extends BaseController {
 			]);
 			model.setProperty('/groupTypes', [{ key: 'All', text: 'All Service Types' }, ...groupTypes]);
 			model.setProperty('/statuses', [{ key: 'All', text: 'All Statuses' }, ...statuses]);
-		} catch (error) {
+		} catch {
 			// Silently fail if value helps cannot be loaded
 		}
 	}
@@ -303,7 +302,7 @@ export default class RegistryList extends BaseController {
 			dialogModel.setProperty('/versionNo', '001');
 		}
 
-		if (!this.registryDialogPromise) {
+		if (this.registryDialogPromise === undefined) {
 			this.registryDialogPromise = Fragment.load({
 				id: this.getView().getId(),
 				name: 'com.zgp9.fe.view.fragments.RegistryDialog',
@@ -334,7 +333,7 @@ export default class RegistryList extends BaseController {
 	}
 
 	private async closeRegistryDialog(): Promise<void> {
-		if (!this.registryDialogPromise) {
+		if (this.registryDialogPromise === undefined) {
 			return;
 		}
 

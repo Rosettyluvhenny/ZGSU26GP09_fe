@@ -10,7 +10,9 @@ export interface PrettyXmlResult {
 }
 
 function asText(value: unknown): string {
-	return value === null || value === undefined ? '' : String(value);
+	if (value === null || value === undefined) return '';
+	const primitive = value as string | number | boolean | bigint;
+	return String(primitive);
 }
 
 function getLabelSuffix(value: string): string {

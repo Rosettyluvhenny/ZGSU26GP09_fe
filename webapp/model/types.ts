@@ -247,3 +247,16 @@ export interface CompareVersionResult {
 export interface DetailId {
 	DetailId: string;
 }
+
+export interface SendMailParams {
+	htmlContent: string;
+	recipients: string;
+	subject: string;
+}
+
+export interface SendMailResult {
+	success: boolean;
+	message: string;
+	failedRecip: string;
+	recipientDetail: string;
+}

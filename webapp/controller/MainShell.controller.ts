@@ -13,7 +13,7 @@ export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
 
 	public onInit(): void {
-		this.getRouter().attachRouteMatched(this.onGlobalRouteMatched, this);
+		this.getRouter().attachRouteMatched((event) => { void this.onGlobalRouteMatched(event); });
 
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
@@ -30,7 +30,7 @@ export default class MainShell extends BaseController {
 	}
 
 	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
-		const routeName = event.getParameter("name") as string;
+		const routeName = event.getParameter("name");
 
 		if (routeName === "login") {
 			return;

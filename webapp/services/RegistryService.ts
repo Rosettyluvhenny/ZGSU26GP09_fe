@@ -29,7 +29,8 @@ function asString(value: unknown): string {
 		return '';
 	}
 
-	return String(value);
+	const primitive = value as string | number | boolean | bigint;
+	return String(primitive);
 }
 
 function toValueHelpItems(payload: unknown, keyFields: string[]): RegistryValueHelpItem[] {
@@ -233,7 +234,7 @@ export default class RegistryService {
 	public async deleteRegistry(registryId: string): Promise<void> {
 		await this.client.ensureWriteHeaders('DELETE');
 		await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'DELETE', undefined, await this.client.ensureWriteHeaders('DELETE'));
-		return delay(undefined);
+		await delay(undefined);
 	}
 
 	public async activateRegistry(registryId: string, changedBy = 'demo.user'): Promise<Registry> {
@@ -348,7 +349,7 @@ export default class RegistryService {
 		return mapRegistryEntity(entity, { serviceDefinition: '' });
 	}
 
-	private async changeStatus(registryId: string, status: Registry['status'], changedBy: string): Promise<Registry> {
+	private async changeStatus(registryId: string, status: Registry['status'], _changedBy: string): Promise<Registry> {
 		const headers = await this.client.ensureWriteHeaders('PATCH');
 		const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: status }, headers));
 		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));

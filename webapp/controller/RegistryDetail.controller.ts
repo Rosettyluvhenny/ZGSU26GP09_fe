@@ -72,8 +72,8 @@ export default class RegistryDetail extends BaseController {
 				const updatedRegistry = { ...registry };
 				(Object.keys(mappedResponse) as Array<keyof Registry>).forEach(key => {
 					if (mappedResponse[key] !== undefined && mappedResponse[key] !== '') {
-						// @ts-ignore
-						updatedRegistry[key] = mappedResponse[key];
+					// @ts-expect-error – dynamic key assignment across typed Registry fields
+					updatedRegistry[key] = mappedResponse[key];
 					}
 				});
 				model.setProperty('/registry', updatedRegistry);
@@ -93,7 +93,7 @@ export default class RegistryDetail extends BaseController {
 	}
 
 	public onVersionSelectionChange(event: UI5Event): void {
-		const table = event.getSource() as Table;
+		const table = event.getSource() as unknown as Table;
 		const model = this.getModel('registryDetail') as JSONModel;
 		const selectedItems = table.getSelectedItems();
 		if (selectedItems.length > 2) {

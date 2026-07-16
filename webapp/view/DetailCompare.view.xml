@@ -18,6 +18,13 @@
 			<f:DynamicPageHeader pinnable="false">
 				<OverflowToolbar>
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+					<ToolbarSpacer />
+					<Button
+						text="Send Mail"
+						icon="sap-icon://email"
+						type="Emphasized"
+						press=".onSendMail"
+						enabled="{= !${detailCompare>/compareWorkspaceBusy} }" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>

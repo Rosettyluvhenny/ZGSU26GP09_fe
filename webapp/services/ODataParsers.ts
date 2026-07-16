@@ -28,8 +28,8 @@ export function normalizeODataCollection(payload: unknown): ODataRecord[] {
 		return record.value as ODataRecord[];
 	}
 
-	if (record.d && Array.isArray(record.d.results)) {
-		return record.d.results as ODataRecord[];
+	if (record.d && typeof record.d === 'object' && !Array.isArray(record.d) && Array.isArray((record.d as ODataRecord).results)) {
+		return (record.d as ODataRecord).results as ODataRecord[];
 	}
 
 	return [];
@@ -57,7 +57,8 @@ function asString(value: unknown): string {
 		return "";
 	}
 
-	return String(value);
+	const primitive = value as string | number | boolean | bigint;
+	return String(primitive);
 }
 
 function asIsoDate(value: unknown): string {
@@ -65,7 +66,8 @@ function asIsoDate(value: unknown): string {
 		return new Date().toISOString();
 	}
 
-	let strValue = String(value);
+	const primitive = value as string | number | boolean | bigint;
+	let strValue = String(primitive);
 	// If the backend sends UTC time but without the 'Z' indicator, append it so JS parses it as UTC
 	if (!strValue.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(strValue)) {
 		strValue += 'Z';

@@ -1,0 +1,41 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:form="sap.ui.layout.form">
+
+	<Dialog id="sendMailDialog" title="Send Comparison Email" draggable="true" resizable="true" contentWidth="40rem" busy="{sendMail>/busy}">
+		<beginButton>
+			<Button text="Send" type="Emphasized" icon="sap-icon://email" press=".onConfirmSendMail" />
+		</beginButton>
+		<endButton>
+			<Button text="Cancel" press=".onCancelSendMail" />
+		</endButton>
+		<content>
+			<VBox class="sapUiSmallMargin" width="100%">
+				<form:SimpleForm editable="true" layout="ColumnLayout">
+
+					<Label text="Recipients" required="true" />
+					<Input
+						value="{sendMail>/recipients}"
+						placeholder="user@example.com; user2@example.com"
+						maxLength="500"
+						type="Email" />
+
+					<Label text="Subject" />
+					<Input
+						value="{sendMail>/subject}"
+						placeholder="XML Comparison Report"
+						maxLength="200" />
+
+				</form:SimpleForm>
+
+				<Text
+					text="The FE will build a side-by-side HTML comparison of both XMLs and send it as the email body."
+					class="sapUiSmallMarginTop"
+					wrapping="true"
+					renderWhitespace="false" />
+			</VBox>
+		</content>
+	</Dialog>
+
+</core:FragmentDefinition>

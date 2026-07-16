@@ -1,0 +1,1 @@
+Select-String -Path "webapp\test\unit\controller\*.ts" -Pattern "QUnit\.module" | Select-Object Filename, LineNumber, Line
