@@ -2,7 +2,7 @@
 	xmlns="sap.m"
 	xmlns:core="sap.ui.core">
 
-	<Dialog id="aiChatDialog" title="AI Assistant" draggable="true" contentWidth="44rem" verticalScrolling="false" horizontalScrolling="false" class="aiChatDialog">
+	<Dialog id="aiChatDialog" title="AI Assistant" draggable="true" contentWidth="44rem" verticalScrolling="false" horizontalScrolling="false" class="aiChatDialog" afterOpen=".onAiChatAfterOpen">
 		<customHeader>
 			<Toolbar>
 				<core:Icon src="sap-icon://da" size="1.25rem" class="sapUiSmallMarginBegin" />
@@ -44,15 +44,14 @@
 						<VBox visible="{= ${aiChat>/messages}.length === 0 &amp;&amp; ${aiChat>/hasKey} }" alignItems="Center" class="sapUiMediumMarginTop">
 							<core:Icon src="sap-icon://da" size="2.5rem" color="Neutral" />
 							<Text text="Ask anything about the XML metadata on this page." class="sapUiSmallMarginTop" />
-							<HBox wrap="Wrap" justifyContent="Center" class="sapUiSmallMarginTop">
-								<Button text="Summarize this XML" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
-								<Button text="List entity types and keys" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
-								<Button text="Spot potential issues" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
+							<HBox wrap="Wrap" justifyContent="Center" class="sapUiSmallMarginTop" items="{aiChat>/suggestions}">
+								<Button text="{aiChat>text}" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
 							</HBox>
 						</VBox>
 
 						<List items="{aiChat>/messages}" showSeparators="None" backgroundDesign="Transparent" width="100%">
-							<CustomListItem class="aiChatMessageItem">
+							<!-- The streaming placeholder stays hidden until its first token arrives -->
+							<CustomListItem class="aiChatMessageItem" visible="{= ${aiChat>html} !== '' }">
 								<customData>
 									<core:CustomData key="airole" value="{aiChat>role}" writeToDom="true" />
 								</customData>
@@ -62,7 +61,7 @@
 							</CustomListItem>
 						</List>
 
-						<HBox visible="{aiChat>/busy}" class="sapUiTinyMargin" alignItems="Center">
+						<HBox visible="{aiChat>/thinking}" class="sapUiTinyMargin" alignItems="Center">
 							<BusyIndicator size="1rem" />
 							<Text text="Thinking..." class="sapUiTinyMarginBegin" />
 						</HBox>

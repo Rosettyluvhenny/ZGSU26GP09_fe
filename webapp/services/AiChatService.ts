@@ -59,6 +59,7 @@ export default class AiChatService {
 			'You help developers understand OData $metadata XML documents (EDMX): entity types, entity sets, ' +
 			'properties, keys, navigation properties, associations, annotations, actions and functions.\n\n' +
 			'Answer concisely. Use simple markdown only (bold, inline code, bullet lists, short code blocks). ' +
+			'Never use markdown tables — use bullet lists instead, e.g. "- **Currency** — key: CurrencyCode". ' +
 			'When the user asks something unrelated to the XML, still answer helpfully but briefly.\n\n' +
 			`Current context: ${contextLabel}\n\n` +
 			'XML under analysis:\n```xml\n' + xmlContext + '\n```'
@@ -66,6 +67,14 @@ export default class AiChatService {
 	}
 
 	public async ask(messages: AiChatMessage[]): Promise<string> {
+		return this.askStream(messages, () => undefined);
+	}
+
+	/**
+	 * Streams the answer; onDelta receives the full text accumulated so far
+	 * every time a new chunk arrives. Resolves with the complete answer.
+	 */
+	public async askStream(messages: AiChatMessage[], onDelta: (fullText: string) => void): Promise<string> {
 		const apiKey = this.getApiKey();
 		if (!apiKey) {
 			throw new ServiceError(401, 'No OpenRouter API key configured. Get a free key at https://openrouter.ai/keys.');
@@ -73,12 +82,18 @@ export default class AiChatService {
 
 		let lastError: ServiceError | null = null;
 		for (const model of FREE_MODELS) {
+			let started = false;
 			try {
-				return await this.callModel(model, messages, apiKey);
+				return await this.callModelStream(model, messages, apiKey, (fullText) => {
+					started = true;
+					onDelta(fullText);
+				});
 			} catch (error) {
 				lastError = error instanceof ServiceError ? error : new ServiceError(0, error instanceof Error ? error.message : JSON.stringify(error));
 				// 401/403 means a bad key -> retrying other models won't help.
-				if (lastError.status === 401 || lastError.status === 403) {
+				// If the stream already produced output, don't restart with another
+				// model or the user would see the answer reset mid-sentence.
+				if (lastError.status === 401 || lastError.status === 403 || started) {
 					throw lastError;
 				}
 			}
@@ -87,7 +102,7 @@ export default class AiChatService {
 		throw lastError ?? new ServiceError(0, 'All free AI models are currently unavailable.');
 	}
 
-	private async callModel(model: string, messages: AiChatMessage[], apiKey: string): Promise<string> {
+	private async callModelStream(model: string, messages: AiChatMessage[], apiKey: string, onDelta: (fullText: string) => void): Promise<string> {
 		const response = await fetch(API_URL, {
 			method: 'POST',
 			headers: {
@@ -96,7 +111,8 @@ export default class AiChatService {
 			},
 			body: JSON.stringify({
 				model,
-				messages
+				messages,
+				stream: true
 			})
 		});
 
@@ -110,14 +126,65 @@ export default class AiChatService {
 			} catch {
 				// Keep the generic message.
 			}
+			if (response.status === 429) {
+				message = 'Free-tier quota reached. Wait a moment and try again.';
+			}
 			throw new ServiceError(response.status, message);
 		}
 
-		const data = (await response.json()) as OpenRouterResponse;
-		const content = data.choices?.[0]?.message?.content?.trim();
-		if (!content) {
+		const reader = response.body?.getReader();
+		if (!reader) {
+			throw new ServiceError(502, 'Streaming is not supported by this browser.');
+		}
+
+		const decoder = new TextDecoder();
+		let buffer = '';
+		let fullText = '';
+
+		// OpenRouter streams Server-Sent Events: lines of "data: {json}" ending with "data: [DONE]".
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) {
+				break;
+			}
+			buffer += decoder.decode(value, { stream: true });
+
+			let newlineIndex = buffer.indexOf('\n');
+			while (newlineIndex >= 0) {
+				const line = buffer.slice(0, newlineIndex).trim();
+				buffer = buffer.slice(newlineIndex + 1);
+				newlineIndex = buffer.indexOf('\n');
+
+				if (!line.startsWith('data:')) {
+					continue;
+				}
+				const payload = line.slice(5).trim();
+				if (!payload || payload === '[DONE]') {
+					continue;
+				}
+				try {
+					const chunk = JSON.parse(payload) as { choices?: { delta?: { content?: string } }[]; error?: { message?: string } };
+					if (chunk.error?.message) {
+						throw new ServiceError(502, chunk.error.message);
+					}
+					const delta = chunk.choices?.[0]?.delta?.content;
+					if (delta) {
+						fullText += delta;
+						onDelta(fullText);
+					}
+				} catch (error) {
+					if (error instanceof ServiceError) {
+						throw error;
+					}
+					// Ignore malformed keep-alive/comment lines.
+				}
+			}
+		}
+
+		const trimmed = fullText.trim();
+		if (!trimmed) {
 			throw new ServiceError(502, `Model ${model} returned an empty response.`);
 		}
-		return content;
+		return trimmed;
 	}
 }

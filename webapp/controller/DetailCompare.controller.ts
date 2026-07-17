@@ -98,7 +98,8 @@ export default class DetailCompare extends BaseController {
 		const baseDetail = model.getProperty('/baseDetail') as { serviceDefinition?: string } | null;
 		return {
 			label: `Comparison of two versions of ${baseDetail?.serviceDefinition || 'a service'} (BASE vs COMPARE)`,
-			xml: `<!-- BASE XML -->\n${clip(baseXml)}\n\n<!-- COMPARE XML -->\n${clip(compareXml)}`
+			xml: `<!-- BASE XML -->\n${clip(baseXml)}\n\n<!-- COMPARE XML -->\n${clip(compareXml)}`,
+			suggestions: ['Explain the differences', 'Any breaking changes?', 'Which entities were added or removed?']
 		};
 	}
 

@@ -16,6 +16,8 @@ import AiChatService, { type AiChatMessage } from '../services/AiChatService';
 export interface AiChatContext {
 	label: string;
 	xml: string;
+	/** Page-specific suggested prompts shown on the empty chat. */
+	suggestions?: string[];
 }
 
 interface AiChatUiMessage {
@@ -26,6 +28,8 @@ interface AiChatUiMessage {
 
 // Only the most recent turns are sent to the model to stay within free-tier limits.
 const AI_CHAT_HISTORY_LIMIT = 12;
+
+const DEFAULT_AI_SUGGESTIONS = ['Summarize this XML', 'List entity types and keys', 'Spot potential issues'];
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -134,14 +138,17 @@ export default abstract class BaseController extends Controller {
 				messages: [] as AiChatUiMessage[],
 				input: '',
 				busy: false,
+				thinking: false,
 				hasKey: this.aiChatService.hasApiKey(),
 				apiKeyInput: '',
-				contextLabel: ''
+				contextLabel: '',
+				suggestions: [] as { text: string }[]
 			});
 			this.setModel(model, 'aiChat');
 		}
 		model.setProperty('/hasKey', this.aiChatService.hasApiKey());
 		model.setProperty('/contextLabel', context?.label ?? '');
+		model.setProperty('/suggestions', (context?.suggestions ?? DEFAULT_AI_SUGGESTIONS).map((text) => ({ text })));
 
 		if (this.aiChatDialogPromise === null) {
 			this.aiChatDialogPromise = Fragment.load({
@@ -162,6 +169,16 @@ export default abstract class BaseController extends Controller {
 
 	public onAiChatClose(): void {
 		this.aiChatDialog?.close();
+	}
+
+	public onAiChatAfterOpen(): void {
+		this.focusAiChatInput();
+	}
+
+	private focusAiChatInput(): void {
+		setTimeout(() => {
+			(this.byId('aiChatInput') as { focus?: () => void } | null)?.focus?.();
+		}, 100);
 	}
 
 	public onAiChatClear(): void {
@@ -196,28 +213,59 @@ export default abstract class BaseController extends Controller {
 
 		const messages = [...(model.getProperty('/messages') as AiChatUiMessage[])];
 		messages.push({ role: 'user', text: input, html: this.markdownToHtml(input) });
+
+		// History is captured before the placeholder below so the empty
+		// assistant message is never sent to the model.
+		const history: AiChatMessage[] = messages
+			.filter((message) => message.role !== 'error')
+			.slice(-AI_CHAT_HISTORY_LIMIT)
+			.map((message) => ({
+				role: message.role === 'user' ? 'user' : 'assistant',
+				content: message.text
+			}));
+
+		// Placeholder bubble that fills up as the answer streams in.
+		messages.push({ role: 'assistant', text: '', html: '' });
+		const assistantIndex = messages.length - 1;
+
 		model.setProperty('/messages', messages);
 		model.setProperty('/input', '');
 		model.setProperty('/busy', true);
+		model.setProperty('/thinking', true);
 		this.scrollAiChatToBottom();
 
+		let partialText = '';
+		let lastRender = 0;
 		try {
 			const context = this.getAiChatContext();
 			const systemPrompt = this.aiChatService.buildSystemPrompt(context?.label ?? 'No XML loaded', context?.xml ?? '');
 
-			const history: AiChatMessage[] = messages
-				.filter((message) => message.role !== 'error')
-				.slice(-AI_CHAT_HISTORY_LIMIT)
-				.map((message) => ({
-					role: message.role === 'user' ? 'user' : 'assistant',
-					content: message.text
-				}));
-
-			const answer = await this.aiChatService.ask([{ role: 'system', content: systemPrompt }, ...history]);
-			messages.push({ role: 'assistant', text: answer, html: this.markdownToHtml(answer) });
+			const answer = await this.aiChatService.askStream(
+				[{ role: 'system', content: systemPrompt }, ...history],
+				(fullText) => {
+					partialText = fullText;
+					model.setProperty('/thinking', false);
+					// Re-rendering markdown on every token is wasteful; ~10 fps is plenty.
+					const now = Date.now();
+					if (now - lastRender < 100) {
+						return;
+					}
+					lastRender = now;
+					model.setProperty(`/messages/${assistantIndex}/html`, this.markdownToHtml(fullText));
+					this.scrollAiChatToBottom(true);
+				}
+			);
+			messages[assistantIndex] = { role: 'assistant', text: answer, html: this.markdownToHtml(answer) };
 		} catch (error) {
 			const message = error instanceof Error ? error.message : JSON.stringify(error);
-			messages.push({ role: 'error', text: message, html: this.markdownToHtml(message) });
+			const errorMessage: AiChatUiMessage = { role: 'error', text: message, html: this.markdownToHtml(message) };
+			if (partialText) {
+				// Keep whatever streamed before the failure and append the error.
+				messages[assistantIndex] = { role: 'assistant', text: partialText, html: this.markdownToHtml(partialText) };
+				messages.push(errorMessage);
+			} else {
+				messages[assistantIndex] = errorMessage;
+			}
 			// A 401 means the stored key is invalid -> ask for it again.
 			if ((error as { status?: number }).status === 401) {
 				model.setProperty('/hasKey', false);
@@ -225,15 +273,22 @@ export default abstract class BaseController extends Controller {
 		} finally {
 			model.setProperty('/messages', [...messages]);
 			model.setProperty('/busy', false);
+			model.setProperty('/thinking', false);
 			this.scrollAiChatToBottom();
+			this.focusAiChatInput();
 		}
 	}
 
-	private scrollAiChatToBottom(): void {
-		setTimeout(() => {
+	private scrollAiChatToBottom(immediate = false): void {
+		const doScroll = () => {
 			const scroll = this.byId('aiChatScroll') as ScrollContainer | null;
-			scroll?.scrollTo(0, 999999, 200);
-		}, 100);
+			scroll?.scrollTo(0, 999999, immediate ? 0 : 200);
+		};
+		if (immediate) {
+			doScroll();
+		} else {
+			setTimeout(doScroll, 100);
+		}
 	}
 
 	/**
@@ -256,15 +311,22 @@ export default abstract class BaseController extends Controller {
 			.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
 			.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
 
-		// Bullet / numbered lists (line based, outside of <pre> blocks)
+		// Bullet / numbered lists and tables (line based, outside of <pre> blocks)
 		const lines = html.split('\n');
 		const output: string[] = [];
 		let listTag: 'ul' | 'ol' | null = null;
 		let inPre = false;
+		const tableBuffer: string[] = [];
 		const closeList = () => {
 			if (listTag) {
 				output.push(`</${listTag}>`);
 				listTag = null;
+			}
+		};
+		const flushTable = () => {
+			if (tableBuffer.length > 0) {
+				output.push(this.renderMarkdownTable(tableBuffer));
+				tableBuffer.length = 0;
 			}
 		};
 		for (const line of lines) {
@@ -272,12 +334,22 @@ export default abstract class BaseController extends Controller {
 				inPre = true;
 			}
 			if (inPre) {
+				flushTable();
+				closeList();
 				output.push(line);
 				if (line.includes('</pre>')) {
 					inPre = false;
 				}
 				continue;
 			}
+
+			// FormattedText cannot render <table>, so pipe tables become aligned monospace blocks.
+			if (/^\s*\|.*\|\s*$/.test(line)) {
+				closeList();
+				tableBuffer.push(line);
+				continue;
+			}
+			flushTable();
 
 			const bulletMatch = /^\s*[-*]\s+(.*)$/.exec(line);
 			const numberMatch = /^\s*\d+[.)]\s+(.*)$/.exec(line);
@@ -294,9 +366,39 @@ export default abstract class BaseController extends Controller {
 				output.push(line.length > 0 ? `${line}<br>` : '');
 			}
 		}
+		flushTable();
 		closeList();
 
 		return output.join('\n');
+	}
+
+	/**
+	 * Renders a markdown pipe table as a column-aligned monospace block,
+	 * since sap.m.FormattedText does not support <table> markup.
+	 */
+	private renderMarkdownTable(lines: string[]): string {
+		// Visible length: HTML entities from the earlier escaping count as one character.
+		const visibleLength = (cell: string): number => cell.replace(/&(amp|lt|gt|quot);/g, 'x').length;
+
+		const rows = lines
+			.map((line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim()))
+			.filter((cells) => !(cells.length > 0 && cells.every((cell) => /^:?-{2,}:?$/.test(cell))));
+
+		if (rows.length === 0) {
+			return '';
+		}
+
+		const columnWidths: number[] = [];
+		for (const row of rows) {
+			row.forEach((cell, index) => {
+				columnWidths[index] = Math.max(columnWidths[index] ?? 0, visibleLength(cell));
+			});
+		}
+
+		const rendered = rows
+			.map((row) => row.map((cell, index) => cell + ' '.repeat(columnWidths[index] - visibleLength(cell))).join('  ').trimEnd())
+			.join('\n');
+		return `<pre><code>${rendered}</code></pre>`;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
