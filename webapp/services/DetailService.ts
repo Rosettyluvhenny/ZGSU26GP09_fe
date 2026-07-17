@@ -1,7 +1,7 @@
 import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 
-import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail } from '../model/types';
+import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail, SendMailParams, SendMailResult } from '../model/types';
 import { mapDetailEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
@@ -23,7 +23,8 @@ function asString(value: unknown): string {
 		return '';
 	}
 
-	return String(value);
+	const primitive = value as string | number | boolean | bigint;
+	return String(primitive);
 }
 
 function asNumber(value: unknown): number {
@@ -107,7 +108,7 @@ export default class DetailService {
 		if (Array.isArray(payload.NODETREE)) {
 			return delay(payload.NODETREE.map(mapNodeTreeItem));
 		}
-		return delay([]);
+		return delay([] as NodeTreeResponseItem[]);
 	}
 
 	public async compareNodeTree(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[]> {
@@ -124,7 +125,7 @@ export default class DetailService {
 		if (Array.isArray(payload.NODEDIFF)) {
 			return delay(payload.NODEDIFF.map(mapNodeDiffItem));
 		}
-		return delay([]);
+		return delay([] as NodeDiffEntry[]);
 	}
 
 	private async loadDetailsFromBackend(versionId: string): Promise<RegistryDetail[]> {
@@ -154,8 +155,27 @@ export default class DetailService {
 		}
 
 		return {
-			detailId: String(entity.DetailId ?? detailId),
-			metadataXml: String(entity.MetadataXml ?? entity.metadataXml ?? '')
+			detailId: asString(entity.DetailId) || detailId,
+			metadataXml: asString(entity.MetadataXml) || asString(entity.metadataXml)
+		};
+	}
+
+	public async sendEmail(params: SendMailParams): Promise<SendMailResult> {
+		const raw = await this.client.postJson(
+			'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.sendEmail',
+			{
+				HtmlContent: params.htmlContent,
+				Recipients: params.recipients,
+				Subject: params.subject
+			},
+			{ headers: await this.client.ensureWriteHeaders('POST') }
+		);
+		const entity = normalizeODataEntity(raw);
+		return {
+			success: entity.success === true || entity.success === 'true',
+			message: asString(entity.message),
+			failedRecip: asString(entity.failed_recip),
+			recipientDetail: asString(entity.recipient_detail)
 		};
 	}
 

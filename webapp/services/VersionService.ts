@@ -24,7 +24,8 @@ function asString(value: unknown): string {
 		return '';
 	}
 
-	return String(value);
+	const primitive = value as string | number | boolean | bigint;
+	return String(primitive);
 }
 
 function mapCompareEntry(entry: VersionCompareActionEntry): CompareVersionEntry {
@@ -82,7 +83,7 @@ export default class VersionService {
 	private async loadVersionsFromBackend(registryId: string): Promise<RegistryVersion[]> {
 		const payload = await this.client.readJson(`/Registry/${formatGuidLiteral(registryId)}/_Version?$orderby=CreatedAt desc`);
 		const versions = normalizeODataCollection(payload);
-		return Promise.all(versions.map((entity) => this.loadVersionFromEntity(entity)));
+		return versions.map((entity) => this.loadVersionFromEntity(entity));
 	}
 
 	private async loadVersionFromBackend(versionId: string): Promise<RegistryVersion | null> {

@@ -21,7 +21,7 @@ export default class JobList extends BaseController {
 		);
 		this.getRouter()
 			.getRoute("jobList")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched(() => {
 				void this.onRouteMatched();
 			});
 	}
@@ -52,7 +52,7 @@ export default class JobList extends BaseController {
 			model.setProperty('/items', jobs);
 			console.log('Job scan list fetched successfully', {
 				count: jobs.length,
-				search: model.getProperty('/search')
+				search: model.getProperty('/search') as string
 			});
 		} catch (error) {
 			await this.handleServiceError(error);

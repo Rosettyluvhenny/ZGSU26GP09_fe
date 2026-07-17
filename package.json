@@ -25,6 +25,7 @@
   "devDependencies": {
     "@sap/ux-ui5-tooling": "^1.28.0",
     "@sapui5/types": "1.149.1",
+    "@types/sinon": "^22.0.0",
     "@ui5/cli": "^4.0.23",
     "@ui5/linter": "^1.19.0",
     "babel-plugin-istanbul": "^7.0.0",
@@ -39,6 +40,7 @@
     "ui5-tooling-transpile": "^3.9.0"
   },
   "dependencies": {
-    "ui5-middleware-sap-proxy": "file:./ui5-middleware-sap-proxy"
+    "ui5-middleware-sap-proxy": "file:./ui5-middleware-sap-proxy",
+    "xlsx": "^0.18.5"
   }
 }

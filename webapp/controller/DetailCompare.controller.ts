@@ -4,11 +4,14 @@ import TreeTable from 'sap/ui/table/TreeTable';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
+import MessageBox from 'sap/m/MessageBox';
+import Fragment from 'sap/ui/core/Fragment';
+import type Dialog from 'sap/m/Dialog';
 
 import History from 'sap/ui/core/routing/History';
 import type Table from 'sap/m/Table';
 
-import BaseController from './BaseController';
+import BaseController, { type AiChatContext } from './BaseController';
 interface ExtendedTreeBinding {
 	expand(index: number): void;
 	getLength(): number;
@@ -31,6 +34,8 @@ export default class DetailCompare extends BaseController {
 	private compareDetailId: string | null = null;
 	private treeScrollSyncAttached = false;
 	private xmlScrollSyncAttached = false;
+	private _sendMailDialogPromise: Promise<Dialog> | null = null;
+	private _sendMailDialog: Dialog | null = null;
 
 	public onInit(): void {
 		this.setModel(
@@ -44,7 +49,9 @@ export default class DetailCompare extends BaseController {
 				compareXmlLines: [] as XmlLineEntry[],
 				baseLineStarts: [],
 				compareLineStarts: [],
-				compareNodeDiff: []
+				compareNodeDiff: [],
+				baseRawXml: '',
+				compareRawXml: ''
 			}),
 			'detailCompare'
 		);
@@ -74,6 +81,237 @@ export default class DetailCompare extends BaseController {
 		this.attachScrollSync('baseTreeScroll', 'compareTreeScroll', true);
 		this.attachScrollSync('baseXmlScroll', 'compareXmlScroll', false);
 	}
+
+	protected getAiChatContext(): AiChatContext | null {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const baseXml = (model.getProperty('/basePrettyXml') as string) ?? '';
+		const compareXml = (model.getProperty('/comparePrettyXml') as string) ?? '';
+		if (!baseXml && !compareXml) {
+			return null;
+		}
+
+		// Split the context budget between both sides so neither one gets cut off entirely.
+		const halfBudget = 18000;
+		const clip = (xml: string): string =>
+			xml.length > halfBudget ? xml.slice(0, halfBudget) + '\n<!-- ... truncated ... -->' : xml;
+
+		const baseDetail = model.getProperty('/baseDetail') as { serviceDefinition?: string } | null;
+		return {
+			label: `Comparison of two versions of ${baseDetail?.serviceDefinition || 'a service'} (BASE vs COMPARE)`,
+			xml: `<!-- BASE XML -->\n${clip(baseXml)}\n\n<!-- COMPARE XML -->\n${clip(compareXml)}`,
+			suggestions: ['Explain the differences', 'Any breaking changes?', 'Which entities were added or removed?'],
+			storageKey: this.baseDetailId && this.compareDetailId ? `compare.${this.baseDetailId}_${this.compareDetailId}` : undefined
+		};
+	}
+
+	// ── Send Mail ────────────────────────────────────────────────────────────
+
+	public onSendMail(): void {
+		const detailModel = this.getModel('detailCompare') as JSONModel;
+		const baseDetail = detailModel.getProperty('/baseDetail') as { serviceDefinition?: string } | null;
+		const defaultSubject = baseDetail?.serviceDefinition
+			? `XML Comparison: ${baseDetail.serviceDefinition}`
+			: 'XML Comparison Report';
+
+		this.setModel(
+			new JSONModel({
+				busy: false,
+				recipients: '',
+				subject: defaultSubject
+			}),
+			'sendMail'
+		);
+
+		if (this._sendMailDialogPromise === null) {
+			this._sendMailDialogPromise = Fragment.load({
+			id: this.getView().getId(),
+			name: 'com.zgp9.fe.view.fragments.SendMailDialog',
+			controller: this
+		}) as Promise<Dialog>;
+	}
+
+	void this._sendMailDialogPromise.then((dialog) => {
+		this._sendMailDialog = dialog;
+		if (!dialog.getParent()) {
+			this.getView().addDependent(dialog);
+			}
+			dialog.open();
+		});
+	}
+
+	public async onConfirmSendMail(): Promise<void> {
+		const sendMailModel = this.getModel('sendMail') as JSONModel;
+		const recipients = ((sendMailModel.getProperty('/recipients') as string) ?? '').trim();
+		const subject = ((sendMailModel.getProperty('/subject') as string) ?? '').trim() || 'XML Comparison Report';
+
+		if (!recipients) {
+			MessageBox.error('Please enter at least one recipient email address.');
+			return;
+		}
+
+		const detailModel = this.getModel('detailCompare') as JSONModel;
+		const basePrettyXml = (detailModel.getProperty('/basePrettyXml') as string) ?? '';
+		const comparePrettyXml = (detailModel.getProperty('/comparePrettyXml') as string) ?? '';
+
+		if (!basePrettyXml || !comparePrettyXml) {
+			MessageBox.error('XML data is not loaded yet. Please wait and try again.');
+			return;
+		}
+
+		const htmlContent = this.buildCompareHtml(basePrettyXml, comparePrettyXml, subject);
+		const htmlSizeKb = Math.round(htmlContent.length / 1024);
+		console.log(`[SendMail] HTML size: ${htmlSizeKb} KB, recipients: "${recipients}", subject: "${subject}"`);
+
+		sendMailModel.setProperty('/busy', true);
+		BusyIndicator.show(0);
+		try {
+			const result = await this.getOwnerComponent().getDetailService().sendEmail({
+				htmlContent,
+				recipients,
+				subject
+			});
+
+			this._sendMailDialog?.close();
+
+			if (result.success) {
+				MessageBox.success(result.message || 'Email sent successfully to ' + recipients + '.');
+			} else {
+				const detail = result.failedRecip ? `\nFailed recipients: ${result.failedRecip}` : '';
+				MessageBox.warning((result.message || 'Email may not have been delivered.') + detail);
+			}
+		} catch (error) {
+			await this.handleServiceError(error);
+		} finally {
+			sendMailModel.setProperty('/busy', false);
+			BusyIndicator.hide();
+		}
+	}
+
+	public onCancelSendMail(): void {
+		this._sendMailDialog?.close();
+	}
+
+	public onRecipientInputChange(): void {
+		// intentionally empty – triggers two-way binding refresh
+	}
+
+	private buildCompareHtml(baseXml: string, compareXml: string, title: string): string {
+		const escHtml = (s: string): string =>
+			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+		const baseLines = baseXml.split('\n');
+		const compareLines = compareXml.split('\n');
+		const maxLen = Math.max(baseLines.length, compareLines.length);
+
+		let rows = '';
+		for (let i = 0; i < maxLen; i++) {
+			const left  = baseLines[i] ?? '';
+			const right = compareLines[i] ?? '';
+			const isDiff = left !== right;
+
+			let leftHtml: string;
+			let rightHtml: string;
+			if (isDiff) {
+				[leftHtml, rightHtml] = this.inlineDiffHtml(left, right);
+			} else {
+				leftHtml = escHtml(left);
+				rightHtml = escHtml(right);
+			}
+
+			const rowCls = isDiff ? ' class="d"' : '';
+			rows += `<tr${rowCls}>` +
+				`<td class="n">${i + 1}</td>` +
+				`<td class="x">${leftHtml}</td>` +
+				`<td class="n">${i + 1}</td>` +
+				`<td class="x">${rightHtml}</td>` +
+				`</tr>`;
+		}
+
+		const css =
+			`body{margin:8px;font-family:sans-serif}` +
+			`h2{color:#333}` +
+			`table{border-collapse:collapse;width:100%;table-layout:fixed}` +
+			`th{padding:4px;border:1px solid #ddd;background:#f5f5f5;text-align:left}` +
+			`td.n{padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;` +
+				`font-family:monospace;font-size:11px;white-space:nowrap;width:3%;user-select:none}` +
+			`td.x{padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;` +
+				`overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%}` +
+			`tr.d td.x{background:#fffbe6}` +
+			`tr.d td:nth-child(1){background:#ffd7d5;color:#c00}` +
+			`tr.d td:nth-child(3){background:#ccffd8;color:#080}` +
+			`mark.del{background:#ffd7d5;color:inherit;border-radius:2px;padding:0 1px}` +
+			`mark.ins{background:#ccffd8;color:inherit;border-radius:2px;padding:0 1px}`;
+
+		return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>${css}</style></head><body>` +
+			`<h2>${escHtml(title)}</h2>` +
+			`<table>` +
+				`<colgroup><col style="width:3%"/><col style="width:47%"/><col style="width:3%"/><col style="width:47%"/></colgroup>` +
+				`<thead><tr><th>#</th><th>Base XML</th><th>#</th><th>Compare XML</th></tr></thead>` +
+				`<tbody>${rows}</tbody>` +
+			`</table></body></html>`;
+	}
+
+	/**
+	 * Tính inline word-level diff giữa 2 dòng.
+	 * Trả về [baseHtml, compareHtml] với <mark class="del"> / <mark class="ins"> trên phần thay đổi.
+	 */
+	private inlineDiffHtml(base: string, compare: string): [string, string] {
+		const esc = (s: string) =>
+			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+		// Tách thành tokens: chuỗi ký tự liên tiếp không phải space, và khoảng trắng
+		const tokenize = (s: string): string[] => s.match(/\S+|\s+/g) ?? (s ? [s] : []);
+
+		const bTok = tokenize(base);
+		const cTok = tokenize(compare);
+		const m = bTok.length;
+		const n = cTok.length;
+
+		// LCS DP
+		const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0) as number[]);
+		for (let i = 1; i <= m; i++) {
+			for (let j = 1; j <= n; j++) {
+				dp[i][j] = bTok[i - 1] === cTok[j - 1]
+					? dp[i - 1][j - 1] + 1
+					: Math.max(dp[i - 1][j], dp[i][j - 1]);
+			}
+		}
+
+		// Backtrack để lấy danh sách thao tác
+		type Op = { op: 'same' | 'del' | 'ins'; val: string };
+		const ops: Op[] = [];
+		let i = m, j = n;
+		while (i > 0 || j > 0) {
+			if (i > 0 && j > 0 && bTok[i - 1] === cTok[j - 1]) {
+				ops.unshift({ op: 'same', val: bTok[i - 1] });
+				i--; j--;
+			} else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+				ops.unshift({ op: 'ins', val: cTok[j - 1] });
+				j--;
+			} else {
+				ops.unshift({ op: 'del', val: bTok[i - 1] });
+				i--;
+			}
+		}
+
+		let baseHtml = '';
+		let cmpHtml = '';
+		for (const { op, val } of ops) {
+			const escaped = esc(val);
+			if (op === 'same') {
+				baseHtml += escaped;
+				cmpHtml  += escaped;
+			} else if (op === 'del') {
+				baseHtml += `<mark class="del">${escaped}</mark>`;
+			} else {
+				cmpHtml  += `<mark class="ins">${escaped}</mark>`;
+			}
+		}
+
+		return [baseHtml, cmpHtml];
+	}
+
+	// ─────────────────────────────────────────────────────────────────────────
 
 	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();
@@ -157,6 +395,10 @@ export default class DetailCompare extends BaseController {
 			let baseXmlLines = this.buildXmlLines(baseXml);
 			let compareXmlLines = this.buildXmlLines(compareXml);
 
+		model.setProperty('/baseRawXml', baseRawXml);
+		model.setProperty('/compareRawXml', compareRawXml);
+		model.setProperty('/basePrettyXml', baseXml);
+		model.setProperty('/comparePrettyXml', compareXml);
 			model.setProperty('/baseDetail', baseDetail);
 			model.setProperty('/compareDetail', compareDetail);
 			model.setProperty('/baseTree', baseTree);
@@ -318,7 +560,7 @@ export default class DetailCompare extends BaseController {
 		right.addEventListener('scroll', () => sync(right, left));
 	}
 
-	private findScrollElement(controlId: string, treeMode: boolean): HTMLElement | null {
+	private findScrollElement(controlId: string, _treeMode: boolean): HTMLElement | null {
 		const domRef = this.byId(controlId)?.getDomRef();
 		if (!domRef) {
 			return null;

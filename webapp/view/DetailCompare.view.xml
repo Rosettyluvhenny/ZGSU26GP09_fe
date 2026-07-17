@@ -18,6 +18,19 @@
 			<f:DynamicPageHeader pinnable="false">
 				<OverflowToolbar>
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+					<ToolbarSpacer />
+					<Button
+						text="Ask AI"
+						icon="sap-icon://da"
+						tooltip="Analyze this comparison with an AI assistant"
+						press=".onOpenAiChat"
+						enabled="{= !${detailCompare>/compareWorkspaceBusy} }" />
+					<Button
+						text="Send Mail"
+						icon="sap-icon://email"
+						type="Emphasized"
+						press=".onSendMail"
+						enabled="{= !${detailCompare>/compareWorkspaceBusy} }" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
@@ -78,7 +91,7 @@
 											</customData>
 											<cells>
 												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
-												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
+												<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
 											</cells>
 										</ColumnListItem>
 									</items>
@@ -104,7 +117,7 @@
 											</customData>
 											<cells>
 												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
-												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
+												<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
 											</cells>
 										</ColumnListItem>
 									</items>

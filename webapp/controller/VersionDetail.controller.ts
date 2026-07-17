@@ -7,7 +7,7 @@ import type UI5Event from 'sap/ui/base/Event';
 import type Table from 'sap/m/Table';
 import type Tree from 'sap/m/Tree';
 
-import BaseController from './BaseController';
+import BaseController, { type AiChatContext } from './BaseController';
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
 import { buildNodeTree, filterNodeTree, flattenNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
@@ -110,6 +110,21 @@ export default class VersionDetail extends BaseController {
 		model.setProperty('/treeSearchMatchCount', matchCount);
 		treeModel.setData(filteredTree);
 		this.expandAllTreeNodes('versionDetailTree');
+	}
+
+	protected getAiChatContext(): AiChatContext | null {
+		const model = this.getModel('versionDetail') as JSONModel;
+		const xml = (model.getProperty('/selectedDetailXml') as string) ?? '';
+		if (!xml) {
+			return null;
+		}
+
+		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+		return {
+			label: detail?.serviceDefinition || 'Version metadata XML',
+			xml,
+			storageKey: detail ? `detail.${detail.id}` : undefined
+		};
 	}
 
 	public async onCopyXml(): Promise<void> {

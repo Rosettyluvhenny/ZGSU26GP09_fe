@@ -6,9 +6,14 @@
 	xmlns:f="sap.f"
 	xmlns:tnt="sap.tnt">
 
-	<tnt:ToolPage id="shellPage" class="shellPage">
+	<tnt:ToolPage id="shellPage" class="shellPage" sideExpanded="{ui>/sideNavVisible}">
 		<tnt:header>
 			<OverflowToolbar>
+				<Button
+					icon="sap-icon://menu2"
+					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
+					press=".onToggleSideNav"
+					type="Transparent" />
 				<Title text="Registry Control Center" level="H3" />
 				<ToolbarSpacer />
 				<ObjectStatus text="{session>/userName}" state="Information" />

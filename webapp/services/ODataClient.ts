@@ -32,7 +32,7 @@ export default class ODataClient {
 	}
 
 	public static async checkAuthAndFetchCsrf(): Promise<string> {
-		if (ODataClient.authPromise) {
+		if (ODataClient.authPromise !== null) {
 			return ODataClient.authPromise;
 		}
 
