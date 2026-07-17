@@ -188,3 +188,87 @@ li[data-airole="error"] .aiChatBubble {
 	padding-left: 1.25rem;
 }
 
+/* ── Brand accent ───────────────────────────────────────────────────────────
+   Retints the stock Horizon theme with the app's identity colour. The theme
+   class selectors beat Horizon's own :root declarations regardless of stylesheet
+   load order, so the accent survives a light/dark theme switch.
+   To rebrand the whole app, change the two accent hex values below. */
+html.sapUiTheme-sap_horizon {
+	--sapBrandColor: #5b3fd6;
+	--sapHighlightColor: #5b3fd6;
+	--sapSelectedColor: #5b3fd6;
+	--sapButton_Emphasized_Background: #5b3fd6;
+	--sapButton_Emphasized_BorderColor: #5b3fd6;
+	--sapButton_Emphasized_Hover_Background: #4c34b8;
+	--sapButton_Emphasized_Hover_BorderColor: #4c34b8;
+	--sapButton_Emphasized_Active_Background: #402c9c;
+	--sapButton_Emphasized_Active_BorderColor: #402c9c;
+	--sapButton_Emphasized_TextColor: #ffffff;
+	--sapLink_TextColor: #5b3fd6;
+	--sapLink_Hover_Color: #4c34b8;
+}
+
+html.sapUiTheme-sap_horizon_dark {
+	--sapBrandColor: #9d8bff;
+	--sapHighlightColor: #9d8bff;
+	--sapSelectedColor: #9d8bff;
+	--sapButton_Emphasized_Background: #6d54e0;
+	--sapButton_Emphasized_BorderColor: #6d54e0;
+	--sapButton_Emphasized_Hover_Background: #7d66ec;
+	--sapButton_Emphasized_Hover_BorderColor: #7d66ec;
+	--sapButton_Emphasized_Active_Background: #5b43cc;
+	--sapButton_Emphasized_Active_BorderColor: #5b43cc;
+	--sapButton_Emphasized_TextColor: #ffffff;
+	--sapLink_TextColor: #9d8bff;
+	--sapLink_Hover_Color: #b3a4ff;
+}
+
+/* ── Login screen ───────────────────────────────────────────────────────────
+   The Login view already carries these class hooks; the styles below turn the
+   bare form into a branded landing page. */
+.loginHero {
+	min-height: 100vh;
+	box-sizing: border-box;
+	padding: 2rem 1rem;
+	gap: 1.75rem;
+	background: linear-gradient(135deg, #5b3fd6 0%, #33257f 100%);
+}
+
+.loginBrand {
+	gap: 0.35rem;
+}
+
+.loginBrandIcon {
+	color: #ffffff !important;
+}
+
+.loginBrandTitle {
+	color: #ffffff !important;
+}
+
+.loginBrandTagline {
+	color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.loginCard {
+	width: 100%;
+	max-width: 400px;
+	border-radius: 16px;
+	box-shadow: 0 18px 50px rgba(20, 10, 60, 0.35);
+	background: var(--sapGroup_ContentBackground, #ffffff);
+}
+
+.loginCard .sapMPanelContent {
+	padding: 1.5rem;
+	border: none;
+}
+
+.loginActions {
+	background: transparent;
+}
+
+/* ── Model Explorer ─────────────────────────────────────────────────────────── */
+.modelKeyIcon {
+	color: var(--sapWarningColor, #e9730c);
+}
+

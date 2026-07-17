@@ -10,14 +10,14 @@
 	<Page showHeader="false" class="loginPage" backgroundDesign="Solid">
 		<content>
 			<VBox class="loginHero" width="100%" justifyContent="Center" alignItems="Center">
+				<VBox class="loginBrand" alignItems="Center">
+					<core:Icon src="sap-icon://database" size="3.25rem" class="loginBrandIcon" />
+					<Title text="Registry Control Center" level="H1" class="loginBrandTitle" />
+					<Text text="OData Service Registry" class="loginBrandTagline" />
+				</VBox>
 				<Panel width="100%" class="loginCard">
-					<headerToolbar>
-						<Toolbar>
-							<Title text="Registry Control Center" level="H2" />
-						</Toolbar>
-					</headerToolbar>
 					<content>
-						<Text text="Sign in to manage registries, versions, and scan jobs." wrapping="true" />
+						<Text text="Sign in to manage registries, versions, and scan jobs." wrapping="true" class="sapUiSmallMarginBottom" />
 						<form:Form editable="true" width="100%">
 							<form:layout>
 								<form:ColumnLayout />
@@ -39,10 +39,7 @@
 								</form:FormContainer>
 							</form:formContainers>
 						</form:Form>
-						<OverflowToolbar class="loginActions">
-							<ToolbarSpacer />
-							<Button text="Sign In" type="Emphasized" press=".onLogin" busy="{ui>/loginBusy}" />
-						</OverflowToolbar>
+						<Button text="Sign In" type="Emphasized" width="100%" press=".onLogin" busy="{ui>/loginBusy}" class="loginActions sapUiSmallMarginTop" />
 					</content>
 				</Panel>
 			</VBox>

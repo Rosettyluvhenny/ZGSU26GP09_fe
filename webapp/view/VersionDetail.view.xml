@@ -22,6 +22,7 @@
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
+				<Button text="Model Explorer" icon="sap-icon://tree" tooltip="Browse this service as a structured model" press=".onOpenModelExplorer" enabled="{= !${versionDetail>/selectedDetailBusy} &amp;&amp; !!${versionDetail>/selectedDetail} }" />
 				<Button text="Ask AI" icon="sap-icon://da" type="Emphasized" tooltip="Analyze this XML with an AI assistant" press=".onOpenAiChat" enabled="{= !${versionDetail>/selectedDetailBusy} }" />
 				<Button text="Send Mail" icon="sap-icon://email" tooltip="Send this version XML via email" press=".onSendMail" enabled="{= !${versionDetail>/selectedDetailBusy} }" />
 				<Button text="Copy XML" icon="sap-icon://copy" tooltip="Copy full XML content" press=".onCopyXml" />

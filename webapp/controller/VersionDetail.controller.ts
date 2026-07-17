@@ -71,6 +71,18 @@ export default class VersionDetail extends BaseController {
 		await this.loadVersion();
 	}
 
+	public onOpenModelExplorer(): void {
+		if (!this.registryId || !this.versionId) {
+			return;
+		}
+		const detail = (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetail') as RegistryDetail | null;
+		this.getRouter().navTo('modelExplorer', {
+			registryId: this.registryId,
+			versionId: this.versionId,
+			query: detail ? { detailId: detail.id } : {}
+		});
+	}
+
 	public async onDetailChange(event: UI5Event): Promise<void> {
 		const source = event.getSource() as unknown as { getSelectedItem: () => { getBindingContext: (name?: string) => { getObject: () => RegistryDetail } | null } | null };
 		const selectedItem = source.getSelectedItem();
