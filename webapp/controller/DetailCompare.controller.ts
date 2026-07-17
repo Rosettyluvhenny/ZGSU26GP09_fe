@@ -34,6 +34,14 @@ export default class DetailCompare extends BaseController {
 	private compareDetailId: string | null = null;
 	private treeScrollSyncAttached = false;
 	private xmlScrollSyncAttached = false;
+	/** Aligned-row indices at which each change block starts (for prev/next navigation). */
+	private changeBlockStarts: number[] = [];
+	private changeBlockCursor = -1;
+	/** Full aligned line arrays kept so the "Changes only" filter can toggle without reloading. */
+	private baseXmlLinesAll: XmlLineEntry[] = [];
+	private compareXmlLinesAll: XmlLineEntry[] = [];
+	/** Rows of unchanged context kept around each change in "Changes only" mode. */
+	private static readonly CHANGES_CONTEXT = 3;
 	private _sendMailDialogPromise: Promise<Dialog> | null = null;
 	private _sendMailDialog: Dialog | null = null;
 
@@ -51,7 +59,13 @@ export default class DetailCompare extends BaseController {
 				compareLineStarts: [],
 				compareNodeDiff: [],
 				baseRawXml: '',
-				compareRawXml: ''
+				compareRawXml: '',
+				diffAdded: 0,
+				diffRemoved: 0,
+				diffChanged: 0,
+				changeBlockCount: 0,
+				navPosition: '',
+				xmlViewMode: 'all'
 			}),
 			'detailCompare'
 		);
@@ -698,8 +712,11 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				this.scheduleTreeExpansion('compareTree');
 			}
 
-			model.setProperty('/baseXmlLines', baseXmlLines);
-			model.setProperty('/compareXmlLines', compareXmlLines);
+			this.baseXmlLinesAll = baseXmlLines;
+			this.compareXmlLinesAll = compareXmlLines;
+			this.computeDiffTotals(baseXmlLines, compareXmlLines);
+			model.setProperty('/xmlViewMode', 'all');
+			this.applyXmlViewMode('all');
 			model.refresh(true);
 		} catch (error) {
 			await this.handleServiceError(error);
@@ -854,6 +871,223 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		if (item) {
 			item.addStyleClass('versionDetailXmlHighlighted');
 			item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
+		}
+	}
+
+	// ── Change navigation (prev/next across the aligned XML panes) ────────────
+
+	/** Set the added/removed/changed totals from the full aligned diff (mode-independent). */
+	private computeDiffTotals(baseLines: XmlLineEntry[], compareLines: XmlLineEntry[]): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		let added = 0;
+		let removed = 0;
+		let changed = 0;
+
+		const rowCount = Math.max(baseLines.length, compareLines.length);
+		for (let i = 0; i < rowCount; i++) {
+			const b = baseLines[i]?.lineType ?? 'same';
+			const c = compareLines[i]?.lineType ?? 'same';
+
+			if (b === 'del' && c === 'ins') {
+				changed++;
+			} else if (b === 'del') {
+				removed++;
+			} else if (c === 'ins') {
+				added++;
+			}
+		}
+
+		model.setProperty('/diffAdded', added);
+		model.setProperty('/diffRemoved', removed);
+		model.setProperty('/diffChanged', changed);
+	}
+
+	/**
+	 * Recompute the ordered list of change-block start rows against the CURRENTLY
+	 * displayed rows (which differ between "All lines" and "Changes only"), so
+	 * prev/next navigation lands on the right item in either mode. A change block
+	 * is a maximal run of rows where either side is not a 'same' line.
+	 */
+	private indexChangeBlocks(baseLines: XmlLineEntry[], compareLines: XmlLineEntry[]): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const blockStarts: number[] = [];
+		let inBlock = false;
+
+		const rowCount = Math.max(baseLines.length, compareLines.length);
+		for (let i = 0; i < rowCount; i++) {
+			const b = baseLines[i]?.lineType ?? 'same';
+			const c = compareLines[i]?.lineType ?? 'same';
+			// Test for an actual del/ins on either side so the collapsed-gap
+			// separators (blank on both sides) are not counted as changes.
+			const isChangeRow = b === 'del' || b === 'ins' || c === 'del' || c === 'ins';
+			if (isChangeRow) {
+				if (!inBlock) {
+					blockStarts.push(i);
+					inBlock = true;
+				}
+			} else {
+				inBlock = false;
+			}
+		}
+
+		this.changeBlockStarts = blockStarts;
+		this.changeBlockCursor = -1;
+		model.setProperty('/changeBlockCount', blockStarts.length);
+		model.setProperty('/navPosition', blockStarts.length > 0 ? `0 / ${blockStarts.length}` : '');
+	}
+
+	public onXmlViewModeChange(): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const mode = (model.getProperty('/xmlViewMode') as string) === 'changes' ? 'changes' : 'all';
+		this.applyXmlViewMode(mode);
+	}
+
+	/** Bind the XML panes to either the full aligned rows or the changes-only view. */
+	private applyXmlViewMode(mode: 'all' | 'changes'): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		let base = this.baseXmlLinesAll;
+		let compare = this.compareXmlLinesAll;
+
+		if (mode === 'changes') {
+			const filtered = this.buildChangesOnlyView(this.baseXmlLinesAll, this.compareXmlLinesAll);
+			base = filtered.base;
+			compare = filtered.compare;
+		}
+
+		model.setProperty('/baseXmlLines', base);
+		model.setProperty('/compareXmlLines', compare);
+		this.indexChangeBlocks(base, compare);
+	}
+
+	/**
+	 * Keep only changed rows plus CHANGES_CONTEXT lines of surrounding context.
+	 * Collapsed regions are replaced by a single dimmed "··· N unchanged ···"
+	 * separator row. Both panes are filtered by the same index set so they stay
+	 * aligned row-for-row (and the scroll-sync keeps working).
+	 */
+	private buildChangesOnlyView(baseAll: XmlLineEntry[], compareAll: XmlLineEntry[]): { base: XmlLineEntry[]; compare: XmlLineEntry[] } {
+		const rowCount = Math.max(baseAll.length, compareAll.length);
+		const changed = new Set<number>();
+		for (let i = 0; i < rowCount; i++) {
+			const b = baseAll[i]?.lineType ?? 'same';
+			const c = compareAll[i]?.lineType ?? 'same';
+			if (b !== 'same' || c !== 'same') {
+				changed.add(i);
+			}
+		}
+
+		const base: XmlLineEntry[] = [];
+		const compare: XmlLineEntry[] = [];
+		if (changed.size === 0) {
+			return { base, compare };
+		}
+
+		const included = new Set<number>();
+		for (const idx of changed) {
+			const from = Math.max(0, idx - DetailCompare.CHANGES_CONTEXT);
+			const to = Math.min(rowCount - 1, idx + DetailCompare.CHANGES_CONTEXT);
+			for (let x = from; x <= to; x++) {
+				included.add(x);
+			}
+		}
+
+		const gapRow = (gap: number): XmlLineEntry => ({
+			lineNo: 0,
+			text: `··· ${gap} unchanged line(s) ···`,
+			isWhitespace: false,
+			highlight: 'None',
+			lineType: 'empty'
+		});
+
+		const sorted = [...included].sort((a, b) => a - b);
+		let prev = -1;
+		for (const idx of sorted) {
+			if (prev >= 0 && idx > prev + 1) {
+				const gap = idx - prev - 1;
+				base.push(gapRow(gap));
+				compare.push(gapRow(gap));
+			}
+			base.push(baseAll[idx]);
+			compare.push(compareAll[idx]);
+			prev = idx;
+		}
+
+		return { base, compare };
+	}
+
+	public onNextChange(): void {
+		if (this.changeBlockStarts.length === 0) {
+			return;
+		}
+		this.changeBlockCursor = (this.changeBlockCursor + 1) % this.changeBlockStarts.length;
+		this.goToChangeBlock();
+	}
+
+	public onPrevChange(): void {
+		if (this.changeBlockStarts.length === 0) {
+			return;
+		}
+		this.changeBlockCursor =
+			(this.changeBlockCursor - 1 + this.changeBlockStarts.length) % this.changeBlockStarts.length;
+		this.goToChangeBlock();
+	}
+
+	private goToChangeBlock(): void {
+		const rowIndex = this.changeBlockStarts[this.changeBlockCursor];
+		const model = this.getModel('detailCompare') as JSONModel;
+		model.setProperty('/navPosition', `${this.changeBlockCursor + 1} / ${this.changeBlockStarts.length}`);
+
+		const baseTable = this.byId('baseDetailXmlTable') as Table | null;
+		const compareTable = this.byId('compareDetailXmlTable') as Table | null;
+		if (!baseTable || !compareTable) {
+			return;
+		}
+
+		// Both tables grow independently; ensure the target row is rendered on each
+		// before scrolling. Scrolling the base pane drives the compare pane through
+		// the existing scroll-sync, so only the base side needs scrollIntoView.
+		this.growTableToIndex(baseTable, rowIndex, () => {
+			this.growTableToIndex(compareTable, rowIndex, () => {
+				window.setTimeout(() => {
+					this.highlightRowAt(baseTable, rowIndex, true);
+					this.highlightRowAt(compareTable, rowIndex, false);
+				}, 50);
+			});
+		});
+	}
+
+	/** Grow a responsive table until at least index+1 items are rendered, then run done(). */
+	private growTableToIndex(table: Table, index: number, done: () => void): void {
+		const ext = table as unknown as {
+			getGrowingInfo?: () => { actual?: number } | undefined;
+			_oGrowingDelegate?: { requestNewPage?: () => void };
+		};
+		const actual = ext.getGrowingInfo?.()?.actual ?? table.getItems().length;
+		if (index < actual) {
+			done();
+			return;
+		}
+		const delegate = ext._oGrowingDelegate;
+		if (delegate && typeof delegate.requestNewPage === 'function') {
+			const onFinished = () => {
+				table.detachEvent('updateFinished', onFinished);
+				this.growTableToIndex(table, index, done);
+			};
+			table.attachEvent('updateFinished', onFinished);
+			delegate.requestNewPage();
+		} else {
+			done();
+		}
+	}
+
+	private highlightRowAt(table: Table, rowIndex: number, scroll: boolean): void {
+		table.getItems().forEach((item) => item.removeStyleClass('versionDetailXmlHighlighted'));
+		const item = table.getItems()[rowIndex];
+		if (item) {
+			item.addStyleClass('versionDetailXmlHighlighted');
+			if (scroll) {
+				item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
+			}
 		}
 	}
 

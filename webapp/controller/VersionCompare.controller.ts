@@ -25,6 +25,9 @@ export default class VersionCompare extends BaseController {
 				change: [],
 				differ: [],
 				unchange: [],
+				changeCount: 0,
+				differCount: 0,
+				unchangeCount: 0,
 				baseDetail: null,
 				compareDetail: null,
 				baseTree: [],
@@ -137,6 +140,9 @@ export default class VersionCompare extends BaseController {
 			model.setProperty('/change', result.change);
 			model.setProperty('/differ', result.differ);
 			model.setProperty('/unchange', result.unchange);
+			model.setProperty('/changeCount', result.change.length);
+			model.setProperty('/differCount', result.differ.length);
+			model.setProperty('/unchangeCount', result.unchange.length);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {

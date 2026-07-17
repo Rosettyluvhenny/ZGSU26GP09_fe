@@ -100,16 +100,31 @@ tr[data-diffstatus="Error"] {
 
 /* ── XML line-level diff (del / ins / empty padding rows) ────────────────── */
 
+/* Theme-aware diff backgrounds. The values below are the light-theme defaults;
+   the dark override keeps the diff legible instead of washing out light green/red
+   under light text. */
+:root {
+	--appDiffDelBg: #ffd7d5;
+	--appDiffInsBg: #ccffd8;
+	--appDiffEmptyBg: #f0f0f0;
+}
+
+html.sapUiTheme-sap_horizon_dark {
+	--appDiffDelBg: #5c2b2b;
+	--appDiffInsBg: #244d30;
+	--appDiffEmptyBg: #2a2a2e;
+}
+
 tr[data-linetype="del"] {
-	background-color: #ffd7d5 !important;
+	background-color: var(--appDiffDelBg) !important;
 }
 
 tr[data-linetype="ins"] {
-	background-color: #ccffd8 !important;
+	background-color: var(--appDiffInsBg) !important;
 }
 
 tr[data-linetype="empty"] {
-	background-color: #f0f0f0 !important;
+	background-color: var(--appDiffEmptyBg) !important;
 	opacity: 0.55;
 }
 
