@@ -3,7 +3,7 @@
 	xmlns:core="sap.ui.core"
 	xmlns:form="sap.ui.layout.form">
 
-	<Dialog id="sendMailDialog" title="Send Comparison Email" draggable="true" resizable="true" contentWidth="40rem" busy="{sendMail>/busy}">
+	<Dialog id="sendVersionMailDialog" title="Send Version XML via Email" draggable="true" resizable="true" contentWidth="40rem" busy="{sendMail>/busy}">
 		<beginButton>
 			<Button text="Send" type="Emphasized" icon="sap-icon://email" press=".onConfirmSendMail" />
 		</beginButton>
@@ -12,7 +12,7 @@
 		</endButton>
 		<content>
 			<VBox class="sapUiSmallMargin" width="100%">
-			<form:SimpleForm editable="true" layout="ColumnLayout">
+				<form:SimpleForm editable="true" layout="ColumnLayout">
 
 				<Label text="Recipients" required="true" />
 				<Input
@@ -29,26 +29,16 @@
 					value="{sendMail>/subject}"
 					valueState="{sendMail>/subjectState}"
 					valueStateText="{sendMail>/subjectStateText}"
-					placeholder="XML Comparison Report"
+					placeholder="Version XML Report"
 					maxLength="200" />
 
-				<Label text="Email Content" />
-				<SegmentedButton
-					selectedKey="{sendMail>/emailMode}"
-					width="100%">
-					<items>
-						<SegmentedButtonItem key="diff" text="Diff Only (recommended)" icon="sap-icon://compare" />
-						<SegmentedButtonItem key="full" text="Full XML" icon="sap-icon://document-text" />
-					</items>
-				</SegmentedButton>
+				</form:SimpleForm>
 
-			</form:SimpleForm>
-
-			<Text
-				text="{= ${sendMail>/emailMode} === 'diff' ? 'Only changed lines with 3-line context will be included. Small email size, Gmail compatible.' : 'Full XML of both versions will be included. Email may be large (&gt;100KB) and Gmail might truncate it.' }"
-				class="sapUiSmallMarginTop"
-				wrapping="true"
-				renderWhitespace="false" />
+				<Text
+					text="An HTML email with the full XML content of this version will be sent."
+					class="sapUiSmallMarginTop"
+					wrapping="true"
+					renderWhitespace="false" />
 			</VBox>
 		</content>
 	</Dialog>
