@@ -124,10 +124,19 @@ export default class RegistryDetail extends BaseController {
 			return;
 		}
 
+		// Sort versions by createdAt ascending so that the OLDER version is always
+		// on the LEFT (Base) and the NEWER version is on the RIGHT (Compare).
+		// This follows the standard diff convention: left = before, right = after.
+		const allVersions = (model.getProperty('/versions') as RegistryVersion[]) ?? [];
+		const selected = selectedVersionIds
+			.map(id => allVersions.find(v => v.id === id))
+			.filter((v): v is RegistryVersion => !!v);
+		selected.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
 		this.navTo('versionCompare', {
 			registryId: this.registryId,
-			leftVersionId: selectedVersionIds[0],
-			rightVersionId: selectedVersionIds[1]
+			leftVersionId: selected[0]?.id ?? selectedVersionIds[0],   // older → Base (left)
+			rightVersionId: selected[1]?.id ?? selectedVersionIds[1]   // newer → Compare (right)
 		});
 	}
 

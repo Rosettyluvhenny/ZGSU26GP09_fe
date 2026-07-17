@@ -80,22 +80,23 @@
 						<content>
 							<ScrollContainer class="versionDetailXmlScroll" id="baseXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
 								<Table id="baseDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/baseXmlLines}" mode="None">
-									<columns>
-										<Column width="4rem"><Text text="#" /></Column>
-										<Column width="auto"><Text text="Line" /></Column>
-									</columns>
-									<items>
-										<ColumnListItem highlight="{detailCompare>highlight}">
-											<customData>
-												<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
-											</customData>
-											<cells>
-												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
-												<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
-											</cells>
-										</ColumnListItem>
-									</items>
-								</Table>
+								<columns>
+									<Column width="4rem"><Text text="#" /></Column>
+									<Column width="auto"><Text text="Line" /></Column>
+								</columns>
+								<items>
+									<ColumnListItem highlight="{detailCompare>highlight}">
+										<customData>
+											<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
+											<core:CustomData key="linetype" value="{= ${detailCompare>lineType} || 'same' }" writeToDom="true" xmlns:core="sap.ui.core" />
+										</customData>
+										<cells>
+											<Text text="{= ${detailCompare>lineNo} > 0 ? '' + ${detailCompare>lineNo} : '' }" class="versionDetailXmlIndex" />
+											<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
 							</ScrollContainer>
 						</content>
 					</Page>
@@ -106,22 +107,23 @@
 						<content>
 							<ScrollContainer class="versionDetailXmlScroll" id="compareXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
 								<Table id="compareDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/compareXmlLines}" mode="None">
-									<columns>
-										<Column width="4rem"><Text text="#" /></Column>
-										<Column width="auto"><Text text="Line" /></Column>
-									</columns>
-									<items>
-										<ColumnListItem highlight="{detailCompare>highlight}">
-											<customData>
-												<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
-											</customData>
-											<cells>
-												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
-												<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
-											</cells>
-										</ColumnListItem>
-									</items>
-								</Table>
+								<columns>
+									<Column width="4rem"><Text text="#" /></Column>
+									<Column width="auto"><Text text="Line" /></Column>
+								</columns>
+								<items>
+									<ColumnListItem highlight="{detailCompare>highlight}">
+										<customData>
+											<core:CustomData key="diffStatus" value="{= ${detailCompare>highlight} || 'None' }" writeToDom="true" xmlns:core="sap.ui.core" />
+											<core:CustomData key="linetype" value="{= ${detailCompare>lineType} || 'same' }" writeToDom="true" xmlns:core="sap.ui.core" />
+										</customData>
+										<cells>
+											<Text text="{= ${detailCompare>lineNo} > 0 ? '' + ${detailCompare>lineNo} : '' }" class="versionDetailXmlIndex" />
+											<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
 							</ScrollContainer>
 						</content>
 					</Page>

@@ -98,6 +98,25 @@ tr[data-diffstatus="Error"] {
 	background-color: var(--sapErrorBackground, #ffebee) !important;
 }
 
+/* ── XML line-level diff (del / ins / empty padding rows) ────────────────── */
+
+tr[data-linetype="del"] {
+	background-color: #ffd7d5 !important;
+}
+
+tr[data-linetype="ins"] {
+	background-color: #ccffd8 !important;
+}
+
+tr[data-linetype="empty"] {
+	background-color: #f0f0f0 !important;
+	opacity: 0.55;
+}
+
+tr[data-linetype="empty"] td {
+	border: none !important;
+}
+
 /* ── AI Chat ─────────────────────────────────────────────────────────────── */
 
 /* The chat message area has a fixed height (set on the ScrollContainer in the

@@ -287,3 +287,106 @@ export function highlightXmlLine(line: string): string {
 		return `<span class="xmlTokPunct">${open}</span><span class="xmlTokTag">${name}</span>${highlightedAttrs}<span class="xmlTokPunct">${close}</span>`;
 	});
 }
+
+// ── Line-level diff ───────────────────────────────────────────────────────────
+
+/**
+ * same carries BOTH original lines so each panel can display its own text
+ * even when the two lines are semantically equal but differ in formatting
+ * (e.g. attribute ordering).
+ */
+export type LineDiffOp =
+	| { op: 'same'; baseLine: string; compareLine: string }
+	| { op: 'del';  line: string }   // exists only in base
+	| { op: 'ins';  line: string };  // exists only in compare
+
+/**
+ * Normalizes one XML line for LCS comparison purposes ONLY (never used for display).
+ *
+ * Two goals:
+ *  1. Strip all leading whitespace (indentation) so the same tag matched at
+ *     a different nesting depth — e.g. when a new parent element was inserted
+ *     in one version — is still treated as the same line.
+ *  2. Sort element attributes alphabetically so `Term="A" Path="B"` is treated
+ *     as equal to `Path="B" Term="A"`.
+ *
+ * Non-element lines (text, comments, PIs, closing tags) are returned trimmed.
+ */
+export function normalizeXmlLine(line: string): string {
+	const trimmed = line.trim();   // strip all leading/trailing whitespace
+
+	if (!trimmed || !trimmed.startsWith('<')
+			|| trimmed.startsWith('<!--') || trimmed.startsWith('<?') || trimmed.startsWith('<!')) {
+		return trimmed;
+	}
+	if (trimmed.startsWith('</')) return trimmed;
+
+	// Match opening/self-closing tag: <tagName attrBlock /?>
+	const m = /^<([\w:.-]+)([\s\S]*?)\s*(\/?)>$/.exec(trimmed);
+	if (!m) return trimmed;
+
+	const [, tagName, attrBlock, selfClose] = m;
+
+	// Parse name="value" or name='value' pairs and sort by name
+	const pairs: Array<[string, string]> = [];
+	const rx = /([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+	let am;
+	while ((am = rx.exec(attrBlock)) !== null) {
+		pairs.push([am[1], am[2] ?? am[3] ?? '']);
+	}
+	pairs.sort(([a], [b]) => a.localeCompare(b));
+
+	const attrStr = pairs.map(([n, v]) => `${n}="${v}"`).join(' ');
+	const close = selfClose ? '/>' : '>';
+	return `<${tagName}${attrStr ? ' ' + attrStr : ''}${close}`;
+}
+
+/**
+ * Computes a line-level diff between two arrays of text lines using LCS.
+ *
+ * @param keyFn  Optional normalizer applied to both arrays before comparison.
+ *               The original lines (not keys) are stored in the returned ops.
+ *               Pass `normalizeXmlLine` for XML content.
+ */
+export function computeLineDiff(
+	baseLines: string[],
+	compareLines: string[],
+	keyFn?: (line: string) => string
+): LineDiffOp[] {
+	const m = baseLines.length;
+	const n = compareLines.length;
+	const key = keyFn ?? ((s: string) => s);
+	const baseKeys = baseLines.map(key);
+	const compareKeys = compareLines.map(key);
+
+	// Build LCS dp table using normalized keys
+	const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0) as number[]);
+	for (let i = 1; i <= m; i++) {
+		for (let j = 1; j <= n; j++) {
+			dp[i][j] = baseKeys[i - 1] === compareKeys[j - 1]
+				? dp[i - 1][j - 1] + 1
+				: Math.max(dp[i - 1][j], dp[i][j - 1]);
+		}
+	}
+
+	// Backtrack – prefer "leftmost match" to avoid pairing later occurrences
+	// of repeated tokens when an earlier match is available.
+	const ops: LineDiffOp[] = [];
+	let i = m, j = n;
+	while (i > 0 || j > 0) {
+		if (i > 0 && j > 0 && baseKeys[i - 1] === compareKeys[j - 1]
+				&& dp[i - 1][j] < dp[i][j]) {
+			// Store ORIGINAL lines so each side can display its own text
+			ops.unshift({ op: 'same', baseLine: baseLines[i - 1], compareLine: compareLines[j - 1] });
+			i--; j--;
+		} else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+			ops.unshift({ op: 'ins', line: compareLines[j - 1] });
+			j--;
+		} else {
+			ops.unshift({ op: 'del', line: baseLines[i - 1] });
+			i--;
+		}
+	}
+
+	return ops;
+}
