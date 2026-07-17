@@ -8,6 +8,14 @@
 				<core:Icon src="sap-icon://da" size="1.25rem" class="sapUiSmallMarginBegin" />
 				<Title text="AI Assistant" level="H2" />
 				<ToolbarSpacer />
+				<Select
+					selectedKey="{aiChat>/selectedModel}"
+					items="{aiChat>/models}"
+					change=".onAiModelChange"
+					tooltip="Choose which AI model answers first; others remain as fallback"
+					maxWidth="14rem">
+						<core:Item key="{aiChat>key}" text="{aiChat>text}" />
+				</Select>
 				<Button icon="sap-icon://clear-all" tooltip="Clear conversation" press=".onAiChatClear" type="Transparent" />
 				<Button icon="sap-icon://decline" tooltip="Close" press=".onAiChatClose" type="Transparent" />
 			</Toolbar>

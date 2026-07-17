@@ -99,7 +99,8 @@ export default class DetailCompare extends BaseController {
 		return {
 			label: `Comparison of two versions of ${baseDetail?.serviceDefinition || 'a service'} (BASE vs COMPARE)`,
 			xml: `<!-- BASE XML -->\n${clip(baseXml)}\n\n<!-- COMPARE XML -->\n${clip(compareXml)}`,
-			suggestions: ['Explain the differences', 'Any breaking changes?', 'Which entities were added or removed?']
+			suggestions: ['Explain the differences', 'Any breaking changes?', 'Which entities were added or removed?'],
+			storageKey: this.baseDetailId && this.compareDetailId ? `compare.${this.baseDetailId}_${this.compareDetailId}` : undefined
 		};
 	}
 

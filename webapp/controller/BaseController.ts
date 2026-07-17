@@ -11,13 +11,15 @@ import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
-import AiChatService, { type AiChatMessage } from '../services/AiChatService';
+import AiChatService, { AI_MODEL_AUTO, type AiChatMessage, type AiModelOption } from '../services/AiChatService';
 
 export interface AiChatContext {
 	label: string;
 	xml: string;
 	/** Page-specific suggested prompts shown on the empty chat. */
 	suggestions?: string[];
+	/** Stable key for persisting the conversation in sessionStorage; omit to disable persistence. */
+	storageKey?: string;
 }
 
 interface AiChatUiMessage {
@@ -38,6 +40,7 @@ export default abstract class BaseController extends Controller {
 	private readonly aiChatService = new AiChatService();
 	private aiChatDialogPromise: Promise<Dialog> | null = null;
 	private aiChatDialog: Dialog | null = null;
+	private aiChatStorageKey: string | null = null;
 	public getOwnerComponent(): AppComponent {
 		return super.getOwnerComponent() as AppComponent;
 	}
@@ -142,13 +145,27 @@ export default abstract class BaseController extends Controller {
 				hasKey: this.aiChatService.hasApiKey(),
 				apiKeyInput: '',
 				contextLabel: '',
-				suggestions: [] as { text: string }[]
+				suggestions: [] as { text: string }[],
+				models: [] as AiModelOption[],
+				selectedModel: AI_MODEL_AUTO
 			});
 			this.setModel(model, 'aiChat');
 		}
 		model.setProperty('/hasKey', this.aiChatService.hasApiKey());
+		model.setProperty('/models', this.aiChatService.getModelOptions());
+		model.setProperty('/selectedModel', this.aiChatService.getPreferredModel());
 		model.setProperty('/contextLabel', context?.label ?? '');
 		model.setProperty('/suggestions', (context?.suggestions ?? DEFAULT_AI_SUGGESTIONS).map((text) => ({ text })));
+
+		// Restore the conversation persisted for this context (per browser tab).
+		this.aiChatStorageKey = context?.storageKey ?? null;
+		const storedMessages = this.aiChatStorageKey
+			? this.aiChatService.loadChatHistory<AiChatUiMessage>(this.aiChatStorageKey)
+			: [];
+		model.setProperty('/messages', storedMessages);
+		if (storedMessages.length > 0) {
+			this.scrollAiChatToBottom();
+		}
 
 		if (this.aiChatDialogPromise === null) {
 			this.aiChatDialogPromise = Fragment.load({
@@ -185,6 +202,19 @@ export default abstract class BaseController extends Controller {
 		const model = this.getModel('aiChat') as JSONModel;
 		model.setProperty('/messages', []);
 		model.setProperty('/input', '');
+		this.persistAiChat([]);
+	}
+
+	private persistAiChat(messages: AiChatUiMessage[]): void {
+		if (this.aiChatStorageKey) {
+			this.aiChatService.saveChatHistory(this.aiChatStorageKey, messages);
+		}
+	}
+
+	public onAiModelChange(): void {
+		const model = this.getModel('aiChat') as JSONModel;
+		const selected = (model.getProperty('/selectedModel') as string) || AI_MODEL_AUTO;
+		this.aiChatService.setPreferredModel(selected);
 	}
 
 	public onAiChatSaveKey(): void {
@@ -253,7 +283,8 @@ export default abstract class BaseController extends Controller {
 					lastRender = now;
 					model.setProperty(`/messages/${assistantIndex}/html`, this.markdownToHtml(fullText));
 					this.scrollAiChatToBottom(true);
-				}
+				},
+				(model.getProperty('/selectedModel') as string) || AI_MODEL_AUTO
 			);
 			messages[assistantIndex] = { role: 'assistant', text: answer, html: this.markdownToHtml(answer) };
 		} catch (error) {
@@ -274,6 +305,7 @@ export default abstract class BaseController extends Controller {
 			model.setProperty('/messages', [...messages]);
 			model.setProperty('/busy', false);
 			model.setProperty('/thinking', false);
+			this.persistAiChat(messages);
 			this.scrollAiChatToBottom();
 			this.focusAiChatInput();
 		}

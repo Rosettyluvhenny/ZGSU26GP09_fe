@@ -122,7 +122,8 @@ export default class VersionDetail extends BaseController {
 		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
 		return {
 			label: detail?.serviceDefinition || 'Version metadata XML',
-			xml
+			xml,
+			storageKey: detail ? `detail.${detail.id}` : undefined
 		};
 	}
 
