@@ -34,7 +34,8 @@ export default {
 			searchRegistry: '',
 			searchJob: '',
 			selectedRegistryStatus: 'All',
-			isDarkTheme: (readThemePreference() ?? 'sap_horizon').includes('dark')
+			isDarkTheme: (readThemePreference() ?? 'sap_horizon').includes('dark'),
+			sideNavVisible: true
 		});
 		model.setDefaultBindingMode(BindingMode.TwoWay);
 		return model;

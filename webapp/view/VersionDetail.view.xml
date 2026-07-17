@@ -110,7 +110,7 @@
 										<ColumnListItem>
 											<cells>
 												<Text text="{versionDetail>lineNo}" class="versionDetailXmlIndex" />
-												<Text text="{versionDetail>text}" wrapping="false" class="versionDetailXmlText" />
+												<FormattedText htmlText="{path: 'versionDetail>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
 											</cells>
 										</ColumnListItem>
 									</items>

@@ -91,7 +91,7 @@
 											</customData>
 											<cells>
 												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
-												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
+												<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
 											</cells>
 										</ColumnListItem>
 									</items>
@@ -117,7 +117,7 @@
 											</customData>
 											<cells>
 												<Text text="{detailCompare>lineNo}" class="versionDetailXmlIndex" />
-												<Text text="{detailCompare>text}" wrapping="false" class="versionDetailXmlText" />
+												<FormattedText htmlText="{path: 'detailCompare>text', formatter: '.formatXmlLine'}" class="versionDetailXmlText" />
 											</cells>
 										</ColumnListItem>
 									</items>

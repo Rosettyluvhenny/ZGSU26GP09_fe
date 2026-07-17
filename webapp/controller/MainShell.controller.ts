@@ -1,7 +1,8 @@
 import Theming from "sap/ui/core/Theming";
+import type Control from "sap/ui/core/Control";
 
 import BaseController from "./BaseController";
-import { writeThemePreference } from "../services/SessionStorage";
+import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
 const LIGHT_THEME = "sap_horizon";
 const DARK_THEME = "sap_horizon_dark";
@@ -18,6 +19,23 @@ export default class MainShell extends BaseController {
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
 		});
+
+		const sideNavVisible = readSideNavPreference();
+		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
+		this.applySideNavVisibility(sideNavVisible);
+	}
+
+	public onToggleSideNav(): void {
+		const visible = !(this.getUiModel().getProperty("/sideNavVisible") as boolean);
+		this.getUiModel().setProperty("/sideNavVisible", visible);
+		this.applySideNavVisibility(visible);
+		writeSideNavPreference(visible);
+	}
+
+	private applySideNavVisibility(visible: boolean): void {
+		// sideExpanded=false alone leaves an icon-only rail; this class hides the
+		// side area completely so the main content takes the full width (see style.css).
+		(this.byId("shellPage") as Control | null)?.toggleStyleClass("shellSideNavHidden", !visible);
 	}
 
 	private async loadGlobalPermissions(): Promise<void> {

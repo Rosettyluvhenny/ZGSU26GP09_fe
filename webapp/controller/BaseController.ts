@@ -12,6 +12,7 @@ import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
 import AiChatService, { AI_MODEL_AUTO, type AiChatMessage, type AiModelOption } from '../services/AiChatService';
+import { highlightXmlLine } from '../services/XmlNodeUtils';
 
 export interface AiChatContext {
 	label: string;
@@ -81,6 +82,10 @@ export default abstract class BaseController extends Controller {
 
 	public async handleServiceError(error: unknown): Promise<void> {
 		await this.getOwnerComponent().getErrorHandler().handle(error);
+	}
+
+	public formatXmlLine(text: string): string {
+		return highlightXmlLine(text ?? '');
 	}
 
 	public formatDateTime(value: string): string {

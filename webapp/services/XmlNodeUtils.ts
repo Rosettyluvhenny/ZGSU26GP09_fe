@@ -252,3 +252,38 @@ export function buildLineIndexFromXml(xml: string): number[] {
 
 	return lineStarts;
 }
+
+/**
+ * Turns one line of XML into HTML with syntax-highlight spans (tag names,
+ * attribute names/values, comments) for rendering in sap.m.FormattedText.
+ * The input is escaped first, so the XML itself can never inject markup.
+ * Lines that don't parse as a complete tag (e.g. a tag wrapped across lines)
+ * fall back to plain escaped text.
+ */
+export function highlightXmlLine(line: string): string {
+	if (!line) {
+		return '';
+	}
+
+	const escaped = line
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
+
+	// One pass, comments matched before tags so "<!--" is never parsed as a tag.
+	const tokenPattern = /(&lt;!--[\s\S]*?(?:--&gt;|$))|(&lt;[!?/]?)([A-Za-z_][\w.:-]*)((?:(?!&gt;)[\s\S])*?)([?/]?&gt;)/g;
+
+	return escaped.replace(tokenPattern, (match, comment: string | undefined, open: string, name: string, attrs: string, close: string) => {
+		if (comment) {
+			return `<span class="xmlTokCmt">${comment}</span>`;
+		}
+
+		const highlightedAttrs = attrs.replace(
+			/([A-Za-z_][\w.:-]*)(=)(&quot;(?:(?!&quot;)[\s\S])*&quot;)/g,
+			'<span class="xmlTokAttr">$1</span>$2<span class="xmlTokVal">$3</span>'
+		);
+
+		return `<span class="xmlTokPunct">${open}</span><span class="xmlTokTag">${name}</span>${highlightedAttrs}<span class="xmlTokPunct">${close}</span>`;
+	});
+}
