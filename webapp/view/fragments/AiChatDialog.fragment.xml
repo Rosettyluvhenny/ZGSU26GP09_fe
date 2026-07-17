@@ -1,0 +1,93 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+
+	<Dialog id="aiChatDialog" title="AI Assistant" draggable="true" contentWidth="44rem" verticalScrolling="false" horizontalScrolling="false" class="aiChatDialog">
+		<customHeader>
+			<Toolbar>
+				<core:Icon src="sap-icon://da" size="1.25rem" class="sapUiSmallMarginBegin" />
+				<Title text="AI Assistant" level="H2" />
+				<ToolbarSpacer />
+				<Button icon="sap-icon://clear-all" tooltip="Clear conversation" press=".onAiChatClear" type="Transparent" />
+				<Button icon="sap-icon://decline" tooltip="Close" press=".onAiChatClose" type="Transparent" />
+			</Toolbar>
+		</customHeader>
+		<content>
+			<VBox class="aiChatContainer">
+
+				<MessageStrip
+					text="{= 'Analyzing: ' + ${aiChat>/contextLabel} }"
+					type="Information"
+					showIcon="true"
+					class="sapUiTinyMargin"
+					visible="{= !!${aiChat>/contextLabel} }" />
+
+				<!-- API key setup, shown until a key is saved -->
+				<VBox class="sapUiSmallMargin" visible="{= !${aiChat>/hasKey} }">
+					<MessageStrip
+						text="No OpenRouter API key configured. Create a free key at openrouter.ai/keys and paste it below."
+						type="Warning"
+						showIcon="true" />
+					<HBox class="sapUiTinyMarginTop" width="100%">
+						<Input
+							value="{aiChat>/apiKeyInput}"
+							placeholder="sk-or-v1-..."
+							width="100%"
+							submit=".onAiChatSaveKey" />
+						<Button text="Save" type="Emphasized" press=".onAiChatSaveKey" class="sapUiTinyMarginBegin" />
+					</HBox>
+				</VBox>
+
+				<!-- Messages: fixed height so long conversations scroll inside this container -->
+				<ScrollContainer id="aiChatScroll" width="100%" height="26rem" vertical="true" horizontal="false" class="aiChatScroll">
+					<VBox class="sapUiTinyMargin" width="100%">
+						<VBox visible="{= ${aiChat>/messages}.length === 0 &amp;&amp; ${aiChat>/hasKey} }" alignItems="Center" class="sapUiMediumMarginTop">
+							<core:Icon src="sap-icon://da" size="2.5rem" color="Neutral" />
+							<Text text="Ask anything about the XML metadata on this page." class="sapUiSmallMarginTop" />
+							<HBox wrap="Wrap" justifyContent="Center" class="sapUiSmallMarginTop">
+								<Button text="Summarize this XML" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
+								<Button text="List entity types and keys" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
+								<Button text="Spot potential issues" press=".onAiSuggestedPrompt" class="sapUiTinyMargin" />
+							</HBox>
+						</VBox>
+
+						<List items="{aiChat>/messages}" showSeparators="None" backgroundDesign="Transparent" width="100%">
+							<CustomListItem class="aiChatMessageItem">
+								<customData>
+									<core:CustomData key="airole" value="{aiChat>role}" writeToDom="true" />
+								</customData>
+								<VBox class="aiChatBubble">
+									<FormattedText htmlText="{aiChat>html}" />
+								</VBox>
+							</CustomListItem>
+						</List>
+
+						<HBox visible="{aiChat>/busy}" class="sapUiTinyMargin" alignItems="Center">
+							<BusyIndicator size="1rem" />
+							<Text text="Thinking..." class="sapUiTinyMarginBegin" />
+						</HBox>
+					</VBox>
+				</ScrollContainer>
+
+			</VBox>
+		</content>
+		<footer>
+			<Toolbar>
+				<Input
+					id="aiChatInput"
+					value="{aiChat>/input}"
+					placeholder="Ask about this XML..."
+					width="100%"
+					enabled="{= !${aiChat>/busy} &amp;&amp; ${aiChat>/hasKey} }"
+					submit=".onAiChatSend" />
+				<Button
+					icon="sap-icon://paper-plane"
+					type="Emphasized"
+					tooltip="Send"
+					press=".onAiChatSend"
+					enabled="{= !${aiChat>/busy} &amp;&amp; ${aiChat>/hasKey} }" />
+			</Toolbar>
+		</footer>
+	</Dialog>
+
+</core:FragmentDefinition>

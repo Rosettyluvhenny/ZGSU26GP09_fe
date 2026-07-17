@@ -16,3 +16,6 @@ node_modules/
 
 .DS_Store
 .env
+
+# AI API key (deploy-only, never committed) — copy AiKey.example.ts to AiKey.ts
+webapp/services/AiKey.ts

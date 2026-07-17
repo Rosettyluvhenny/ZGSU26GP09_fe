@@ -11,7 +11,7 @@ import type Dialog from 'sap/m/Dialog';
 import History from 'sap/ui/core/routing/History';
 import type Table from 'sap/m/Table';
 
-import BaseController from './BaseController';
+import BaseController, { type AiChatContext } from './BaseController';
 interface ExtendedTreeBinding {
 	expand(index: number): void;
 	getLength(): number;
@@ -80,6 +80,26 @@ export default class DetailCompare extends BaseController {
 	public onAfterRendering(): void {
 		this.attachScrollSync('baseTreeScroll', 'compareTreeScroll', true);
 		this.attachScrollSync('baseXmlScroll', 'compareXmlScroll', false);
+	}
+
+	protected getAiChatContext(): AiChatContext | null {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const baseXml = (model.getProperty('/basePrettyXml') as string) ?? '';
+		const compareXml = (model.getProperty('/comparePrettyXml') as string) ?? '';
+		if (!baseXml && !compareXml) {
+			return null;
+		}
+
+		// Split the context budget between both sides so neither one gets cut off entirely.
+		const halfBudget = 18000;
+		const clip = (xml: string): string =>
+			xml.length > halfBudget ? xml.slice(0, halfBudget) + '\n<!-- ... truncated ... -->' : xml;
+
+		const baseDetail = model.getProperty('/baseDetail') as { serviceDefinition?: string } | null;
+		return {
+			label: `Comparison of two versions of ${baseDetail?.serviceDefinition || 'a service'} (BASE vs COMPARE)`,
+			xml: `<!-- BASE XML -->\n${clip(baseXml)}\n\n<!-- COMPARE XML -->\n${clip(compareXml)}`
+		};
 	}
 
 	// ── Send Mail ────────────────────────────────────────────────────────────

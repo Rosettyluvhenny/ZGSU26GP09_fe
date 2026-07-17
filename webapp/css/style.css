@@ -62,3 +62,59 @@ tr[data-diffstatus="Error"] {
 	background-color: var(--sapErrorBackground, #ffebee) !important;
 }
 
+/* ── AI Chat ─────────────────────────────────────────────────────────────── */
+
+/* The chat message area has a fixed height (set on the ScrollContainer in the
+   fragment) so long conversations scroll inside it with a visible scrollbar. */
+.aiChatScroll {
+	overflow-y: auto;
+}
+
+.aiChatMessageItem .sapMLIBContent {
+	width: 100%;
+}
+
+.aiChatBubble {
+	max-width: 85%;
+	border-radius: 0.75rem;
+	padding: 0.5rem 0.75rem;
+	margin: 0.25rem 0.5rem;
+	background-color: var(--sapList_Background);
+	border: 1px solid var(--sapList_BorderColor);
+	overflow-wrap: anywhere;
+}
+
+li[data-airole="user"] .aiChatBubble {
+	margin-left: auto;
+	background-color: var(--sapInformationBackground, #e1f4ff);
+}
+
+li[data-airole="assistant"] .aiChatBubble {
+	margin-right: auto;
+	background-color: var(--sapNeutralBackground, #f4f4f4);
+}
+
+li[data-airole="error"] .aiChatBubble {
+	margin-right: auto;
+	background-color: var(--sapErrorBackground, #ffebee);
+	border-color: var(--sapErrorBorderColor, #e90b0b);
+}
+
+.aiChatBubble pre {
+	background-color: var(--sapContent_ForegroundColor, rgba(0, 0, 0, 0.05));
+	border-radius: 0.375rem;
+	padding: 0.5rem;
+	overflow-x: auto;
+	font-size: 0.8125rem;
+}
+
+.aiChatBubble code {
+	font-family: monospace;
+}
+
+.aiChatBubble ul,
+.aiChatBubble ol {
+	margin: 0.25rem 0;
+	padding-left: 1.25rem;
+}
+

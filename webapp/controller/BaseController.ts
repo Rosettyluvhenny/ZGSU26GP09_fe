@@ -7,12 +7,33 @@ import ResourceModel from 'sap/ui/model/resource/ResourceModel';
 import ResourceBundle from 'sap/base/i18n/ResourceBundle';
 import Router from 'sap/ui/core/routing/Router';
 import History from 'sap/ui/core/routing/History';
+import Fragment from 'sap/ui/core/Fragment';
+import type Dialog from 'sap/m/Dialog';
+import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
+import AiChatService, { type AiChatMessage } from '../services/AiChatService';
+
+export interface AiChatContext {
+	label: string;
+	xml: string;
+}
+
+interface AiChatUiMessage {
+	role: 'user' | 'assistant' | 'error';
+	text: string;
+	html: string;
+}
+
+// Only the most recent turns are sent to the model to stay within free-tier limits.
+const AI_CHAT_HISTORY_LIMIT = 12;
 
 /**
  * @namespace com.zgp9.fe.controller
  */
 export default abstract class BaseController extends Controller {
+	private readonly aiChatService = new AiChatService();
+	private aiChatDialogPromise: Promise<Dialog> | null = null;
+	private aiChatDialog: Dialog | null = null;
 	public getOwnerComponent(): AppComponent {
 		return super.getOwnerComponent() as AppComponent;
 	}
@@ -94,6 +115,191 @@ export default abstract class BaseController extends Controller {
 				return 'None';
 		}
 	}
+
+	// ── AI Chat ──────────────────────────────────────────────────────────────
+
+	/**
+	 * Controllers that offer the AI chat override this to provide the XML context
+	 * (e.g. the selected detail's metadata XML) the assistant should analyze.
+	 */
+	protected getAiChatContext(): AiChatContext | null {
+		return null;
+	}
+
+	public onOpenAiChat(): void {
+		const context = this.getAiChatContext();
+		let model = this.getModel('aiChat') as JSONModel | undefined;
+		if (!model) {
+			model = new JSONModel({
+				messages: [] as AiChatUiMessage[],
+				input: '',
+				busy: false,
+				hasKey: this.aiChatService.hasApiKey(),
+				apiKeyInput: '',
+				contextLabel: ''
+			});
+			this.setModel(model, 'aiChat');
+		}
+		model.setProperty('/hasKey', this.aiChatService.hasApiKey());
+		model.setProperty('/contextLabel', context?.label ?? '');
+
+		if (this.aiChatDialogPromise === null) {
+			this.aiChatDialogPromise = Fragment.load({
+				id: this.getView().getId(),
+				name: 'com.zgp9.fe.view.fragments.AiChatDialog',
+				controller: this
+			}) as Promise<Dialog>;
+		}
+
+		void this.aiChatDialogPromise.then((dialog) => {
+			this.aiChatDialog = dialog;
+			if (!dialog.getParent()) {
+				this.getView().addDependent(dialog);
+			}
+			dialog.open();
+		});
+	}
+
+	public onAiChatClose(): void {
+		this.aiChatDialog?.close();
+	}
+
+	public onAiChatClear(): void {
+		const model = this.getModel('aiChat') as JSONModel;
+		model.setProperty('/messages', []);
+		model.setProperty('/input', '');
+	}
+
+	public onAiChatSaveKey(): void {
+		const model = this.getModel('aiChat') as JSONModel;
+		const key = ((model.getProperty('/apiKeyInput') as string) ?? '').trim();
+		if (!key) {
+			return;
+		}
+		this.aiChatService.setApiKey(key);
+		model.setProperty('/apiKeyInput', '');
+		model.setProperty('/hasKey', true);
+	}
+
+	public onAiSuggestedPrompt(event: { getSource: () => { getText: () => string } }): void {
+		const model = this.getModel('aiChat') as JSONModel;
+		model.setProperty('/input', event.getSource().getText());
+		void this.onAiChatSend();
+	}
+
+	public async onAiChatSend(): Promise<void> {
+		const model = this.getModel('aiChat') as JSONModel;
+		const input = ((model.getProperty('/input') as string) ?? '').trim();
+		if (!input || (model.getProperty('/busy') as boolean)) {
+			return;
+		}
+
+		const messages = [...(model.getProperty('/messages') as AiChatUiMessage[])];
+		messages.push({ role: 'user', text: input, html: this.markdownToHtml(input) });
+		model.setProperty('/messages', messages);
+		model.setProperty('/input', '');
+		model.setProperty('/busy', true);
+		this.scrollAiChatToBottom();
+
+		try {
+			const context = this.getAiChatContext();
+			const systemPrompt = this.aiChatService.buildSystemPrompt(context?.label ?? 'No XML loaded', context?.xml ?? '');
+
+			const history: AiChatMessage[] = messages
+				.filter((message) => message.role !== 'error')
+				.slice(-AI_CHAT_HISTORY_LIMIT)
+				.map((message) => ({
+					role: message.role === 'user' ? 'user' : 'assistant',
+					content: message.text
+				}));
+
+			const answer = await this.aiChatService.ask([{ role: 'system', content: systemPrompt }, ...history]);
+			messages.push({ role: 'assistant', text: answer, html: this.markdownToHtml(answer) });
+		} catch (error) {
+			const message = error instanceof Error ? error.message : JSON.stringify(error);
+			messages.push({ role: 'error', text: message, html: this.markdownToHtml(message) });
+			// A 401 means the stored key is invalid -> ask for it again.
+			if ((error as { status?: number }).status === 401) {
+				model.setProperty('/hasKey', false);
+			}
+		} finally {
+			model.setProperty('/messages', [...messages]);
+			model.setProperty('/busy', false);
+			this.scrollAiChatToBottom();
+		}
+	}
+
+	private scrollAiChatToBottom(): void {
+		setTimeout(() => {
+			const scroll = this.byId('aiChatScroll') as ScrollContainer | null;
+			scroll?.scrollTo(0, 999999, 200);
+		}, 100);
+	}
+
+	/**
+	 * Minimal markdown -> HTML converter restricted to tags supported by
+	 * sap.m.FormattedText. Input is escaped first, so model output cannot inject markup.
+	 */
+	private markdownToHtml(markdown: string): string {
+		const escaped = markdown
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+
+		// Fenced code blocks
+		let html = escaped.replace(/```[a-zA-Z]*\n([\s\S]*?)```/g, (_match, code: string) => `<pre><code>${code.replace(/\n$/, '')}</code></pre>`);
+
+		// Inline code, bold, italic
+		html = html
+			.replace(/`([^`\n]+)`/g, '<code>$1</code>')
+			.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+			.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+
+		// Bullet / numbered lists (line based, outside of <pre> blocks)
+		const lines = html.split('\n');
+		const output: string[] = [];
+		let listTag: 'ul' | 'ol' | null = null;
+		let inPre = false;
+		const closeList = () => {
+			if (listTag) {
+				output.push(`</${listTag}>`);
+				listTag = null;
+			}
+		};
+		for (const line of lines) {
+			if (line.includes('<pre>')) {
+				inPre = true;
+			}
+			if (inPre) {
+				output.push(line);
+				if (line.includes('</pre>')) {
+					inPre = false;
+				}
+				continue;
+			}
+
+			const bulletMatch = /^\s*[-*]\s+(.*)$/.exec(line);
+			const numberMatch = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+			if (bulletMatch || numberMatch) {
+				const desiredTag = bulletMatch ? 'ul' : 'ol';
+				if (listTag !== desiredTag) {
+					closeList();
+					output.push(`<${desiredTag}>`);
+					listTag = desiredTag;
+				}
+				output.push(`<li>${(bulletMatch ?? numberMatch)[1]}</li>`);
+			} else {
+				closeList();
+				output.push(line.length > 0 ? `${line}<br>` : '');
+			}
+		}
+		closeList();
+
+		return output.join('\n');
+	}
+
+	// ─────────────────────────────────────────────────────────────────────────
 
 	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();
