@@ -1,0 +1,103 @@
+_schema-version: "3.3"
+ID: com.zgp9.fe.mta
+version: 1.0.0
+modules:
+  - name: zgp9-fe-approuter
+    type: approuter.nodejs
+    path: approuter
+    parameters:
+      disk-quota: 512M
+      memory: 256M
+    properties:
+      XS_APP_LOG_LEVEL: debug
+    requires:
+      - name: zgp9-html5-repo-runtime
+      - name: zgp9-uaa
+      - name: zgp9-destination
+      - name: zgp9-connectivity
+      - name: zgp9-ias
+    provides:
+      - name: app-api
+        properties:
+          app-protocol: https
+          app-uri: ${default-url}
+
+  - name: com.zgp9.fe
+    type: javascript.nodejs
+    path: .
+    build-parameters:
+      builder: custom
+      commands:
+        - npm install
+        - npm run build
+      build-result: dist
+      supported-platforms: []
+
+  - name: com.zgp9.fe-content
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: zgp9-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - name: com.zgp9.fe
+          artifacts:
+            - 'com.zgp9.fe.zip'
+          target-path: resources/
+
+resources:
+  - name: zgp9-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+
+  - name: zgp9-html5-repo-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime
+
+  - name: zgp9-uaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+
+  - name: zgp9-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            destinations:
+              - Name: zgp9-backend
+                Description: On-prem backend via Cloud Connector
+                URL: https://s40lp1:443
+                Type: HTTP
+                ProxyType: OnPremise
+                Authentication: PrincipalPropagation
+                sap-client: "324"
+                HTML5.DynamicDestination: true
+            existing_destinations_policy: update
+
+  - name: zgp9-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+
+  - name: zgp9-ias
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: identity
+      service-plan: application
+      config:
+        display-name: ZGP9 App

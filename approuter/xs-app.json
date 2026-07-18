@@ -1,0 +1,18 @@
+{
+    "welcomeFile": "/index.html",
+    "authenticationMethod": "route",
+    "routes": [
+        {
+            "source": "^/registry/(.*)$",
+            "destination": "zgp9-backend",
+            "authenticationType": "xsuaa",
+            "csrfProtection": false
+        },
+        {
+            "source": "^/(.*)$",
+            "target": "/comzgp9fe/$1",
+            "authenticationType": "xsuaa",
+            "service": "html5-apps-repo-rt"
+        }
+    ]
+}

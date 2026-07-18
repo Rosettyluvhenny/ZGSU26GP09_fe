@@ -36,6 +36,7 @@
     "typescript-eslint": "^8.41.0",
     "ui5-middleware-livereload": "^3.1.2",
     "ui5-middleware-sap-proxy": "file:./ui5-middleware-sap-proxy",
+    "ui5-task-zipper": "^3.6.1",
     "ui5-test-runner": "^5.9.1",
     "ui5-tooling-transpile": "^3.9.0"
   },

@@ -1,0 +1,34 @@
+{
+    "xsappname": "zgp9-fe",
+    "tenant-mode": "dedicated",
+    "scopes": [
+        {
+            "name": "$XSAPPNAME.User",
+            "description": "General app access"
+        }
+    ],
+    "role-templates": [
+        {
+            "name": "User",
+            "description": "General app access",
+            "scope-references": [
+                "$XSAPPNAME.User"
+            ]
+        }
+    ],
+    "role-collections": [
+        {
+            "name": "ZGP9_User",
+            "description": "Access to ZGP9 app",
+            "role-template-references": [
+                "$XSAPPNAME.User"
+            ]
+        }
+    ],
+    "oauth2-configuration": {
+        "redirect-uris": [
+            "https://7f4c3e60trial-dev-zgp9-fe-approuter.cfapps.us10-001.hana.ondemand.com/**"
+        ],
+        "credential-types": ["binding-secret", "x509"]
+    }
+}
