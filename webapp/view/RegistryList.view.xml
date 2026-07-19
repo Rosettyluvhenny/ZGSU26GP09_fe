@@ -19,7 +19,7 @@
 			<f:DynamicPageHeader pinnable="false">
 				<VBox width="100%">
 					<Toolbar design="Transparent" style="Clear">
-						<Button text="Create Registry" type="Emphasized" press=".onCreateRegistry" visible="{registryList>/canCreate}" />
+						<Button text="Create Registry" type="Emphasized" press=".onCreateRegistry" visible="{ui>/canCreate}" />
 						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 						<ToolbarSpacer />
 						<Select selectedKey="{registryList>/searchField}" change=".onFilterChange" class="sapUiTinyMarginEnd">
@@ -75,7 +75,7 @@
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Created At" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Last Changed By" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Last Changed At" /></Column>
-						<Column width="10rem" visible="{registryList>/canUpdate}"><Text text="Actions" /></Column>
+						<Column width="10rem" visible="{ui>/canUpdate}"><Text text="Actions" /></Column>
 					</columns>
 					<items>
 						<ColumnListItem type="Navigation" press=".onRowPress">
@@ -89,8 +89,8 @@
 								<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />
 								<Text text="{registryList>lastChangedBy}" />
 								<Text text="{path: 'registryList>lastChangedAt', formatter: '.formatDateTime'}" />
-								<HBox wrap="Wrap" renderType="Bare" justifyContent="Start" visible="{registryList>/canUpdate}">
-									<Button text="Edit" type="Transparent" press=".onEditRegistry" visible="{registryList>/canUpdate}" />
+								<HBox wrap="Wrap" renderType="Bare" justifyContent="Start" visible="{ui>/canUpdate}">
+									<Button text="Edit" type="Transparent" press=".onEditRegistry" visible="{ui>/canUpdate}" />
 								</HBox>
 							</cells>
 						</ColumnListItem>

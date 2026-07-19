@@ -69,7 +69,7 @@ export default class VersionService {
 		const headers = await this.client.ensureWriteHeaders('POST');
 		const payload = normalizeODataEntity(
 			await this.client.postJson(
-				'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
+			'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
 			{
 				BaseVrsId: leftVersionId,
 				CompareVrsId: rightVersionId

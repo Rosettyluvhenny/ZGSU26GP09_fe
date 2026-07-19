@@ -182,8 +182,11 @@ export default class DetailService {
 
 	public async compareDetail(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[] | null> {
 		const payload = await this.client.postJson(
-			`Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree`,
-			{ BaseDetailId: baseDetailId, CompareDetailId: compareDetailId },
+		`Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree`,
+		{
+			BaseDetailId: baseDetailId,
+			CompareDetailId: compareDetailId
+		},
 			{ headers: await this.client.ensureWriteHeaders('POST') }
 		);
 		const entity = normalizeODataEntity(payload);

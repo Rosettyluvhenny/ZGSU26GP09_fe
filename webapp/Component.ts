@@ -47,10 +47,9 @@ export default class Component extends UIComponent {
 		this.setModel((Messaging as unknown as { getMessageModel: () => MessageModel }).getMessageModel(), 'message');
 
 		this.injectAppStylesheet();
-		this.errorHandler = new ErrorHandler(this.getRouter(), this.authenticationService);
+		this.errorHandler = new ErrorHandler(this.getRouter());
 
-		this.setupRouteGuard();
-		void this.restoreSessionOnStartup();
+
 		this.getRouter().initialize();
 	}
 
@@ -59,26 +58,6 @@ export default class Component extends UIComponent {
 		if (storedTheme && storedTheme !== Theming.getTheme()) {
 			Theming.setTheme(storedTheme);
 		}
-	}
-
-	private setupRouteGuard(): void {
-		this.getRouter().attachBeforeRouteMatched((event: Router$BeforeRouteMatchedEvent) => {
-			const routeName = event.getParameter('name');
-			const sessionModel = this.getModel('session') as JSONModel;
-			const session = sessionModel.getData() as { authenticated?: boolean };
-
-			const isLoginRoute = !routeName || routeName === 'login';
-
-			if (session.authenticated && isLoginRoute) {
-				// Logged in but trying to reach login -> redirect to home
-				event.preventDefault();
-				this.getRouter().navTo('home', {}, undefined, true);
-			} else if (!session.authenticated && !isLoginRoute) {
-				// Not logged in but trying to reach protected page -> redirect to login
-				event.preventDefault();
-				this.getRouter().navTo('', {}, undefined, true);
-			}
-		});
 	}
 
 	private injectAppStylesheet(): void {
@@ -91,111 +70,6 @@ export default class Component extends UIComponent {
 		link.href = new URL('css/style.css', document.baseURI).toString();
 		link.setAttribute('data-app-stylesheet', 'true');
 		document.head.appendChild(link);
-	}
-
-	private async restoreSessionOnStartup(): Promise<void> {
-		const sessionModel = this.getModel('session') as JSONModel;
-		const session = sessionModel.getData() as SessionData;
-
-		// Case 1: a session is already stored locally -> validate it against the backend.
-		if (session.authenticated) {
-			try {
-				await this.registryService.getPermissions();
-				this.navigateAfterAutoLogin();
-				return;
-			} catch {
-				// Stored session is stale; fall through to a fresh backend probe below.
-			}
-		}
-
-		// Case 2: no valid local session. When the app is served from the authenticated
-		// SAP system (deployed), the browser already holds a valid session cookie, so this
-		// probe succeeds and we can skip the custom login form. Running standalone/locally
-		// it fails with 401 and the login form is shown as usual.
-		try {
-			await ODataClient.checkAuthAndFetchCsrf();
-			const restored: SessionData = {
-				authenticated: true,
-				userName: await this.resolveCurrentUser(),
-				csrfToken: '',
-				loginAt: new Date().toISOString()
-			};
-			sessionModel.setData(restored);
-			writeSessionStorage(restored);
-			this.navigateAfterAutoLogin();
-		} catch {
-			// Not authenticated at the server -> keep the custom login form.
-			sessionModel.setData({
-				authenticated: false,
-				userName: '',
-				csrfToken: '',
-				loginAt: null
-			});
-		}
-	}
-
-	private navigateAfterAutoLogin(): void {
-		const currentHash = window.location.hash.replace(/^#/, '');
-		if (!currentHash || currentHash === 'login') {
-			this.getRouter().navTo('home', {}, true);
-		}
-	}
-
-	private async resolveCurrentUser(): Promise<string> {
-		// After a cookie/SSO/basic-auth (popup) login there is no typed user name and
-		// our OData service does not echo it back, so we have to ask the SAP system.
-
-		// 1) The SAP session cookie often carries the logon user, e.g.
-		//    "sap-usercontext=sap-user=DEV-173&sap-client=324". No round-trip needed.
-		const cookieUser = this.readUserFromCookie();
-		if (cookieUser) {
-			return cookieUser;
-		}
-
-		// 2) The /UI2/ start_up service exposes the user profile when available.
-		try {
-			const response = await fetch('/sap/bc/ui2/start_up?sap-client=324', {
-				method: 'GET',
-				credentials: 'include',
-				headers: { Accept: 'application/json' }
-			});
-			if (response.ok) {
-				const data = (await response.json()) as Record<string, unknown>;
-				const user = this.extractUserName(data);
-				if (user) {
-					return user;
-				}
-			}
-		} catch {
-			// Ignore and fall back to a generic label.
-		}
-
-		return 'SAP User';
-	}
-
-	private readUserFromCookie(): string {
-		if (typeof document === 'undefined') {
-			return '';
-		}
-		const match = /sap-user=([^;&]+)/i.exec(document.cookie);
-		return match ? decodeURIComponent(match[1]).trim() : '';
-	}
-
-	private extractUserName(data: Record<string, unknown>): string {
-		// start_up shapes vary by system; the profile may be nested under "user".
-		const source = (data.user as Record<string, unknown>) ?? data;
-		const candidateKeys = ['fullName', 'displayName', 'id', 'CURRENT_USER', 'currentUser', 'name', 'userName'];
-		for (const key of candidateKeys) {
-			const value = source[key];
-			if (typeof value === 'string' && value.trim()) {
-				return value.trim();
-			}
-		}
-
-		const firstName = typeof source.firstName === 'string' ? source.firstName.trim() : '';
-		const lastName = typeof source.lastName === 'string' ? source.lastName.trim() : '';
-		const combined = `${firstName} ${lastName}`.trim();
-		return combined;
 	}
 
 	public getContentDensityClass(): string {

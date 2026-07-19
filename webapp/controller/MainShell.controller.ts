@@ -2,6 +2,7 @@ import Theming from "sap/ui/core/Theming";
 import type Control from "sap/ui/core/Control";
 
 import BaseController from "./BaseController";
+import ODataClient from "../services/ODataClient";
 import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
 const LIGHT_THEME = "sap_horizon";
@@ -23,6 +24,9 @@ export default class MainShell extends BaseController {
 		const sideNavVisible = readSideNavPreference();
 		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
 		this.applySideNavVisibility(sideNavVisible);
+
+		// Load permissions once on page load — drives nav bar and button visibility
+		void this.loadGlobalPermissions();
 	}
 
 	public onToggleSideNav(): void {
@@ -41,23 +45,22 @@ export default class MainShell extends BaseController {
 	private async loadGlobalPermissions(): Promise<void> {
 		try {
 			const permissions = await this.getOwnerComponent().getRegistryService().getPermissions();
-			this.getUiModel().setProperty("/canExecuteScanJob", permissions.includes("ScanJob.Execute"));
+			const ui = this.getUiModel();
+			ui.setProperty("/canExecuteScanJob", permissions.includes("ScanJob.Execute"));
+			ui.setProperty("/canCreate", permissions.includes("Registry.Create"));
+			ui.setProperty("/canUpdate", permissions.includes("Registry.Update"));
 		} catch {
-			this.getUiModel().setProperty("/canExecuteScanJob", false);
+			const ui = this.getUiModel();
+			ui.setProperty("/canExecuteScanJob", false);
+			ui.setProperty("/canCreate", false);
+			ui.setProperty("/canUpdate", false);
+		} finally {
+			this.getUiModel().setProperty("/permissionsLoaded", true);
 		}
 	}
 
 	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
 		const routeName = event.getParameter("name");
-
-		if (routeName === "login") {
-			return;
-		}
-
-		const session = this.getSessionModel().getData() as { authenticated?: boolean };
-		if (!session?.authenticated) {
-			return;
-		}
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
 			this.getUiModel().setProperty("/currentSection", "registries");
@@ -69,8 +72,7 @@ export default class MainShell extends BaseController {
 			this.getUiModel().setProperty("/currentSection", "logs");
 		}
 
-		await this.loadGlobalPermissions();
-
+		// Guard: redirect away from job routes if user lacks permission
 		if (routeName.startsWith("job") && !this.getUiModel().getProperty("/canExecuteScanJob")) {
 			this.getUiModel().setProperty("/currentSection", "home");
 			this.navTo("home", {}, true);
@@ -106,16 +108,14 @@ export default class MainShell extends BaseController {
 	}
 
 	public async onLogout(): Promise<void> {
-		const auth = this.getOwnerComponent().getAuthenticationService();
-		await auth.logout();
+		ODataClient.clearSecurityState();
 		(this.getSessionModel()).setData({
-			authenticated: false,
 			userName: "",
 			csrfToken: "",
 			loginAt: null,
 		});
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
-		this.navTo("login", {}, true);
+		window.location.reload();
 	}
 
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {

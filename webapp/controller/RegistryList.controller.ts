@@ -36,9 +36,7 @@ export default class RegistryList extends BaseController {
 				registryName: '',
 				createdBy: '',
 				groupTypes: [],
-				statuses: [],
-				canCreate: false,
-				canUpdate: false
+				statuses: []
 			}),
 			'registryList'
 		);
@@ -197,10 +195,7 @@ export default class RegistryList extends BaseController {
 
 	private async refreshRegistryPage(): Promise<void> {
 		(this.getModel('registryList') as JSONModel).setProperty('/busy', true);
-		await Promise.all([
-			this.loadPermissions(),
-			this.loadFilterValueHelps()
-		]);
+		await this.loadFilterValueHelps();
 		await this.loadRegistries();
 	}
 
@@ -221,22 +216,6 @@ export default class RegistryList extends BaseController {
 		}
 	}
 
-	private async loadPermissions(): Promise<void> {
-		const model = this.getModel('registryList') as JSONModel;
-		try {
-			const permissions = await this.getOwnerComponent().getRegistryService().getPermissions();
-			model.setProperty('/canCreate', permissions.includes('Registry.Create'));
-			model.setProperty('/canUpdate', permissions.includes('Registry.Update'));
-		} catch (error) {
-			if (error instanceof ServiceError && (error.status === 401 || error.status === 403)) {
-				await this.handleServiceError(error);
-				return;
-			}
-
-			model.setProperty('/canCreate', false);
-			model.setProperty('/canUpdate', false);
-		}
-	}
 
 	public async loadRegistries(): Promise<void> {
 		const model = this.getModel('registryList') as JSONModel;

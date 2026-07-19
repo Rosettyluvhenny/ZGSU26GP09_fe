@@ -30,7 +30,6 @@ interface ShellFixture {
     uiModelData: Record<string, any>;
     uiModelStub: any;
     sessionModelStub: any;
-    authService: any;
     navToStub: any;
     themingStub: any;
 }
@@ -52,7 +51,6 @@ function buildShellFixture(isDarkTheme = false): ShellFixture {
         setData: sinon.stub(),
         getData: sinon.stub().returns({ authenticated: true })
     };
-    const authService = { logout: sinon.stub().resolves() };
     const navToStub = sinon.stub();
     const themingStub = sandbox.stub(Theming, "setTheme");
 
@@ -60,7 +58,6 @@ function buildShellFixture(isDarkTheme = false): ShellFixture {
     sandbox.stub(ctrl, "getSessionModel").returns(sessionModelStub as any);
     sandbox.stub(ctrl, "navTo").callsFake(navToStub);
     sandbox.stub(ctrl, "getOwnerComponent").returns({
-        getAuthenticationService: () => authService,
         getRegistryService: () => ({ getPermissions: sinon.stub().resolves([]) })
     } as any);
     sandbox.stub(ctrl, "getRouter").returns({
@@ -69,7 +66,7 @@ function buildShellFixture(isDarkTheme = false): ShellFixture {
     } as any);
     sandbox.stub(ctrl, "byId").returns(undefined as any);
 
-    return { ctrl, uiModelData, uiModelStub, sessionModelStub, authService, navToStub, themingStub };
+    return { ctrl, uiModelData, uiModelStub, sessionModelStub, navToStub, themingStub };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -160,17 +157,11 @@ QUnit.module("MainShell – onLogout", {
     afterEach() { sandbox.restore(); }
 });
 
-QUnit.test("calls auth.logout", async function (assert) {
-    const { ctrl, authService } = buildShellFixture();
-    await ctrl.onLogout();
-    assert.ok(authService.logout.calledOnce, "auth.logout must be called once");
-});
 QUnit.test("resets session model to unauthenticated state", async function (assert) {
     const { ctrl, sessionModelStub } = buildShellFixture();
     await ctrl.onLogout();
     assert.ok(sessionModelStub.setData.calledOnce, "sessionModel.setData must be called");
     const sessionData = sessionModelStub.setData.firstCall.args[0];
-    assert.strictEqual(sessionData.authenticated, false, "authenticated must be false");
     assert.strictEqual(sessionData.userName, "", "userName must be cleared");
     assert.strictEqual(sessionData.csrfToken, "", "csrfToken must be cleared");
     assert.strictEqual(sessionData.loginAt, null, "loginAt must be null");
@@ -179,9 +170,4 @@ QUnit.test("sets canExecuteScanJob to false", async function (assert) {
     const { ctrl, uiModelData } = buildShellFixture();
     await ctrl.onLogout();
     assert.strictEqual(uiModelData["/canExecuteScanJob"], false);
-});
-QUnit.test("navigates to 'login' after logout", async function (assert) {
-    const { ctrl, navToStub } = buildShellFixture();
-    await ctrl.onLogout();
-    assert.ok(navToStub.calledWith("login", {}, true), "Must navigate to 'login'");
 });

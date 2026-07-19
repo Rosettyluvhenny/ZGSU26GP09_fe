@@ -12,6 +12,15 @@
 		"sourceTemplate": {
 			"id": "@ui5/mcp-server:ts",
 			"version": "0.2.14"
+		},
+		"dataSources": {
+			"mainService": {
+				"uri": "/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001/",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "4.0"
+				}
+			}
 		}
 	},
 	"sap.ui": {
@@ -22,6 +31,10 @@
 			"tablet": true,
 			"phone": true
 		}
+	},
+	"sap.cloud": {
+		"service": "zgp9",
+		"public": true
 	},
 	"sap.ui5": {
 		"rootView": {
@@ -52,6 +65,16 @@
 					"bundleName": "com.zgp9.fe.i18n.i18n",
 					"async": true
 				}
+			},
+			"": {
+				"type": "sap.ui.model.odata.v4.ODataModel",
+				"dataSource": "mainService",
+				"settings": {
+					"synchronizationMode": "None",
+					"operationMode": "Server",
+					"autoExpandSelect": true,
+					"earlyRequests": true
+				}
 			}
 		},
 		"routing": {
@@ -66,11 +89,6 @@
 			"routes": [
 				{
 					"pattern": "",
-					"name": "login",
-					"target": "login"
-				},
-				{
-					"pattern": "home",
 					"name": "home",
 					"target": "homePage"
 				},
@@ -124,10 +142,7 @@
 				}
 			],
 			"targets": {
-				"login": {
-					"id": "login",
-					"name": "Login"
-				},
+
 				"shell": {
 					"id": "shell",
 					"name": "MainShell"

@@ -1,0 +1,13 @@
+{
+    "name": "zgp9-fe-approuter",
+    "description": "App Router for ZGP9",
+    "engines": {
+        "node": "^22"
+    },
+    "dependencies": {
+        "@sap/approuter": "^15"
+    },
+    "scripts": {
+        "start": "node node_modules/@sap/approuter/approuter.js"
+    }
+}
