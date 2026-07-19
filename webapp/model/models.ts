@@ -38,7 +38,8 @@ export default {
 			sideNavVisible: true,
 			canExecuteScanJob: false,
 			canCreate: false,
-			canUpdate: false
+			canUpdate: false,
+			permissionsLoaded: false
 		});
 		model.setDefaultBindingMode(BindingMode.TwoWay);
 		return model;

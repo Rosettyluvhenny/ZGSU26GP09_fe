@@ -54,6 +54,8 @@ export default class MainShell extends BaseController {
 			ui.setProperty("/canExecuteScanJob", false);
 			ui.setProperty("/canCreate", false);
 			ui.setProperty("/canUpdate", false);
+		} finally {
+			this.getUiModel().setProperty("/permissionsLoaded", true);
 		}
 	}
 
