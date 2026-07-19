@@ -108,6 +108,11 @@
 					"target": "versionDetail"
 				},
 				{
+					"pattern": "registries/{registryId}/versions/{versionId}/model:?query:",
+					"name": "modelExplorer",
+					"target": "modelExplorer"
+				},
+				{
 					"pattern": "registries/{registryId}/versions/compare/{leftVersionId}/{rightVersionId}",
 					"name": "versionCompare",
 					"target": "versionCompare"
@@ -166,6 +171,13 @@
 				"versionDetail": {
 					"id": "versionDetail",
 					"name": "VersionDetail",
+					"parent": "shell",
+					"controlId": "shellFcl",
+					"controlAggregation": "beginColumnPages"
+				},
+				"modelExplorer": {
+					"id": "modelExplorer",
+					"name": "ModelExplorer",
 					"parent": "shell",
 					"controlId": "shellFcl",
 					"controlAggregation": "beginColumnPages"

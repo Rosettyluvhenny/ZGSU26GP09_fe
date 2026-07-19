@@ -11,6 +11,11 @@
 				<f:heading>
 					<Title text="Version Comparison" level="H1" />
 				</f:heading>
+				<f:content>
+					<ObjectStatus text="{versionCompare>/changeCount} changed" icon="sap-icon://edit" state="Warning" />
+					<ObjectStatus text="{versionCompare>/differCount} different" icon="sap-icon://compare" state="Error" class="sapUiMediumMarginBegin" />
+					<ObjectStatus text="{versionCompare>/unchangeCount} unchanged" icon="sap-icon://accept" state="Success" class="sapUiMediumMarginBegin" />
+				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
 		<f:header>
@@ -24,80 +29,76 @@
 		</f:header>
 		<f:content>
 			<VBox class="sapUiSmallMargin" busy="{versionCompare>/busy}">
-				<Panel headerText="Change" expandable="false">
-					<content>
-						<Table items="{versionCompare>/change}" growing="true">
-							<columns>
-								<Column width="18rem"><Text text="Service Def" /></Column>
-								<Column width="16rem"><Text text="Base Detail" /></Column>
-								<Column width="16rem"><Text text="Compare Detail" /></Column>
-								<Column width="10rem"><Text text="Type" /></Column>
-								<Column width="9rem"><Text text="Action" /></Column>
-							</columns>
-							<items>
-								<ColumnListItem>
-									<cells>
-										<Text text="{versionCompare>serviceDefId}" />
-										<Text text="{versionCompare>baseDetailId}" />
-										<Text text="{versionCompare>compareDetailId}" />
-										<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
-										<Button text="View Detail" type="Transparent" press=".onViewDetail" />
-									</cells>
-								</ColumnListItem>
-							</items>
-						</Table>
-					</content>
-				</Panel>
+				<IconTabBar id="versionCompareTabs" expandable="false" selectedKey="change" class="sapUiResponsiveContentPadding">
+					<items>
+						<IconTabFilter key="change" icon="sap-icon://edit" iconColor="Critical" text="Changed" count="{versionCompare>/changeCount}">
+							<Table items="{versionCompare>/change}" growing="true" noDataText="No changed details.">
+								<columns>
+									<Column width="18rem"><Text text="Service Def" /></Column>
+									<Column width="16rem"><Text text="Base Detail" /></Column>
+									<Column width="16rem"><Text text="Compare Detail" /></Column>
+									<Column width="10rem"><Text text="Type" /></Column>
+									<Column width="9rem"><Text text="Action" /></Column>
+								</columns>
+								<items>
+									<ColumnListItem>
+										<cells>
+											<Text text="{versionCompare>serviceDefId}" />
+											<Text text="{versionCompare>baseDetailId}" />
+											<Text text="{versionCompare>compareDetailId}" />
+											<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
+											<Button text="View Detail" type="Transparent" press=".onViewDetail" />
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
+						</IconTabFilter>
 
-				<Panel headerText="Different" expandable="false" class="sapUiSmallMarginTop">
-					<content>
-						<Table items="{versionCompare>/differ}" growing="true">
-							<columns>
-								<Column width="18rem"><Text text="Service Def" /></Column>
-								<Column width="16rem"><Text text="Base Detail" /></Column>
-								<Column width="16rem"><Text text="Compare Detail" /></Column>
-								<Column width="10rem"><Text text="Type" /></Column>
-								<Column width="9rem"><Text text="Action" /></Column>
-							</columns>
-							<items>
-								<ColumnListItem>
-									<cells>
-										<Text text="{versionCompare>serviceDefId}" />
-										<Text text="{versionCompare>baseDetailId}" />
-										<Text text="{versionCompare>compareDetailId}" />
-										<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
-										<Button text="View Detail" type="Transparent" press=".onViewDifferentDetail" />
-									</cells>
-								</ColumnListItem>
-							</items>
-						</Table>
-					</content>
-				</Panel>
+						<IconTabFilter key="differ" icon="sap-icon://compare" iconColor="Negative" text="Different" count="{versionCompare>/differCount}">
+							<Table items="{versionCompare>/differ}" growing="true" noDataText="No differing details.">
+								<columns>
+									<Column width="18rem"><Text text="Service Def" /></Column>
+									<Column width="16rem"><Text text="Base Detail" /></Column>
+									<Column width="16rem"><Text text="Compare Detail" /></Column>
+									<Column width="10rem"><Text text="Type" /></Column>
+									<Column width="9rem"><Text text="Action" /></Column>
+								</columns>
+								<items>
+									<ColumnListItem>
+										<cells>
+											<Text text="{versionCompare>serviceDefId}" />
+											<Text text="{versionCompare>baseDetailId}" />
+											<Text text="{versionCompare>compareDetailId}" />
+											<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
+											<Button text="View Detail" type="Transparent" press=".onViewDifferentDetail" />
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
+						</IconTabFilter>
 
-				<Panel headerText="Unchange" expandable="false" class="sapUiSmallMarginTop">
-					<content>
-						<Table items="{versionCompare>/unchange}" growing="true">
-							<columns>
-								<Column width="18rem"><Text text="Service Def" /></Column>
-								<Column width="16rem"><Text text="Base Detail" /></Column>
-								<Column width="16rem"><Text text="Compare Detail" /></Column>
-								<Column width="10rem"><Text text="Type" /></Column>
-							</columns>
-							<items>
-								<ColumnListItem>
-									<cells>
-										<Text text="{versionCompare>serviceDefId}" />
-										<Text text="{versionCompare>baseDetailId}" />
-										<Text text="{versionCompare>compareDetailId}" />
-										<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
-									</cells>
-								</ColumnListItem>
-							</items>
-						</Table>
-					</content>
-				</Panel>
-
-
+						<IconTabFilter key="unchange" icon="sap-icon://accept" iconColor="Positive" text="Unchanged" count="{versionCompare>/unchangeCount}">
+							<Table items="{versionCompare>/unchange}" growing="true" noDataText="No unchanged details.">
+								<columns>
+									<Column width="18rem"><Text text="Service Def" /></Column>
+									<Column width="16rem"><Text text="Base Detail" /></Column>
+									<Column width="16rem"><Text text="Compare Detail" /></Column>
+									<Column width="10rem"><Text text="Type" /></Column>
+								</columns>
+								<items>
+									<ColumnListItem>
+										<cells>
+											<Text text="{versionCompare>serviceDefId}" />
+											<Text text="{versionCompare>baseDetailId}" />
+											<Text text="{versionCompare>compareDetailId}" />
+											<ObjectStatus text="{versionCompare>changeType}" state="{path: 'versionCompare>changeType', formatter: '.formatStatusState'}" />
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
+						</IconTabFilter>
+					</items>
+				</IconTabBar>
 			</VBox>
 		</f:content>
 	</f:DynamicPage>

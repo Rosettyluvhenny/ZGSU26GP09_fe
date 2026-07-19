@@ -3,13 +3,17 @@ import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import MessageToast from 'sap/m/MessageToast';
+import MessageBox from 'sap/m/MessageBox';
+import BusyIndicator from 'sap/ui/core/BusyIndicator';
+import Fragment from 'sap/ui/core/Fragment';
+import type Dialog from 'sap/m/Dialog';
 import type UI5Event from 'sap/ui/base/Event';
 import type Table from 'sap/m/Table';
 import type Tree from 'sap/m/Tree';
 
 import BaseController, { type AiChatContext } from './BaseController';
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { buildNodeTree, filterNodeTree, flattenNodeTree, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { buildNodeTree, filterNodeTree, flattenNodeTree, highlightXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
 interface ExtendedTreeBinding {
 	expand(index: number): void;
@@ -24,6 +28,7 @@ export default class VersionDetail extends BaseController {
 	private registryId: string | null = null;
 	private versionId: string | null = null;
 	private fullTree: NodeTreeViewItem[] = [];
+	private _sendMailDialog: Dialog | null = null;
 
 	public onInit(): void {
 		this.setModel(
@@ -64,6 +69,18 @@ export default class VersionDetail extends BaseController {
 
 	public async onRefresh(): Promise<void> {
 		await this.loadVersion();
+	}
+
+	public onOpenModelExplorer(): void {
+		if (!this.registryId || !this.versionId) {
+			return;
+		}
+		const detail = (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetail') as RegistryDetail | null;
+		this.getRouter().navTo('modelExplorer', {
+			registryId: this.registryId,
+			versionId: this.versionId,
+			query: detail ? { detailId: detail.id } : {}
+		});
 	}
 
 	public async onDetailChange(event: UI5Event): Promise<void> {
@@ -164,6 +181,192 @@ export default class VersionDetail extends BaseController {
 		const model = this.getModel('versionDetail') as JSONModel;
 		model.setProperty('/selectedNodeLine', line.lineNo);
 	}
+
+	// ─── Send Mail ───────────────────────────────────────────────────────────
+
+	public onSendMail(): void {
+		const model = this.getModel('versionDetail') as JSONModel;
+		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+		const defaultSubject = detail?.serviceDefinition
+			? `Version XML: ${detail.serviceDefinition}`
+			: 'Version XML Report';
+
+		this.setModel(
+			new JSONModel({
+				busy: false,
+				recipients: '',
+				subject: defaultSubject,
+				recipientsState: 'None',
+				recipientsStateText: '',
+				subjectState: 'None',
+				subjectStateText: ''
+			}),
+			'sendMail'
+		);
+
+		const loadDialog = async () => {
+			if (!this._sendMailDialog) {
+				this._sendMailDialog = await Fragment.load({
+					id: this.getView()?.getId(),
+					name: 'com.zgp9.fe.view.fragments.SendVersionMailDialog',
+					controller: this
+				}) as Dialog;
+				this.getView()?.addDependent(this._sendMailDialog);
+			}
+			this._sendMailDialog.open();
+		};
+		void loadDialog();
+	}
+
+	public onRecipientsLiveChange(): void {
+		const model = this.getModel('sendMail') as JSONModel;
+		const val = ((model.getProperty('/recipients') as string) ?? '').trim();
+		if (val) {
+			const { valid, invalid } = this.validateEmails(val);
+			if (invalid.length > 0) {
+				model.setProperty('/recipientsState', 'Warning');
+				model.setProperty('/recipientsStateText', `Invalid: ${invalid.join(', ')}`);
+			} else {
+				model.setProperty('/recipientsState', 'Success');
+				model.setProperty('/recipientsStateText', `${valid.length} recipient(s) valid`);
+			}
+		} else {
+			model.setProperty('/recipientsState', 'None');
+			model.setProperty('/recipientsStateText', '');
+		}
+	}
+
+	public async onConfirmSendMail(): Promise<void> {
+		const sendMailModel = this.getModel('sendMail') as JSONModel;
+		const recipients = ((sendMailModel.getProperty('/recipients') as string) ?? '').trim();
+		const subject    = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
+
+		let hasError = false;
+
+		if (!recipients) {
+			sendMailModel.setProperty('/recipientsState', 'Error');
+			sendMailModel.setProperty('/recipientsStateText', 'Recipients is required.');
+			hasError = true;
+		} else {
+			const { invalid } = this.validateEmails(recipients);
+			if (invalid.length > 0) {
+				sendMailModel.setProperty('/recipientsState', 'Error');
+				sendMailModel.setProperty('/recipientsStateText', `Invalid email address(es): ${invalid.join(', ')}`);
+				hasError = true;
+			}
+		}
+
+		if (!subject) {
+			sendMailModel.setProperty('/subjectState', 'Error');
+			sendMailModel.setProperty('/subjectStateText', 'Subject is required.');
+			hasError = true;
+		} else {
+			sendMailModel.setProperty('/subjectState', 'None');
+			sendMailModel.setProperty('/subjectStateText', '');
+		}
+
+		if (hasError) return;
+	
+
+		const model = this.getModel('versionDetail') as JSONModel;
+		const prettyXml = (model.getProperty('/selectedDetailXml') as string) ?? '';
+		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+
+		if (!prettyXml) {
+			MessageBox.error('XML data is not loaded yet. Please wait and try again.');
+			return;
+		}
+
+		const htmlContent = this.buildVersionHtml(prettyXml, subject, detail);
+		const htmlSizeKb = Math.round(htmlContent.length / 1024);
+		console.log(`[SendVersionMail] HTML size: ${htmlSizeKb} KB, recipients: "${recipients}"`);
+
+		sendMailModel.setProperty('/busy', true);
+		BusyIndicator.show(0);
+		try {
+			const result = await this.getOwnerComponent().getDetailService().sendEmail({
+				htmlContent,
+				recipients,
+				subject
+			});
+			this._sendMailDialog?.close();
+			MessageBox.success(result.message || 'Email sent successfully.');
+		} catch (error) {
+			await this.handleServiceError(error);
+		} finally {
+			sendMailModel.setProperty('/busy', false);
+			BusyIndicator.hide();
+		}
+	}
+
+	public onCancelSendMail(): void {
+		this._sendMailDialog?.close();
+	}
+
+	private validateEmails(raw: string): { valid: string[]; invalid: string[] } {
+		const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const list = raw.split(/[;,]/).map(s => s.trim()).filter(Boolean);
+		const valid: string[] = [];
+		const invalid: string[] = [];
+		for (const addr of list) {
+			(EMAIL_RE.test(addr) ? valid : invalid).push(addr);
+		}
+		return { valid, invalid };
+	}
+
+	private highlightForEmail(line: string): string {
+		const indent = /^( +)/.exec(line)?.[1] ?? '';
+		const indentHtml = indent.replace(/ /g, '&nbsp;');
+		let html = indentHtml + highlightXmlLine(line.slice(indent.length));
+		html = html
+			.replace(/class="xmlTokPunct"/g, 'style="color:#00C"')
+			.replace(/class="xmlTokTag"/g,   'style="color:#00008B"')
+			.replace(/class="xmlTokAttr"/g,  'style="color:#7D0045"')
+			.replace(/class="xmlTokVal"/g,   'style="color:#006400"')
+			.replace(/class="xmlTokCmt"/g,   'style="color:#6a9955"');
+		return html;
+	}
+
+	private buildVersionHtml(prettyXml: string, title: string, detail: RegistryDetail | null): string {
+		const escHtml = (s: string) =>
+			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+		const lines = prettyXml.split('\n');
+
+		const metaRows = detail
+			? `<tr><td>Service Definition</td><td>${escHtml(detail.serviceDefinition || '-')}</td></tr>` +
+			  `<tr><td>Version Id</td><td>${escHtml(detail.versionId || '-')}</td></tr>` +
+			  `<tr><td>Service Hash</td><td>${escHtml(detail.serviceHash || '-')}</td></tr>`
+			: '';
+
+		const S_NUM = 'style="padding:2px 4px;border:1px solid #eee;color:#aaa;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:4%"';
+		const S_XML = 'style="padding:2px 8px;border:1px solid #eee;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top"';
+		const TH    = 'style="padding:4px 6px;border:1px solid #ddd;background:#f5f5f5;text-align:left;font-family:sans-serif;font-size:11px"';
+
+		const styledRows = lines.map((line, idx) =>
+			`<tr><td ${S_NUM}>${idx + 1}</td><td ${S_XML}>${this.highlightForEmail(line)}</td></tr>`
+		).join('');
+
+		const metaStyle = 'style="padding:2px 12px 2px 0;font-family:sans-serif;font-size:12px"';
+		const metaLabelStyle = 'style="padding:2px 12px 2px 0;font-family:sans-serif;font-size:12px;color:#666;white-space:nowrap"';
+
+		const metaTable = metaRows
+			? `<table style="border-collapse:collapse;margin-bottom:16px"><tbody>` +
+			  metaRows.replace(/<td>/g, `<td ${metaStyle}>`).replace(/<td class="[^"]*">/g, `<td ${metaLabelStyle}>`) +
+			  `</tbody></table>`
+			: '';
+
+		return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:8px;font-family:sans-serif;color:#333">` +
+			`<h2 style="margin-bottom:4px">${escHtml(title)}</h2>` +
+			metaTable +
+			`<table style="border-collapse:collapse;width:100%;table-layout:fixed">` +
+				`<colgroup><col style="width:4%"/><col style="width:96%"/></colgroup>` +
+				`<thead><tr><th ${TH}>#</th><th ${TH}>XML Content</th></tr></thead>` +
+				`<tbody>${styledRows}</tbody>` +
+			`</table></body></html>`;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────────
 
 	private async loadVersion(queryDetailId: string | null = null): Promise<void> {
 		if (!this.registryId || !this.versionId) {

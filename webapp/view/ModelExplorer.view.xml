@@ -1,0 +1,256 @@
+<mvc:View
+	controllerName="com.zgp9.fe.controller.ModelExplorer"
+	displayBlock="true"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:f="sap.f"
+	xmlns:l="sap.ui.layout"
+	xmlns:core="sap.ui.core">
+
+	<f:DynamicPage id="modelExplorerPage" toggleHeaderOnTitleClick="false" busy="{model>/busy}">
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Model Explorer" level="H1" />
+				</f:heading>
+				<f:content>
+					<Title text="{model>/serviceName}" level="H3" visible="{= !!${model>/serviceName} }" />
+					<ObjectStatus text="OData {model>/version}" state="Information" class="sapUiMediumMarginBegin" visible="{= !!${model>/version} }" />
+				</f:content>
+			</f:DynamicPageTitle>
+		</f:title>
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+				<OverflowToolbar>
+					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
+					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
+					<Select
+						selectedKey="{model>/selectedDetailId}"
+						items="{model>/details}"
+						change=".onDetailChange"
+						visible="{= ${model>/details}.length &gt; 1 }">
+						<core:Item key="{model>id}" text="{model>serviceDefinition}" />
+					</Select>
+					<ToolbarSpacer />
+					<Button text="View XML" icon="sap-icon://document-text" tooltip="Open the raw metadata XML" press=".navToXml" />
+					<Button text="Ask AI" icon="sap-icon://da" type="Emphasized" tooltip="Analyze this model with an AI assistant" press=".onOpenAiChat" />
+				</OverflowToolbar>
+			</f:DynamicPageHeader>
+		</f:header>
+		<f:content>
+			<VBox width="100%" class="sapUiSmallMargin">
+				<MessageStrip
+					text="{model>/parseError}"
+					type="Warning"
+					showIcon="true"
+					class="sapUiSmallMarginBottom"
+					visible="{= !!${model>/parseError} }" />
+
+				<l:Splitter width="100%" height="42rem">
+					<!-- Left: categorised element lists -->
+					<Page showHeader="false" enableScrolling="false" class="versionDetailSplitPage">
+						<layoutData>
+							<l:SplitterLayoutData size="24rem" resizable="true" />
+						</layoutData>
+						<subHeader>
+							<Toolbar>
+								<SearchField placeholder="Search model" value="{model>/search}" liveChange=".onSearch" search=".onSearch" />
+							</Toolbar>
+						</subHeader>
+						<content>
+							<IconTabBar stretchContentHeight="true" applyContentPadding="false" expandable="false" selectedKey="entities">
+								<items>
+									<IconTabFilter key="entities" icon="sap-icon://tree" tooltip="Entity Types" text="Entities" count="{model>/counts/entityTypes}">
+										<List items="{model>/entityTypes}" mode="SingleSelectMaster" noDataText="No entity types">
+											<StandardListItem
+												title="{model>name}"
+												description="{= ${model>keys}.length + ' key · ' + ${model>properties}.length + ' props' }"
+												type="Active"
+												press=".onSelectEntityType" />
+										</List>
+									</IconTabFilter>
+									<IconTabFilter key="sets" icon="sap-icon://database" tooltip="Entity Sets" text="Sets" count="{model>/counts/entitySets}">
+										<List items="{model>/entitySets}" mode="SingleSelectMaster" noDataText="No entity sets">
+											<StandardListItem title="{model>name}" description="{model>entityType}" type="Active" press=".onSelectEntitySet" />
+										</List>
+									</IconTabFilter>
+									<IconTabFilter key="complex" icon="sap-icon://combine" tooltip="Complex Types" text="Complex" count="{model>/counts/complexTypes}">
+										<List items="{model>/complexTypes}" mode="SingleSelectMaster" noDataText="No complex types">
+											<StandardListItem title="{model>name}" description="{= ${model>properties}.length + ' props' }" type="Active" press=".onSelectComplexType" />
+										</List>
+									</IconTabFilter>
+									<IconTabFilter key="enums" icon="sap-icon://list" tooltip="Enum Types" text="Enums" count="{model>/counts/enumTypes}">
+										<List items="{model>/enumTypes}" mode="SingleSelectMaster" noDataText="No enum types">
+											<StandardListItem title="{model>name}" description="{= ${model>members}.length + ' members' }" type="Active" press=".onSelectEnumType" />
+										</List>
+									</IconTabFilter>
+									<IconTabFilter key="ops" icon="sap-icon://action" tooltip="Actions &amp; Functions" text="Ops" count="{model>/counts/operations}">
+										<List items="{model>/operations}" mode="SingleSelectMaster" noDataText="No actions or functions">
+											<StandardListItem title="{model>name}" description="{model>kind}" type="Active" press=".onSelectOperation" />
+										</List>
+									</IconTabFilter>
+								</items>
+							</IconTabBar>
+						</content>
+					</Page>
+
+					<!-- Right: detail of the selected element -->
+					<Page showHeader="false" enableScrolling="true" class="versionDetailSplitPage">
+						<layoutData>
+							<l:SplitterLayoutData size="auto" />
+						</layoutData>
+						<content>
+							<VBox class="sapUiSmallMargin">
+								<Text text="Select an element on the left to see its details." visible="{= !${model>/selected} }" />
+
+								<HBox alignItems="Center" class="sapUiSmallMarginBottom" visible="{= !!${model>/selected} }">
+									<core:Icon
+										src="{= ${model>/selectedKind} === 'entitySet' ? 'sap-icon://database' : ${model>/selectedKind} === 'enumType' ? 'sap-icon://list' : ${model>/selectedKind} === 'operation' ? 'sap-icon://action' : ${model>/selectedKind} === 'complexType' ? 'sap-icon://combine' : 'sap-icon://tree' }"
+										class="sapUiTinyMarginEnd" />
+									<Title text="{model>/selected/name}" level="H2" />
+									<ObjectStatus text="{model>/selected/label}" class="sapUiSmallMarginBegin" visible="{= !!${model>/selected/label} }" />
+								</HBox>
+
+								<!-- Entity type key -->
+								<HBox alignItems="Center" class="sapUiSmallMarginBottom" visible="{= ${model>/selectedKind} === 'entityType' &amp;&amp; !!${model>/selectedKeysText} }">
+									<Label text="Key" class="sapUiTinyMarginEnd" />
+									<ObjectStatus text="{model>/selectedKeysText}" state="Information" icon="sap-icon://key" />
+								</HBox>
+
+								<!-- Entity set target -->
+								<Panel headerText="Entity Set" expandable="false" class="sapUiSmallMarginBottom" visible="{= ${model>/selectedKind} === 'entitySet' }">
+									<VBox>
+										<HBox class="sapUiTinyMarginBottom">
+											<Label text="Entity Type:" class="sapUiTinyMarginEnd" />
+											<Text text="{model>/selected/entityType}" />
+										</HBox>
+									</VBox>
+								</Panel>
+
+								<!-- Enum underlying type -->
+								<HBox alignItems="Center" class="sapUiSmallMarginBottom" visible="{= ${model>/selectedKind} === 'enumType' &amp;&amp; !!${model>/selected/underlyingType} }">
+									<Label text="Underlying type" class="sapUiTinyMarginEnd" />
+									<Text text="{model>/selected/underlyingType}" />
+								</HBox>
+
+								<!-- Operation summary -->
+								<HBox alignItems="Center" class="sapUiSmallMarginBottom" visible="{= ${model>/selectedKind} === 'operation' }">
+									<ObjectStatus text="{model>/selected/kind}" state="Information" class="sapUiMediumMarginEnd" />
+									<Label text="Returns" class="sapUiTinyMarginEnd" />
+									<Text text="{= ${model>/selected/returnType} || '—' }" />
+								</HBox>
+
+								<!-- Properties (entity + complex types) -->
+								<Panel headerText="Properties" expandable="false" class="sapUiSmallMarginBottom"
+									visible="{= ${model>/selectedKind} === 'entityType' || ${model>/selectedKind} === 'complexType' }">
+									<Table items="{model>/selected/properties}" mode="None" noDataText="No properties">
+										<columns>
+											<Column><Text text="Name" /></Column>
+											<Column><Text text="Type" /></Column>
+											<Column width="8rem"><Text text="Nullable" /></Column>
+											<Column minScreenWidth="1100px" demandPopin="true"><Text text="Facets" /></Column>
+											<Column minScreenWidth="1100px" demandPopin="true"><Text text="Label" /></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<HBox alignItems="Center">
+														<core:Icon src="sap-icon://key" size="0.85rem" class="modelKeyIcon sapUiTinyMarginEnd" visible="{model>isKey}" tooltip="Key property" />
+														<Text text="{model>name}" />
+													</HBox>
+													<Text text="{model>type}" />
+													<ObjectStatus text="{= ${model>nullable} ? 'Nullable' : 'Required' }" state="{= ${model>nullable} ? 'None' : 'Warning' }" />
+													<Text text="{model>facets}" />
+													<Text text="{model>label}" />
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</Panel>
+
+								<!-- Navigation properties (entity types) -->
+								<Panel headerText="Navigation Properties" expandable="false" class="sapUiSmallMarginBottom"
+									visible="{= ${model>/selectedKind} === 'entityType' &amp;&amp; ${model>/selected/navigations}.length &gt; 0 }">
+									<Table items="{model>/selected/navigations}" mode="None">
+										<columns>
+											<Column><Text text="Name" /></Column>
+											<Column><Text text="Target" /></Column>
+											<Column minScreenWidth="900px" demandPopin="true"><Text text="Info" /></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{model>name}" />
+													<Text text="{model>target}" />
+													<Text text="{model>info}" />
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</Panel>
+
+								<!-- Enum members -->
+								<Panel headerText="Members" expandable="false" class="sapUiSmallMarginBottom" visible="{= ${model>/selectedKind} === 'enumType' }">
+									<Table items="{model>/selected/members}" mode="None" noDataText="No members">
+										<columns>
+											<Column><Text text="Name" /></Column>
+											<Column width="10rem"><Text text="Value" /></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{model>name}" />
+													<Text text="{model>value}" />
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</Panel>
+
+								<!-- Operation parameters -->
+								<Panel headerText="Parameters" expandable="false" class="sapUiSmallMarginBottom" visible="{= ${model>/selectedKind} === 'operation' }">
+									<Table items="{model>/selected/parameters}" mode="None" noDataText="No parameters">
+										<columns>
+											<Column><Text text="Name" /></Column>
+											<Column><Text text="Type" /></Column>
+											<Column width="8rem"><Text text="Nullable" /></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{model>name}" />
+													<Text text="{model>type}" />
+													<ObjectStatus text="{= ${model>nullable} ? 'Nullable' : 'Required' }" state="{= ${model>nullable} ? 'None' : 'Warning' }" />
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</Panel>
+
+								<!-- Annotations (entity types) -->
+								<Panel headerText="Annotations" expandable="false" class="sapUiSmallMarginBottom"
+									visible="{= ${model>/selectedKind} === 'entityType' &amp;&amp; ${model>/selected/annotations}.length &gt; 0 }">
+									<Table items="{model>/selected/annotations}" mode="None">
+										<columns>
+											<Column><Text text="Term" /></Column>
+											<Column><Text text="Value" /></Column>
+										</columns>
+										<items>
+											<ColumnListItem>
+												<cells>
+													<Text text="{model>name}" />
+													<Text text="{model>value}" />
+												</cells>
+											</ColumnListItem>
+										</items>
+									</Table>
+								</Panel>
+							</VBox>
+						</content>
+					</Page>
+				</l:Splitter>
+			</VBox>
+		</f:content>
+	</f:DynamicPage>
+
+</mvc:View>

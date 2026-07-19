@@ -171,21 +171,22 @@ export default class DetailService {
 			{ headers: await this.client.ensureWriteHeaders('POST') }
 		);
 		const entity = normalizeODataEntity(raw);
+		// BE trả về PascalCase theo ZI_EMAIL_SEND_RESULT complex type
 		return {
-			success: entity.success === true || entity.success === 'true',
-			message: asString(entity.message),
-			failedRecip: asString(entity.failed_recip),
-			recipientDetail: asString(entity.recipient_detail)
+			success: !!(entity.Success ?? entity.success),
+			message: asString(entity.Message ?? entity.message),
+			failedRecip: asString(entity.FailedRecip ?? entity.failedRecip),
+			recipientDetail: asString(entity.RecipientDetail ?? entity.recipientDetail)
 		};
 	}
 
 	public async compareDetail(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[] | null> {
 		const payload = await this.client.postJson(
-			`Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree`,
-			{
-				BaseDetailId: baseDetailId,
-				CompareDetailId: compareDetailId
-			},
+		`Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree`,
+		{
+			BaseDetailId: baseDetailId,
+			CompareDetailId: compareDetailId
+		},
 			{ headers: await this.client.ensureWriteHeaders('POST') }
 		);
 		const entity = normalizeODataEntity(payload);

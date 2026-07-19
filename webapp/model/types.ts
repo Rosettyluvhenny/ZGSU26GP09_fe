@@ -141,10 +141,11 @@ export interface DetailMetadataResult {
 }
 
 export interface XmlLineEntry {
-	lineNo: number;
+	lineNo: number;   // 0 = empty/padding row (no matching line on this side)
 	text: string;
 	isWhitespace: boolean;
 	highlight?: string;
+	lineType?: 'same' | 'del' | 'ins' | 'empty';
 }
 
 export interface VersionActionResult {

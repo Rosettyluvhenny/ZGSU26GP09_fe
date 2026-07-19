@@ -151,7 +151,28 @@ export default class ODataClient {
 		});
 
 		if (!response.ok) {
-			throw new ServiceError(response.status, `${method} ${path} failed (${response.status})`);
+			// Try to extract the ABAP/OData error message from the response body
+			let detail = '';
+			try {
+				const errText = await response.text();
+				const errJson = JSON.parse(errText) as Record<string, unknown>;
+				const errObj = errJson['error'] as Record<string, unknown> | undefined;
+				if (errObj) {
+					const msg = errObj['message'];
+					if (typeof msg === 'string') {
+						detail = msg;
+				} else if (msg && typeof msg === 'object') {
+					const val = (msg as Record<string, unknown>)['value'];
+					detail = typeof val === 'string' ? val : '';
+				}
+				}
+			} catch {
+				// ignore parse errors — fall back to generic message
+			}
+			const message = detail
+				? `${method} ${path} failed (${response.status}): ${detail}`
+				: `${method} ${path} failed (${response.status})`;
+			throw new ServiceError(response.status, message);
 		}
 
 		const text = await response.text();
