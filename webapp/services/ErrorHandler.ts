@@ -1,14 +1,13 @@
 import MessageBox from "sap/m/MessageBox";
 import ServiceError from "./ServiceError";
-import AuthenticationService from "./AuthenticationService";
+import ODataClient from "./ODataClient";
 import type Router from "sap/ui/core/routing/Router";
 
 export default class ErrorHandler {
 	private handlingAuthError = false;
 
 	public constructor(
-		private readonly router: Router,
-		private readonly authenticationService: AuthenticationService
+		private readonly router: Router
 	) { }
 
 	public async handle(error: unknown): Promise<void> {
@@ -21,15 +20,15 @@ export default class ErrorHandler {
 
 				if (error.status === 403) {
 					try {
-						await this.authenticationService.fetchCsrfToken();
+						await ODataClient.refreshCsrfToken();
 						this.handlingAuthError = false;
-						return; // Recovered from 403 successfully
+						return; // Recovered from 403 — retry on next request
 					} catch {
-						// Fall through to logout
+						// Fall through to navigate to login
 					}
 				}
 
-				await this.safeLogout();
+				ODataClient.clearSecurityState();
 				this.router.navTo("login", undefined, undefined, true);
 				const message = error.status === 403 ? "Your session expired. Please sign in again." : "Your session expired. Please sign in again.";
 				MessageBox.error(message, {
@@ -57,11 +56,4 @@ export default class ErrorHandler {
 		MessageBox.error("An unexpected error occurred.");
 	}
 
-	private async safeLogout(): Promise<void> {
-		try {
-			await this.authenticationService?.logout?.();
-		} catch {
-			// Ignore logout failures so the original service error stays visible.
-		}
-	}
 }

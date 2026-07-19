@@ -71,8 +71,8 @@ export default class VersionService {
 			await this.client.postJson(
 				'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
 				{
-					base_vrs_id: leftVersionId,
-					compare_vrs_id: rightVersionId
+					BaseVrsId: leftVersionId,
+					CompareVrsId: rightVersionId
 				},
 				{ headers }
 			)

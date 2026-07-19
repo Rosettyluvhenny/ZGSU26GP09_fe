@@ -35,7 +35,11 @@ export default {
 			searchJob: '',
 			selectedRegistryStatus: 'All',
 			isDarkTheme: (readThemePreference() ?? 'sap_horizon').includes('dark'),
-			sideNavVisible: true
+			sideNavVisible: true,
+			canExecuteScanJob: false,
+			canCreate: false,
+			canUpdate: false,
+			permissionsLoaded: false
 		});
 		model.setDefaultBindingMode(BindingMode.TwoWay);
 		return model;
