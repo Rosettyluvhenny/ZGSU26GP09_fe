@@ -15,7 +15,7 @@
 		},
 		"dataSources": {
 			"mainService": {
-				"uri": "/registry/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001/",
+				"uri": "/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001/",
 				"type": "OData",
 				"settings": {
 					"odataVersion": "4.0"
@@ -89,11 +89,6 @@
 			"routes": [
 				{
 					"pattern": "",
-					"name": "login",
-					"target": "login"
-				},
-				{
-					"pattern": "home",
 					"name": "home",
 					"target": "homePage"
 				},
@@ -142,10 +137,7 @@
 				}
 			],
 			"targets": {
-				"login": {
-					"id": "login",
-					"name": "Login"
-				},
+
 				"shell": {
 					"id": "shell",
 					"name": "MainShell"

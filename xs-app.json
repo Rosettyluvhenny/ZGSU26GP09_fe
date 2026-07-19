@@ -1,11 +1,17 @@
 {
     "welcomeFile": "index.html",
-    "authenticationMethod": "none",
+    "authenticationMethod": "route",
     "routes": [
+        {
+            "source": "^/sap/(.*)$",
+            "destination": "S40",
+            "authenticationType": "xsuaa",
+            "csrfProtection": false
+        },
         {
             "source": "^(.*)",
             "target": "$1",
-            "authenticationType": "none"
+            "authenticationType": "xsuaa"
         }
     ]
 }

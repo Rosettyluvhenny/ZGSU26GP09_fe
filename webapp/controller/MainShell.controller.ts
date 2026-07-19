@@ -2,6 +2,7 @@ import Theming from "sap/ui/core/Theming";
 import type Control from "sap/ui/core/Control";
 
 import BaseController from "./BaseController";
+import ODataClient from "../services/ODataClient";
 import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
 const LIGHT_THEME = "sap_horizon";
@@ -50,14 +51,7 @@ export default class MainShell extends BaseController {
 	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
 		const routeName = event.getParameter("name");
 
-		if (routeName === "login") {
-			return;
-		}
 
-		const session = this.getSessionModel().getData() as { authenticated?: boolean };
-		if (!session?.authenticated) {
-			return;
-		}
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
 			this.getUiModel().setProperty("/currentSection", "registries");
@@ -106,16 +100,14 @@ export default class MainShell extends BaseController {
 	}
 
 	public async onLogout(): Promise<void> {
-		const auth = this.getOwnerComponent().getAuthenticationService();
-		await auth.logout();
+		ODataClient.clearSecurityState();
 		(this.getSessionModel()).setData({
-			authenticated: false,
 			userName: "",
 			csrfToken: "",
 			loginAt: null,
 		});
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
-		this.navTo("login", {}, true);
+		window.location.reload();
 	}
 
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {

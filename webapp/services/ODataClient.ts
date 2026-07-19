@@ -1,11 +1,9 @@
 import ServiceError from './ServiceError';
 
 export const SERVICE_ORIGIN = '/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001';
-export const SERVICE_BASE_URL = `${SERVICE_ORIGIN}?sap-client=324`;
-export const SERVICE_METADATA_URL = `${SERVICE_ORIGIN}/$metadata?sap-client=324`;
-export const LOGOFF_URL = 'https://s40lp1.ucc.cit.tum.de:8100/sap/public/bc/icf/logoff?sap-client=324';
+export const SERVICE_BASE_URL = `${SERVICE_ORIGIN}/`;
+export const SERVICE_METADATA_URL = `${SERVICE_ORIGIN}/$metadata`;
 
-const DEFAULT_QUERY = { 'sap-client': '324' };
 
 type ODataQueryValue = string | number | boolean | null | undefined;
 
@@ -31,7 +29,7 @@ export default class ODataClient {
 		ODataClient.authPromise = null;
 	}
 
-	public static async checkAuthAndFetchCsrf(): Promise<string> {
+	public static async refreshCsrfToken(): Promise<string> {
 		if (ODataClient.authPromise !== null) {
 			return ODataClient.authPromise;
 		}
@@ -48,7 +46,7 @@ export default class ODataClient {
 
 			if (!response.ok) {
 				ODataClient.authPromise = null;
-				throw new ServiceError(response.status, `Auth/CSRF check failed (${response.status})`);
+				throw new ServiceError(response.status, `CSRF fetch failed (${response.status})`);
 			}
 
 			const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
@@ -60,7 +58,6 @@ export default class ODataClient {
 		try {
 			await ODataClient.authPromise;
 		} catch (error) {
-			// On error, let authPromise become null so next time it retries
 			ODataClient.authPromise = null;
 			throw error;
 		}
@@ -69,12 +66,10 @@ export default class ODataClient {
 	}
 
 	public static async ensureAuth(): Promise<void> {
-		// If we already have a csrf token, auth is good. 
 		if (ODataClient.csrfToken) {
 			return;
 		}
-		// Otherwise, wait for the check
-		await ODataClient.checkAuthAndFetchCsrf();
+		await ODataClient.refreshCsrfToken();
 	}
 
 	private buildUrl(path: string, query?: Record<string, ODataQueryValue>): string {
@@ -170,28 +165,6 @@ export default class ODataClient {
 		}
 	}
 
-	public async authenticate(userName: string, password: string): Promise<string> {
-		const authorization = `Basic ${btoa(`${userName}:${password}`)}`;
-		const response = await fetch(this.buildUrl(SERVICE_ORIGIN), {
-			method: 'GET',
-			credentials: 'include',
-			headers: {
-				Accept: 'application/json',
-				Authorization: authorization,
-				'X-CSRF-Token': 'Fetch'
-			}
-		});
-
-		if (!response.ok) {
-			throw new ServiceError(response.status, `Authentication failed (${response.status})`);
-		}
-
-		const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
-		const etag = response.headers.get('etag');
-		ODataClient.setSecurityState(token, etag || undefined);
-		return ODataClient.csrfToken;
-	}
-
 	public async readJson(path: string, options: ODataRequestOptions = {}): Promise<unknown> {
 		return this.requestJson(path, options);
 	}
@@ -205,7 +178,7 @@ export default class ODataClient {
 	}
 
 	public async refreshCsrfToken(): Promise<string> {
-		return ODataClient.checkAuthAndFetchCsrf();
+		return ODataClient.refreshCsrfToken();
 	}
 
 	public clearSecurityState(): void {

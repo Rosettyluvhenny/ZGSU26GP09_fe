@@ -78,9 +78,9 @@ resources:
         init_data:
           instance:
             destinations:
-              - Name: zgp9-backend
+              - Name: S40
                 Description: On-prem backend via Cloud Connector
-                URL: https://s40lp1:443
+                URL: http://s40lp1:443
                 Type: HTTP
                 ProxyType: OnPremise
                 Authentication: PrincipalPropagation

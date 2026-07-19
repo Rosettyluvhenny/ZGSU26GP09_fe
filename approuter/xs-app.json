@@ -3,8 +3,8 @@
     "authenticationMethod": "route",
     "routes": [
         {
-            "source": "^/registry/(.*)$",
-            "destination": "zgp9-backend",
+            "source": "^/sap/(.*)$",
+            "destination": "S40",
             "authenticationType": "xsuaa",
             "csrfProtection": false
         },
