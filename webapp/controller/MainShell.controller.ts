@@ -24,6 +24,9 @@ export default class MainShell extends BaseController {
 		const sideNavVisible = readSideNavPreference();
 		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
 		this.applySideNavVisibility(sideNavVisible);
+
+		// Load permissions once on page load — drives nav bar and button visibility
+		void this.loadGlobalPermissions();
 	}
 
 	public onToggleSideNav(): void {
@@ -42,16 +45,20 @@ export default class MainShell extends BaseController {
 	private async loadGlobalPermissions(): Promise<void> {
 		try {
 			const permissions = await this.getOwnerComponent().getRegistryService().getPermissions();
-			this.getUiModel().setProperty("/canExecuteScanJob", permissions.includes("ScanJob.Execute"));
+			const ui = this.getUiModel();
+			ui.setProperty("/canExecuteScanJob", permissions.includes("ScanJob.Execute"));
+			ui.setProperty("/canCreate", permissions.includes("Registry.Create"));
+			ui.setProperty("/canUpdate", permissions.includes("Registry.Update"));
 		} catch {
-			this.getUiModel().setProperty("/canExecuteScanJob", false);
+			const ui = this.getUiModel();
+			ui.setProperty("/canExecuteScanJob", false);
+			ui.setProperty("/canCreate", false);
+			ui.setProperty("/canUpdate", false);
 		}
 	}
 
 	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
 		const routeName = event.getParameter("name");
-
-
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
 			this.getUiModel().setProperty("/currentSection", "registries");
@@ -63,8 +70,7 @@ export default class MainShell extends BaseController {
 			this.getUiModel().setProperty("/currentSection", "logs");
 		}
 
-		await this.loadGlobalPermissions();
-
+		// Guard: redirect away from job routes if user lacks permission
 		if (routeName.startsWith("job") && !this.getUiModel().getProperty("/canExecuteScanJob")) {
 			this.getUiModel().setProperty("/currentSection", "home");
 			this.navTo("home", {}, true);

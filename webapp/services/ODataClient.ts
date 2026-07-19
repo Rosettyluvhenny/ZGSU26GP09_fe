@@ -4,8 +4,9 @@ export const SERVICE_ORIGIN = '/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_r
 export const SERVICE_BASE_URL = `${SERVICE_ORIGIN}/`;
 export const SERVICE_METADATA_URL = `${SERVICE_ORIGIN}/$metadata`;
 
-
 type ODataQueryValue = string | number | boolean | null | undefined;
+
+export const DEFAULT_QUERY: Record<string, ODataQueryValue> = {};
 
 export type ODataWriteMethod = 'POST' | 'PATCH' | 'DELETE';
 export interface ODataRequestOptions {
