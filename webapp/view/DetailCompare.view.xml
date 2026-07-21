@@ -92,11 +92,14 @@
 				</Toolbar>
 
 				<l:Splitter width="100%" height="36rem">
-					<Page title="Base XML ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
-						<layoutData>
-							<l:SplitterLayoutData size="50%" resizable="true" />
-						</layoutData>
-						<content>
+				<Page title="Base XML ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+					<layoutData>
+						<l:SplitterLayoutData size="50%" resizable="true" />
+					</layoutData>
+					<headerContent>
+						<Button icon="sap-icon://copy" tooltip="Copy Base XML" press=".onCopyBaseXml" enabled="{= !!${detailCompare>/basePrettyXml} }" />
+					</headerContent>
+					<content>
 							<ScrollContainer class="versionDetailXmlScroll" id="baseXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
 								<Table id="baseDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/baseXmlLines}" mode="None">
 								<columns>
@@ -119,11 +122,14 @@
 							</ScrollContainer>
 						</content>
 					</Page>
-					<Page title="Compare XML ({detailCompare>/compareDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
-						<layoutData>
-							<l:SplitterLayoutData size="auto" />
-						</layoutData>
-						<content>
+				<Page title="Compare XML ({detailCompare>/compareDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+					<layoutData>
+						<l:SplitterLayoutData size="auto" />
+					</layoutData>
+					<headerContent>
+						<Button icon="sap-icon://copy" tooltip="Copy Compare XML" press=".onCopyCompareXml" enabled="{= !!${detailCompare>/comparePrettyXml} }" />
+					</headerContent>
+					<content>
 							<ScrollContainer class="versionDetailXmlScroll" id="compareXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
 								<Table id="compareDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/compareXmlLines}" mode="None">
 								<columns>

@@ -136,7 +136,7 @@
 					]
 				},
 				{
-					"pattern": "logs",
+					"pattern": "logs:?query:",
 					"name": "logs",
 					"target": "logs"
 				}

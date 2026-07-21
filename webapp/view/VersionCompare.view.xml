@@ -22,8 +22,6 @@
 			<f:DynamicPageHeader pinnable="false">
 				<OverflowToolbar>
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
-					<Button text="Copy Left XML" press=".onCopyLeftXml" />
-					<Button text="Copy Right XML" press=".onCopyRightXml" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
