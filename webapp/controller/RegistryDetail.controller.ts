@@ -1,6 +1,6 @@
 import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
-import type Table from 'sap/m/Table';
+import Table from 'sap/m/Table';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
@@ -44,6 +44,10 @@ export default class RegistryDetail extends BaseController {
 		}
 
 		await this.loadRegistry();
+	}
+
+	public onNavBack(): void {
+		this.navTo('registryList', {}, true);
 	}
 
 	public async onRefresh(): Promise<void> {
@@ -171,6 +175,8 @@ export default class RegistryDetail extends BaseController {
 				canCompare: false,
 				generateBusy: false
 			});
+			// Clear table's internal selection state so checkboxes don't linger after back-navigation
+			(this.byId('versionsTable') as Table)?.removeSelections(true);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {

@@ -32,18 +32,16 @@
 					<Column width="9rem"><Text text="Status" /></Column>
 					<Column width="11rem"><Text text="Started At" /></Column>
 					<Column width="11rem"><Text text="Finished At" /></Column>
-					<Column width="9rem"><Text text="Duration" /></Column>
 					<Column width="11rem"><Text text="Executed By" /></Column>
 				</columns>
 				<items>
 					<ColumnListItem type="Navigation" press=".onRowPress">
 						<cells>
 							<Text text="{jobList>id}" />
-							<ObjectIdentifier title="{jobList>triggerType}" text="Registries: {jobList>totalRegistry} | Changes: {jobList>changeCount}" />
+							<Text text="{jobList>triggerText}" />
 							<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
 							<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
 							<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
-							<Text text="{path: 'jobList>durationMs', formatter: '.formatDuration'}" />
 							<Text text="{jobList>executedBy}" />
 						</cells>
 					</ColumnListItem>

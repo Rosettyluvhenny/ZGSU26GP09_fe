@@ -67,6 +67,7 @@ export interface Job {
 	executedBy: string;
 
 	triggerType: string;
+	triggerText: string;
 	totalRegistry: number;
 	changeCount: number;
 	newVersionCount: number;
@@ -86,6 +87,7 @@ export interface LogEntry {
 	logResult: string;
 	objectId: string;
 	objectIdType: string;
+	jobId: string;
 }
 
 export interface SessionData {

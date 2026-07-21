@@ -5,10 +5,9 @@ import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import MessageBox from 'sap/m/MessageBox';
+import MessageToast from 'sap/m/MessageToast';
 import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
-
-import History from 'sap/ui/core/routing/History';
 import type Table from 'sap/m/Table';
 
 import BaseController, { type AiChatContext } from './BaseController';
@@ -562,20 +561,33 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 
 	// ─────────────────────────────────────────────────────────────────────────
 
+	public onCopyBaseXml(): void {
+		const xml = (this.getModel('detailCompare') as JSONModel).getProperty('/basePrettyXml') as string;
+		void navigator.clipboard
+			.writeText(xml)
+			.then(() => MessageToast.show('Base XML copied.'))
+			.catch(() => MessageToast.show('Failed to copy XML.'));
+	}
+
+	public onCopyCompareXml(): void {
+		const xml = (this.getModel('detailCompare') as JSONModel).getProperty('/comparePrettyXml') as string;
+		void navigator.clipboard
+			.writeText(xml)
+			.then(() => MessageToast.show('Compare XML copied.'))
+			.catch(() => MessageToast.show('Failed to copy XML.'));
+	}
+
 	public onNavBack(): void {
-		const previousHash = History.getInstance().getPreviousHash();
-		if (previousHash !== undefined && previousHash !== '') {
-			window.history.go(-1);
+		if (this.registryId && this.leftVersionId && this.rightVersionId) {
+			this.navTo('versionCompare', {
+				registryId: this.registryId,
+				leftVersionId: this.leftVersionId,
+				rightVersionId: this.rightVersionId
+			}, true);
+		} else if (this.registryId) {
+			this.navTo('registryDetail', { registryId: this.registryId }, true);
 		} else {
-			if (this.registryId && this.leftVersionId && this.rightVersionId) {
-				this.getRouter().navTo('versionCompare', {
-					registryId: this.registryId,
-					leftVersionId: this.leftVersionId,
-					rightVersionId: this.rightVersionId
-				}, undefined, true);
-			} else {
-				this.getRouter().navTo('home', {}, undefined, true);
-			}
+			this.navTo('registryList', {}, true);
 		}
 	}
 

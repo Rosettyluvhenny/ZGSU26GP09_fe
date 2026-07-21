@@ -272,7 +272,8 @@ export function mapLogEntity(entity: ODataRecord): LogEntry {
 		remarks: asString(entity.Remarks),
 		logResult: asString(entity.LogResult),
 		objectId: asString(entity.ObjectId),
-		objectIdType: asString(entity.objectIdType)
+		objectIdType: asString(entity.objectIdType),
+		jobId: asString(entity.JobId)
 	};
 }
 
@@ -289,6 +290,7 @@ export function mapJobEntity(entity: ODataRecord): Job {
 		durationMs: finishedAtValue ? new Date(finishedAtValue).getTime() - new Date(startedAt).getTime() : null,
 		executedBy: asString(entity.TriggeredBy) || "",
 		triggerType: asString(entity.TriggerType) || "",
+		triggerText: asString(entity.TriggerText) || asString(entity.TriggerType) || "",
 		totalRegistry: Number(entity.TotalRegistry) || 0,
 		changeCount: Number(entity.ChangeCount) || 0,
 		newVersionCount: Number(entity.NewVersionCount) || 0,
