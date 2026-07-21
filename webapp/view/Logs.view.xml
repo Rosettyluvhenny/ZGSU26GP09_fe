@@ -13,7 +13,7 @@
 					<Title text="Logs" level="H1" />
 				</f:heading>
 				<f:content>
-					<ObjectStatus text="{= ${logList>/items}.length + ' entries' }" state="Information" />
+					<ObjectStatus text="{logList>/countLabel}" state="Information" />
 				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
@@ -32,7 +32,7 @@
 						<Button text="Clear" press=".onClearFilters" />
 						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 						<ToolbarSpacer />
-						<SearchField width="16rem" placeholder="Search remarks, actor, ID…" liveChange=".onSearchLiveChange" />
+						<SearchField width="16rem" placeholder="Search remarks, actor… (Enter / Go)" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
 					</Toolbar>
 					<HBox wrap="Wrap" alignItems="End" class="sapUiTinyMarginTop">
 						<VBox class="sapUiSmallMarginEnd">
@@ -62,43 +62,54 @@
 			</f:DynamicPageHeader>
 		</f:header>
 		<f:content>
-			<Table
-				id="logTable"
-				items="{logList>/items}"
-				busy="{logList>/busy}"
-				growing="true"
-				growingThreshold="50"
-				mode="None"
-				sticky="ColumnHeaders"
-				noDataText="No log entries found.">
-				<headerToolbar>
-					<Toolbar>
-						<Title text="Log Entries" level="H2" />
-						<ToolbarSpacer />
-						<ObjectStatus text="{= ${logList>/items}.length + ' shown' }" state="Information" />
-					</Toolbar>
-				</headerToolbar>
-				<columns>
-					<Column width="11rem"><Text text="Created At" /></Column>
-					<Column width="9rem"><Text text="Action" /></Column>
-					<Column width="8rem"><Text text="Result" /></Column>
-					<Column width="9rem"><Text text="Actor" /></Column>
-					<Column width="12rem" minScreenWidth="Desktop" demandPopin="true"><Text text="Object ID" /></Column>
-				</columns>
-				<items>
-					<ColumnListItem type="Navigation" press=".onRowPress">
-						<cells>
-							<Text text="{path: 'logList>actionAt', formatter: '.formatDateTime'}" />
-							<ObjectIdentifier
-								title="{path: 'logList>actionType', formatter: '.formatActionType'}"
-								text="{logList>actionType}" />
-							<ObjectStatus text="{logList>logResult}" state="{path: 'logList>logResult', formatter: '.formatLogResultState'}" />
-							<Text text="{logList>actor}" />
-							<Text text="{path: 'logList>objectId', formatter: '.formatShortId'}" tooltip="{logList>objectId}" />
-						</cells>
-					</ColumnListItem>
-				</items>
-			</Table>
+			<VBox width="100%">
+				<Table
+					id="logTable"
+					items="{logList>/items}"
+					busy="{logList>/busy}"
+					mode="None"
+					sticky="ColumnHeaders"
+					noDataText="No log entries found.">
+					<headerToolbar>
+						<Toolbar>
+							<Title text="Log Entries" level="H2" />
+							<ToolbarSpacer />
+							<ObjectStatus text="{logList>/countLabel}" state="Information" />
+						</Toolbar>
+					</headerToolbar>
+					<columns>
+						<Column width="11rem"><Text text="Created At" /></Column>
+						<Column width="9rem"><Text text="Action" /></Column>
+						<Column width="8rem"><Text text="Result" /></Column>
+						<Column width="9rem"><Text text="Actor" /></Column>
+						<Column width="12rem" minScreenWidth="Desktop" demandPopin="true"><Text text="Object ID" /></Column>
+					</columns>
+					<items>
+						<ColumnListItem type="Navigation" press=".onRowPress">
+							<cells>
+								<Text text="{path: 'logList>actionAt', formatter: '.formatDateTime'}" />
+								<ObjectIdentifier
+									title="{path: 'logList>actionType', formatter: '.formatActionType'}"
+									text="{logList>actionType}" />
+								<ObjectStatus text="{logList>logResult}" state="{path: 'logList>logResult', formatter: '.formatLogResultState'}" />
+								<Text text="{logList>actor}" />
+								<Text text="{path: 'logList>objectId', formatter: '.formatShortId'}" tooltip="{logList>objectId}" />
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+				<Toolbar design="Transparent" visible="{logList>/hasMore}">
+					<ToolbarSpacer />
+					<Button
+						text="More"
+						icon="sap-icon://slim-arrow-down"
+						type="Transparent"
+						press=".onLoadMore"
+						busy="{logList>/loadingMore}"
+						enabled="{= !${logList>/loadingMore} }" />
+					<ToolbarSpacer />
+				</Toolbar>
+			</VBox>
 		</f:content>
 	</f:DynamicPage>
 

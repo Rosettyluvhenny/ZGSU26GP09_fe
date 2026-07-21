@@ -5,7 +5,7 @@ import type UI5Event from 'sap/ui/base/Event';
 
 import BaseController from './BaseController';
 import type { LogEntry } from '../model/types';
-import type { LogQueryFilter } from '../services/LogService';
+import { LOG_PAGE_SIZE, type LogQueryFilter } from '../services/LogService';
 
 interface FilterOption {
 	key: string;
@@ -61,16 +61,17 @@ const OBJECT_TYPE_OPTIONS: FilterOption[] = [
  * @namespace com.zgp9.fe.controller
  */
 export default class Logs extends BaseController {
-	private allLogs: LogEntry[] = [];
 	private detailDialog?: Dialog;
 	private dateFrom: Date | null = null;
 	private dateTo: Date | null = null;
+	private loadingMore = false;
 
 	public onInit(): void {
 		this.setModel(
 			new JSONModel({
-				items: [],
+				items: [] as LogEntry[],
 				busy: false,
+				loadingMore: false,
 				search: '',
 				actionType: 'All',
 				logResult: 'All',
@@ -80,7 +81,10 @@ export default class Logs extends BaseController {
 				objectIdTypeOptions: OBJECT_TYPE_OPTIONS,
 				selectedLog: null as LogEntry | null,
 				activeJobId: '',
-				activeJobLabel: ''
+				activeJobLabel: '',
+				totalCount: 0,
+				hasMore: false,
+				countLabel: '0 entries'
 			}),
 			'logList'
 		);
@@ -101,15 +105,15 @@ export default class Logs extends BaseController {
 		model.setProperty('/activeJobId', jobId);
 		model.setProperty('/activeJobLabel', jobId || '');
 
-		await this.loadLogs();
+		await this.loadLogs(true);
 	}
 
 	public async onGo(): Promise<void> {
-		await this.loadLogs();
+		await this.loadLogs(true);
 	}
 
 	public async onRefresh(): Promise<void> {
-		await this.loadLogs();
+		await this.loadLogs(true);
 	}
 
 	public async onClearFilters(): Promise<void> {
@@ -120,23 +124,35 @@ export default class Logs extends BaseController {
 		model.setProperty('/search', '');
 		this.dateFrom = null;
 		this.dateTo = null;
-		await this.loadLogs();
+		await this.loadLogs(true);
 	}
 
 	public onSearchLiveChange(event: UI5Event): void {
 		const source = event.getSource() as unknown as { getValue: () => string };
 		(this.getModel('logList') as JSONModel).setProperty('/search', source.getValue());
-		this.applyClientSearch();
+	}
+
+	public async onSearch(event: UI5Event): Promise<void> {
+		const source = event.getSource() as unknown as { getValue: () => string };
+		(this.getModel('logList') as JSONModel).setProperty('/search', source.getValue());
+		await this.loadLogs(true);
 	}
 
 	public onFilterChange(): void {
-		// Filters are applied on Go / Refresh (server-side). Kept for Select binding compatibility.
+		// Applied on Go / Refresh (server-side).
 	}
 
 	public onDateRangeChange(event: UI5Event): void {
 		const source = event.getSource() as unknown as { getDateValue: () => Date | null; getSecondDateValue: () => Date | null };
 		this.dateFrom = source.getDateValue();
 		this.dateTo = source.getSecondDateValue();
+	}
+
+	public async onLoadMore(): Promise<void> {
+		if (this.loadingMore) {
+			return;
+		}
+		await this.loadLogs(false);
 	}
 
 	public onRowPress(event: UI5Event): void {
@@ -170,7 +186,6 @@ export default class Logs extends BaseController {
 		const model = this.getModel('logList') as JSONModel;
 		model.setProperty('/activeJobId', '');
 		model.setProperty('/activeJobLabel', '');
-		// Replace URL so refresh/bookmark no longer carries ?jobId=
 		this.getRouter().navTo('logs', {}, undefined, true);
 	}
 
@@ -203,18 +218,53 @@ export default class Logs extends BaseController {
 		return `${normalized.slice(0, 8)}…${normalized.slice(-4)}`;
 	}
 
-	private async loadLogs(): Promise<void> {
+	private async loadLogs(reset: boolean): Promise<void> {
 		const model = this.getModel('logList') as JSONModel;
-		model.setProperty('/busy', true);
+		const currentItems = (model.getProperty('/items') as LogEntry[]) ?? [];
+		const skip = reset ? 0 : currentItems.length;
+
+		if (!reset) {
+			if (!model.getProperty('/hasMore') || this.loadingMore) {
+				return;
+			}
+			this.loadingMore = true;
+			model.setProperty('/loadingMore', true);
+		} else {
+			model.setProperty('/busy', true);
+		}
+
 		try {
-			const filter = this.buildQueryFilter();
-			this.allLogs = await this.getOwnerComponent().getLogService().getLogs(filter);
-			this.applyClientSearch();
+			const filter: LogQueryFilter = {
+				...this.buildQueryFilter(),
+				top: LOG_PAGE_SIZE,
+				skip
+			};
+			const page = await this.getOwnerComponent().getLogService().getLogs(filter);
+			const items = reset ? page.items : currentItems.concat(page.items);
+			const totalCount = page.totalCount;
+			const hasMore = items.length < totalCount && page.items.length > 0;
+
+			model.setProperty('/items', items);
+			model.setProperty('/totalCount', totalCount);
+			model.setProperty('/hasMore', hasMore);
+			model.setProperty('/countLabel', this.buildCountLabel(items.length, totalCount));
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
+			model.setProperty('/loadingMore', false);
+			this.loadingMore = false;
 		}
+	}
+
+	private buildCountLabel(shown: number, total: number): string {
+		if (total <= 0) {
+			return '0 entries';
+		}
+		if (shown >= total) {
+			return `${total} entries`;
+		}
+		return `Showing ${shown} of ${total}`;
 	}
 
 	private buildQueryFilter(): LogQueryFilter {
@@ -228,34 +278,6 @@ export default class Logs extends BaseController {
 			dateTo: this.dateTo,
 			search: (model.getProperty('/search') as string) || undefined
 		};
-	}
-
-	private applyClientSearch(): void {
-		const model = this.getModel('logList') as JSONModel;
-		const search = (model.getProperty('/search') as string).trim().toLowerCase();
-		if (!search) {
-			model.setProperty('/items', this.allLogs);
-			return;
-		}
-
-		const filtered = this.allLogs.filter((log) => {
-			const haystack = [
-				log.id,
-				log.actionType,
-				this.formatActionType(log.actionType),
-				log.actor,
-				log.remarks,
-				log.logResult,
-				log.objectIdType,
-				log.objectId,
-				log.jobId,
-				log.ipAddress
-			]
-				.join(' ')
-				.toLowerCase();
-			return haystack.includes(search);
-		});
-		model.setProperty('/items', filtered);
 	}
 
 	private async openDetailDialog(log: LogEntry): Promise<void> {

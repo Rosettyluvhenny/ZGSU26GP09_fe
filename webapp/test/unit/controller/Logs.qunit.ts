@@ -29,6 +29,10 @@ const SAMPLE_LOGS: LogEntry[] = [
     makeLog({ id: "log-3", actionType: "DELETE",  logResult: "SUCCESS", objectIdType: "REGISTRY", objectId: "reg-2", actionAt: "2024-06-03T15:00:00.000Z", actor: "bob" })
 ];
 
+function pageOf(items: LogEntry[], totalCount = items.length, hasMore = false) {
+    return { items, totalCount, hasMore };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Fixture builder
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ function buildLogsFixture(): LogsFixture {
         getProperty: sinon.stub().callsFake((p: string) => modelData[p])
     };
 
-    const logService = { getLogs: sinon.stub().resolves(SAMPLE_LOGS) };
+    const logService = { getLogs: sinon.stub().resolves(pageOf(SAMPLE_LOGS)) };
     const navToStub = sinon.stub();
 
     sandbox.stub(ctrl, "getModel").callsFake((name?: string) =>
@@ -145,23 +149,27 @@ QUnit.test("updates /search in the model", async function (assert) {
     const event = { getSource: sinon.stub().returns({ getValue: sinon.stub().returns("alice") }) } as any;
     ctrl.onSearchLiveChange(event);
     assert.strictEqual(modelData["/search"], "alice");
+    assert.ok(logService.getLogs.notCalled, "liveChange must not trigger server load");
 });
-QUnit.test("filters /items to entries matching the search text", async function (assert) {
-    const { ctrl, modelData } = buildLogsFixture();
+QUnit.test("search (Enter) reloads from server with query", async function (assert) {
+    const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actor === "bob")));
     const event = { getSource: sinon.stub().returns({ getValue: sinon.stub().returns("bob") }) } as any;
-    ctrl.onSearchLiveChange(event);
+    await ctrl.onSearch(event);
+    assert.strictEqual(modelData["/search"], "bob");
+    assert.ok(logService.getLogs.called, "onSearch must call getLogs");
     const items = modelData["/items"] as LogEntry[];
-    assert.ok(items.every(l => l.actor === "bob" || JSON.stringify(l).toLowerCase().includes("bob")),
-        "Filtered items must match the search text");
+    assert.ok(items.every(l => l.actor === "bob"), "Filtered items must match search");
 });
-QUnit.test("clearing search restores all items", async function (assert) {
-    const { ctrl, modelData } = buildLogsFixture();
+QUnit.test("clearing search via onSearch restores all items", async function (assert) {
+    const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
-    const totalCount = (modelData["/items"] as LogEntry[]).length;
-    ctrl.onSearchLiveChange({ getSource: sinon.stub().returns({ getValue: sinon.stub().returns("bob") }) } as any);
-    ctrl.onSearchLiveChange({ getSource: sinon.stub().returns({ getValue: sinon.stub().returns("") }) } as any);
-    assert.strictEqual((modelData["/items"] as LogEntry[]).length, totalCount, "Clearing search must restore all items");
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actor === "bob")));
+    await ctrl.onSearch({ getSource: sinon.stub().returns({ getValue: sinon.stub().returns("bob") }) } as any);
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS));
+    await ctrl.onSearch({ getSource: sinon.stub().returns({ getValue: sinon.stub().returns("") }) } as any);
+    assert.strictEqual((modelData["/items"] as LogEntry[]).length, SAMPLE_LOGS.length, "Clearing search must restore all items");
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -176,7 +184,7 @@ QUnit.test("filters by actionType correctly", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
     modelData["/actionType"] = "UPDATE";
-    logService.getLogs.resolves(SAMPLE_LOGS.filter(l => l.actionType === "UPDATE"));
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actionType === "UPDATE")));
     await ctrl.onGo();
     const items = modelData["/items"] as LogEntry[];
     assert.ok(items.every(l => l.actionType === "UPDATE"), "All items must have actionType=UPDATE");
@@ -185,7 +193,7 @@ QUnit.test("filters by logResult correctly", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
     modelData["/logResult"] = "FAILURE";
-    logService.getLogs.resolves(SAMPLE_LOGS.filter(l => l.logResult === "FAILURE"));
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.logResult === "FAILURE")));
     await ctrl.onGo();
     const items = modelData["/items"] as LogEntry[];
     assert.ok(items.every(l => l.logResult === "FAILURE"), "All items must have logResult=FAILURE");
@@ -194,7 +202,7 @@ QUnit.test("filters by objectIdType correctly", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
     modelData["/objectIdType"] = "VERSION";
-    logService.getLogs.resolves(SAMPLE_LOGS.filter(l => l.objectIdType === "VERSION"));
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.objectIdType === "VERSION")));
     await ctrl.onGo();
     const items = modelData["/items"] as LogEntry[];
     assert.ok(items.every(l => l.objectIdType === "VERSION"), "All items must have objectIdType=VERSION");
@@ -203,10 +211,10 @@ QUnit.test("'All' filter shows all items", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
     modelData["/actionType"] = "DELETE";
-    logService.getLogs.resolves(SAMPLE_LOGS.filter(l => l.actionType === "DELETE"));
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actionType === "DELETE")));
     await ctrl.onGo();
     modelData["/actionType"] = "All";
-    logService.getLogs.resolves(SAMPLE_LOGS);
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS));
     await ctrl.onGo();
     assert.strictEqual((modelData["/items"] as LogEntry[]).length, SAMPLE_LOGS.length, "All items must show when filter is 'All'");
 });
@@ -230,7 +238,7 @@ QUnit.test("filters out logs before the dateFrom boundary", async function (asse
         })
     } as any;
     ctrl.onDateRangeChange(event);
-    logService.getLogs.resolves(SAMPLE_LOGS.filter(l => new Date(l.actionAt) >= from));
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => new Date(l.actionAt) >= from)));
     await ctrl.onGo();
     const items = modelData["/items"] as LogEntry[];
     assert.ok(!items.find(l => l.id === "log-1"), "log-1 (2024-06-01) must be excluded");
@@ -246,7 +254,7 @@ QUnit.test("filters out logs after the dateTo boundary", async function (assert)
         })
     } as any;
     ctrl.onDateRangeChange(event);
-    logService.getLogs.resolves(SAMPLE_LOGS.filter(l => new Date(l.actionAt) <= new Date("2024-06-01T23:59:59.999Z")));
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => new Date(l.actionAt) <= new Date("2024-06-01T23:59:59.999Z"))));
     await ctrl.onGo();
     const items = modelData["/items"] as LogEntry[];
     assert.ok(items.every(l => new Date(l.actionAt) <= new Date("2024-06-01T23:59:59.999Z")),
