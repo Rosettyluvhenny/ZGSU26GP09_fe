@@ -4,6 +4,11 @@ coverage
 report
 .nyc_output
 
+# MTA build artifacts
+Makefile_*.mta
+mta_archives/
+*.mtar
+
 # Logs
 logs
 *.log
