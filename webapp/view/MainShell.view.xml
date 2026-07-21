@@ -26,7 +26,7 @@
 			</OverflowToolbar>
 		</tnt:header>
 		<tnt:sideContent>
-			<tnt:SideNavigation expanded="true">
+			<tnt:SideNavigation expanded="true" visible="{ui>/permissionsLoaded}">
 				<tnt:NavigationList selectedKey="{ui>/currentSection}">
 					<tnt:NavigationListItem key="home" text="Home" icon="sap-icon://home" select=".onNavigateHome" />
 					<tnt:NavigationListItem key="registries" text="Registry Management" icon="sap-icon://business-objects-experience" select=".onNavigateRegistries" />

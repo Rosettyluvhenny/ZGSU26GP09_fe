@@ -442,16 +442,11 @@ export default abstract class BaseController extends Controller {
 
 	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();
-		// If previous hash is undefined (direct link) or empty (login page)
+		// If previous hash is undefined (direct link)
 		if (previousHash !== undefined && previousHash !== '') {
 			window.history.go(-1);
 		} else {
-			const session = this.getSessionModel().getData() as { authenticated?: boolean };
-			if (session?.authenticated) {
-				this.getRouter().navTo('home', {}, undefined, true);
-			} else {
-				this.getRouter().navTo('login', {}, undefined, true);
-			}
+			this.getRouter().navTo('home', {}, undefined, true);
 		}
 	}
 }

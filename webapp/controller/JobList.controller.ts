@@ -27,17 +27,10 @@ export default class JobList extends BaseController {
 	}
 
 	public async onRouteMatched(): Promise<void> {
-		try {
-			const permissions = await this.getOwnerComponent().getRegistryService().getPermissions();
-			const canExecuteScanJob = permissions.includes("ScanJob.Execute");
-			this.getUiModel().setProperty("/canExecuteScanJob", canExecuteScanJob);
-			if (!canExecuteScanJob) {
-				MessageToast.show("Access denied.");
-				this.getRouter().navTo("home", {}, true);
-				return;
-			}
-		} catch (error) {
-			await this.handleServiceError(error);
+		// Permission already loaded at startup by MainShell; just guard here
+		if (!this.getUiModel().getProperty("/canExecuteScanJob")) {
+			MessageToast.show("Access denied.");
+			this.getRouter().navTo("home", {}, true);
 			return;
 		}
 
