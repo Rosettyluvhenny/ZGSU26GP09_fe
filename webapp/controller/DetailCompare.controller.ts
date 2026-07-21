@@ -20,8 +20,9 @@ interface ExtendedTreeBinding {
 	getMetadata?(): { getName(): string };
 }
 
-import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
+import type { NodeDiffEntry, NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
 import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, computeLineDiff, highlightXmlLine, normalizeXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { analyzeChanges, type ChangeRow, type ChangeSeverity } from '../services/ChangeAnalysis';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -42,6 +43,12 @@ export default class DetailCompare extends BaseController {
 	private compareXmlLinesAll: XmlLineEntry[] = [];
 	/** Rows of unchanged context kept around each change in "Changes only" mode. */
 	private static readonly CHANGES_CONTEXT = 3;
+	/** Full change list kept so the severity filter can toggle without re-analyzing. */
+	private changeRowsAll: ChangeRow[] = [];
+	/** semanticId -> line number on each side, so a change row can jump into both XML panes. */
+	private changeLineIndex = new Map<string, { baseLine: number; compareLine: number }>();
+	/** Set while scrolling both panes programmatically so the scroll-sync doesn't fight it. */
+	private suppressScrollSync = false;
 	private _sendMailDialogPromise: Promise<Dialog> | null = null;
 	private _sendMailDialog: Dialog | null = null;
 
@@ -65,7 +72,14 @@ export default class DetailCompare extends BaseController {
 				diffChanged: 0,
 				changeBlockCount: 0,
 				navPosition: '',
-				xmlViewMode: 'all'
+				xmlViewMode: 'all',
+				changeRows: [] as ChangeRow[],
+				changeFilter: 'all',
+				changeHeadline: '',
+				changeBreaking: 0,
+				changeCompatible: 0,
+				changeCosmetic: 0,
+				changeTotal: 0
 			}),
 			'detailCompare'
 		);
@@ -571,7 +585,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			return;
 		}
 
-		this.selectXmlLine('baseDetailXmlTable', node.lineStart || offsetToLine(node.offsetStart, this.getLineStarts('/baseLineStarts')));
+		this.revealTreeNode(node, 'base');
 	}
 
 	public onCompareTreeSelectionChange(event: UI5Event): void {
@@ -580,7 +594,25 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			return;
 		}
 
-		this.selectXmlLine('compareDetailXmlTable', node.lineStart || offsetToLine(node.offsetStart, this.getLineStarts('/compareLineStarts')));
+		this.revealTreeNode(node, 'compare');
+	}
+
+	/** Selecting a node in either tree scrolls both XML panes to that element. */
+	private revealTreeNode(node: NodeTreeViewItem, side: 'base' | 'compare'): void {
+		const fallbackLine = node.lineStart
+			|| offsetToLine(node.offsetStart, this.getLineStarts(side === 'base' ? '/baseLineStarts' : '/compareLineStarts'));
+		const lines = this.changeLineIndex.get(node.semanticId)
+			?? (side === 'base' ? { baseLine: fallbackLine, compareLine: 0 } : { baseLine: 0, compareLine: fallbackLine });
+
+		const rowIndex = this.findAlignedIndex(lines, side);
+		if (rowIndex < 0) {
+			// Not part of the aligned rows (e.g. the fallback single-node tree).
+			this.selectXmlLine(side === 'base' ? 'baseDetailXmlTable' : 'compareDetailXmlTable', fallbackLine);
+			return;
+		}
+
+		this.syncChangeCursor(rowIndex);
+		this.revealAlignedRow(rowIndex);
 	}
 
 	private async loadCompareWorkspace(): Promise<void> {
@@ -645,6 +677,8 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 
 			const newDiff = await this.getOwnerComponent().getDetailService().compareDetail(this.baseDetailId, this.compareDetailId);
 			console.log('compareDetail API result (newDiff):', newDiff);
+
+			this.applyChangeAnalysis(newDiff ?? compareNodeDiff, compareTreeMapped, baseTree);
 
 			if (newDiff) {
 				const newDiffMap = new Map<string, string>();
@@ -728,6 +762,155 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 
 
 
+	/** Builds the reviewable change list and the summary counters from the node diff. */
+	private applyChangeAnalysis(diff: NodeDiffEntry[] | null, compareTree: NodeTreeViewItem[], baseTree: NodeTreeViewItem[]): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const analysis = analyzeChanges(diff, compareTree, baseTree);
+
+		this.changeRowsAll = analysis.rows;
+		this.indexChangeLines(baseTree, compareTree);
+		model.setProperty('/changeHeadline', analysis.headline);
+		model.setProperty('/changeBreaking', analysis.breaking);
+		model.setProperty('/changeCompatible', analysis.compatible);
+		model.setProperty('/changeCosmetic', analysis.cosmetic);
+		model.setProperty('/changeTotal', analysis.total);
+
+		// Land on the risky changes when there are any, otherwise show everything.
+		const filter = analysis.breaking > 0 ? 'Breaking' : 'all';
+		model.setProperty('/changeFilter', filter);
+		this.applyChangeFilter(filter);
+	}
+
+	public onChangeFilterSelect(): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		this.applyChangeFilter((model.getProperty('/changeFilter') as string) ?? 'all');
+	}
+
+	private applyChangeFilter(filter: string): void {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const rows = filter === 'all' ? this.changeRowsAll : this.changeRowsAll.filter((row) => row.severity === filter);
+		model.setProperty('/changeRows', rows);
+	}
+
+	/** Records where each element sits in both pretty-printed documents. */
+	private indexChangeLines(baseTree: NodeTreeViewItem[], compareTree: NodeTreeViewItem[]): void {
+		this.changeLineIndex.clear();
+
+		const walk = (nodes: NodeTreeViewItem[], side: 'base' | 'compare'): void => {
+			for (const node of nodes) {
+				if (node.semanticId) {
+					const entry = this.changeLineIndex.get(node.semanticId) ?? { baseLine: 0, compareLine: 0 };
+					if (side === 'base') {
+						entry.baseLine = entry.baseLine || node.lineStart;
+					} else {
+						entry.compareLine = entry.compareLine || node.lineStart;
+					}
+					this.changeLineIndex.set(node.semanticId, entry);
+				}
+				if (node.children && node.children.length > 0) {
+					walk(node.children, side);
+				}
+			}
+		};
+
+		walk(baseTree, 'base');
+		walk(compareTree, 'compare');
+	}
+
+	/** Clicking a change scrolls both XML panes to the element it refers to. */
+	public onChangeRowPress(event: UI5Event): void {
+		const item = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => ChangeRow } | null } | null;
+		const row = item?.getBindingContext('detailCompare')?.getObject();
+		if (row?.semanticId) {
+			this.revealChange(row.semanticId);
+		}
+	}
+
+	private revealChange(semanticId: string): void {
+		const lines = this.changeLineIndex.get(semanticId);
+		if (!lines) {
+			return;
+		}
+
+		const model = this.getModel('detailCompare') as JSONModel;
+		let rowIndex = this.findAlignedIndex(lines);
+
+		// In "Changes only" mode the target row may have been collapsed away.
+		if (rowIndex < 0 && (model.getProperty('/xmlViewMode') as string) === 'changes') {
+			model.setProperty('/xmlViewMode', 'all');
+			this.applyXmlViewMode('all');
+			rowIndex = this.findAlignedIndex(lines);
+		}
+		if (rowIndex < 0) {
+			return;
+		}
+
+		// Keep prev/next continuing from wherever the user jumped to.
+		this.syncChangeCursor(rowIndex);
+		this.revealAlignedRow(rowIndex);
+	}
+
+	/**
+	 * Maps a pair of document line numbers onto an index in the currently bound
+	 * (possibly filtered) aligned rows. Removed elements only exist on the base
+	 * side and added ones only on the compare side, so either may be missing.
+	 */
+	private findAlignedIndex(lines: { baseLine: number; compareLine: number }, prefer: 'base' | 'compare' = 'base'): number {
+		const model = this.getModel('detailCompare') as JSONModel;
+		const rows = {
+			base: { lines: (model.getProperty('/baseXmlLines') as XmlLineEntry[]) ?? [], lineNo: lines.baseLine },
+			compare: { lines: (model.getProperty('/compareXmlLines') as XmlLineEntry[]) ?? [], lineNo: lines.compareLine }
+		};
+
+		// An element that moved sits at a different aligned row on each side, so
+		// look at the side the user actually clicked first.
+		for (const side of prefer === 'base' ? ['base', 'compare'] as const : ['compare', 'base'] as const) {
+			const { lines: sideLines, lineNo } = rows[side];
+			if (lineNo > 0) {
+				const index = sideLines.findIndex((line) => line.lineNo === lineNo);
+				if (index >= 0) {
+					return index;
+				}
+			}
+		}
+		return -1;
+	}
+
+	/** Moves the prev/next cursor to the change block containing rowIndex. */
+	private syncChangeCursor(rowIndex: number): void {
+		if (this.changeBlockStarts.length === 0) {
+			return;
+		}
+
+		let cursor = 0;
+		for (let i = 0; i < this.changeBlockStarts.length; i++) {
+			if (this.changeBlockStarts[i] > rowIndex) {
+				break;
+			}
+			cursor = i;
+		}
+
+		this.changeBlockCursor = cursor;
+		const model = this.getModel('detailCompare') as JSONModel;
+		model.setProperty('/navPosition', `${cursor + 1} / ${this.changeBlockStarts.length}`);
+	}
+
+	public formatSeverityState(severity: ChangeSeverity): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' {
+		switch (severity) {
+			case 'Breaking':
+				return 'Error';
+			case 'Compatible':
+				return 'Success';
+			default:
+				return 'None';
+		}
+	}
+
+	/** Renders an empty before/after cell as an em dash so the table stays readable. */
+	public formatChangeValue(value: string): string {
+		return value && value.length > 0 ? value : '—';
+	}
+
 	private scheduleTreeExpansion(treeId: string): void {
 		const tree = this.byId(treeId) as TreeTable;
 		console.log(`[scheduleTreeExpansion] looking for "${treeId}"`, tree);
@@ -783,20 +966,185 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		}
 
 		let syncing = false;
-		const sync = (source: HTMLElement, target: HTMLElement): void => {
-			if (syncing) {
+
+		// The trees are not aligned row-for-row (each side has its own node count),
+		// so mirroring the pixel offset is the only meaningful option there.
+		if (treeMode) {
+			const pixelSync = (source: HTMLElement, target: HTMLElement): void => {
+				if (syncing || this.suppressScrollSync) {
+					return;
+				}
+				syncing = true;
+				target.scrollTop = source.scrollTop;
+				target.scrollLeft = source.scrollLeft;
+				window.requestAnimationFrame(() => {
+					syncing = false;
+				});
+			};
+
+			left.addEventListener('scroll', () => pixelSync(left, right));
+			right.addEventListener('scroll', () => pixelSync(right, left));
+			return;
+		}
+
+		// The XML panes *are* aligned row-for-row, but their rows differ in height:
+		// long lines wrap, and padding rows collapse while the opposite side holds
+		// real content. Mirroring scrollTop therefore drifts a little further out of
+		// step with every change block, so anchor on the row index instead.
+		let pendingFrame = 0;
+		const rowSync = (sourceTableId: string, targetTableId: string, source: HTMLElement, target: HTMLElement): void => {
+			if (syncing || this.suppressScrollSync || pendingFrame) {
 				return;
 			}
-			syncing = true;
-			target.scrollTop = source.scrollTop;
-			target.scrollLeft = source.scrollLeft;
-			window.requestAnimationFrame(() => {
-				syncing = false;
+			// Throttle to one alignment per frame. The re-entrancy flag is cleared on a
+			// timer rather than inside the frame, so a frame that never arrives (hidden
+			// tab, where rAF is suspended) cannot wedge the sync permanently.
+			pendingFrame = window.requestAnimationFrame(() => {
+				pendingFrame = 0;
+				if (this.suppressScrollSync) {
+					return;
+				}
+				syncing = true;
+				this.alignPaneToRow(sourceTableId, targetTableId, source, target);
+				target.scrollLeft = source.scrollLeft;
+				window.setTimeout(() => {
+					syncing = false;
+				}, 0);
 			});
 		};
 
-		left.addEventListener('scroll', () => sync(left, right));
-		right.addEventListener('scroll', () => sync(right, left));
+		left.addEventListener('scroll', () => rowSync('baseDetailXmlTable', 'compareDetailXmlTable', left, right));
+		right.addEventListener('scroll', () => rowSync('compareDetailXmlTable', 'baseDetailXmlTable', right, left));
+	}
+
+	/** Scrolls target so the row the source pane is showing at its top sits at the target's top. */
+	private alignPaneToRow(sourceTableId: string, targetTableId: string, source: HTMLElement, target: HTMLElement): void {
+		const sourceTable = this.byId(sourceTableId) as Table | null;
+		const targetTable = this.byId(targetTableId) as Table | null;
+		if (!sourceTable || !targetTable) {
+			return;
+		}
+
+		const sourceItems = sourceTable.getItems();
+		const targetItems = targetTable.getItems();
+		if (sourceItems.length === 0 || targetItems.length === 0) {
+			return;
+		}
+
+		// Rows are laid out top to bottom, so the first still-visible row can be
+		// found by binary search rather than measuring every row on every scroll.
+		const sourceTop = source.getBoundingClientRect().top;
+		let low = 0;
+		let high = sourceItems.length - 1;
+		let index = 0;
+		while (low <= high) {
+			const mid = (low + high) >> 1;
+			const rect = sourceItems[mid].getDomRef()?.getBoundingClientRect();
+			if (!rect) {
+				break;
+			}
+			if (rect.bottom <= sourceTop) {
+				low = mid + 1;
+			} else {
+				index = mid;
+				high = mid - 1;
+			}
+		}
+
+		const sourceRow = sourceItems[index]?.getDomRef();
+		const targetRow = targetItems[Math.min(index, targetItems.length - 1)]?.getDomRef();
+		if (!sourceRow || !targetRow) {
+			return;
+		}
+
+		const withinRow = sourceTop - sourceRow.getBoundingClientRect().top;
+		const targetTop = target.getBoundingClientRect().top;
+		target.scrollTop += targetRow.getBoundingClientRect().top - targetTop + withinRow;
+	}
+
+	/**
+	 * Brings the same aligned row into view in *both* panes and highlights it.
+	 *
+	 * Each pane is scrolled to its own row rather than one pane being scrolled and
+	 * the other following the scroll-sync, because differing row heights would put
+	 * the second pane on a different line.
+	 */
+	private revealAlignedRow(rowIndex: number): void {
+		const baseTable = this.byId('baseDetailXmlTable') as Table | null;
+		const compareTable = this.byId('compareDetailXmlTable') as Table | null;
+		if (!baseTable || !compareTable) {
+			return;
+		}
+
+		this.growTableToIndex(baseTable, rowIndex, () => {
+			this.growTableToIndex(compareTable, rowIndex, () => {
+				window.setTimeout(() => {
+					this.suppressScrollSync = true;
+					this.highlightRowAt(baseTable, rowIndex);
+					this.highlightRowAt(compareTable, rowIndex);
+					this.scrollPaneToRow('baseXmlScroll', baseTable, rowIndex);
+					this.scrollPaneToRow('compareXmlScroll', compareTable, rowIndex);
+					// The change list and trees sit above the XML panes, so bring the
+					// diff itself into view or the user never sees the row we landed on.
+					this.ensureSectionVisible('xmlDiffToolbar');
+					window.setTimeout(() => {
+						this.suppressScrollSync = false;
+					}, 150);
+				}, 50);
+			});
+		});
+	}
+
+	/**
+	 * Scrolls the page so the given section is on screen, but only when it is not
+	 * already showing — otherwise stepping through changes with prev/next would
+	 * yank the page on every click.
+	 */
+	private ensureSectionVisible(controlId: string): void {
+		const dom = this.byId(controlId)?.getDomRef();
+		if (!dom) {
+			return;
+		}
+
+		// The page content scrolls inside sap.f.DynamicPage's own wrapper, not the
+		// window (UI5 sets overflow:hidden on <html>), so walk up to whichever
+		// ancestor declares a scrollable overflow instead of trusting
+		// scrollIntoView to find it.
+		let scroller: HTMLElement | null = null;
+		let node = dom.parentElement;
+		while (node) {
+			const overflowY = window.getComputedStyle(node).overflowY;
+			if (overflowY === 'auto' || overflowY === 'scroll') {
+				scroller = node;
+				break;
+			}
+			node = node.parentElement;
+		}
+		if (!scroller) {
+			return;
+		}
+
+		const rect = dom.getBoundingClientRect();
+		const scrollerRect = scroller.getBoundingClientRect();
+		if (rect.top >= scrollerRect.top && rect.bottom <= scrollerRect.bottom) {
+			return;
+		}
+
+		scroller.scrollTop += rect.top - scrollerRect.top;
+	}
+
+	/** Centres a row inside its own scroll container without touching any ancestor. */
+	private scrollPaneToRow(scrollId: string, table: Table, rowIndex: number): void {
+		const scroller = this.findScrollElement(scrollId, false);
+		const row = table.getItems()[rowIndex]?.getDomRef();
+		if (!scroller || !row) {
+			return;
+		}
+
+		const rowRect = row.getBoundingClientRect();
+		const scrollerRect = scroller.getBoundingClientRect();
+		const offset = rowRect.top - scrollerRect.top - (scroller.clientHeight - rowRect.height) / 2;
+		scroller.scrollTop = Math.max(0, scroller.scrollTop + offset);
 	}
 
 	private findScrollElement(controlId: string, _treeMode: boolean): HTMLElement | null {
@@ -805,7 +1153,19 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			return null;
 		}
 
-		return domRef.querySelector('.sapMScrollContScroll');
+		// sap.m.ScrollContainer scrolls on its own root element. The inner
+		// .sapMScrollContScroll div is just the content wrapper (overflow: visible),
+		// so it never fires scroll events and ignores scrollTop.
+		const scrolls = (element: Element): boolean => {
+			const overflowY = window.getComputedStyle(element).overflowY;
+			return overflowY === 'auto' || overflowY === 'scroll';
+		};
+
+		if (scrolls(domRef)) {
+			return domRef as HTMLElement;
+		}
+		const inner = domRef.querySelector<HTMLElement>('.sapMScrollContScroll');
+		return inner && scrolls(inner) ? inner : (domRef as HTMLElement);
 	}
 
 	private getNodeFromEvent(event: UI5Event): NodeTreeViewItem | null {
@@ -1037,23 +1397,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		const model = this.getModel('detailCompare') as JSONModel;
 		model.setProperty('/navPosition', `${this.changeBlockCursor + 1} / ${this.changeBlockStarts.length}`);
 
-		const baseTable = this.byId('baseDetailXmlTable') as Table | null;
-		const compareTable = this.byId('compareDetailXmlTable') as Table | null;
-		if (!baseTable || !compareTable) {
-			return;
-		}
-
-		// Both tables grow independently; ensure the target row is rendered on each
-		// before scrolling. Scrolling the base pane drives the compare pane through
-		// the existing scroll-sync, so only the base side needs scrollIntoView.
-		this.growTableToIndex(baseTable, rowIndex, () => {
-			this.growTableToIndex(compareTable, rowIndex, () => {
-				window.setTimeout(() => {
-					this.highlightRowAt(baseTable, rowIndex, true);
-					this.highlightRowAt(compareTable, rowIndex, false);
-				}, 50);
-			});
-		});
+		this.revealAlignedRow(rowIndex);
 	}
 
 	/** Grow a responsive table until at least index+1 items are rendered, then run done(). */
@@ -1080,15 +1424,9 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		}
 	}
 
-	private highlightRowAt(table: Table, rowIndex: number, scroll: boolean): void {
+	private highlightRowAt(table: Table, rowIndex: number): void {
 		table.getItems().forEach((item) => item.removeStyleClass('versionDetailXmlHighlighted'));
-		const item = table.getItems()[rowIndex];
-		if (item) {
-			item.addStyleClass('versionDetailXmlHighlighted');
-			if (scroll) {
-				item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
-			}
-		}
+		table.getItems()[rowIndex]?.addStyleClass('versionDetailXmlHighlighted');
 	}
 
 	private createFallbackNodeTree(detail: RegistryDetail): NodeTreeViewItem[] {
