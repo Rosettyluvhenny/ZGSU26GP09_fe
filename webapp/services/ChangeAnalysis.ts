@@ -10,7 +10,10 @@ import type { NodeDiffAttribute, NodeDiffEntry, NodeTreeViewItem } from '../mode
  */
 
 /** How risky a single change is for existing consumers of the contract. */
-export type ChangeSeverity = 'Breaking' | 'Compatible' | 'Cosmetic';
+export type ChangeSeverity = 'Breaking' | 'Compatible';
+
+/** A classified change, or `null` when the diff carries no contract meaning. */
+type Classification = { severity: ChangeSeverity; reason: string } | null;
 
 export interface ChangeRow {
 	semanticId: string;
@@ -31,17 +34,16 @@ export interface ChangeAnalysisResult {
 	rows: ChangeRow[];
 	breaking: number;
 	compatible: number;
-	cosmetic: number;
 	total: number;
 	/** e.g. "2 entity types added · 1 property removed · 3 MaxLength changes" */
 	headline: string;
 }
 
 /** Node types that carry documentation rather than the contract itself. */
-const COSMETIC_NODE_TYPES = new Set(['annotation', 'annotations', 'reference', 'include', 'includeannotations']);
+const DOC_ONLY_NODE_TYPES = new Set(['annotation', 'annotations', 'reference', 'include', 'includeannotations']);
 
 /** Attributes holding human-readable text, which can never break a consumer. */
-const COSMETIC_ATTRIBUTES = new Set(['label', 'description', 'text', 'quickinfo', 'heading', 'summary', 'longdescription']);
+const DOC_ONLY_ATTRIBUTES = new Set(['label', 'description', 'text', 'quickinfo', 'heading', 'summary', 'longdescription']);
 
 /** Attributes whose value can be numerically narrowed (dangerous) or widened (safe). */
 const NARROWING_ATTRIBUTES = new Set(['maxlength', 'precision', 'scale']);
@@ -104,12 +106,13 @@ function numericDelta(oldValue: string | undefined, newValue: string | undefined
 	return after - before;
 }
 
-function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): { severity: ChangeSeverity; reason: string } {
+function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): Classification {
 	const name = lower(attribute.NAME);
 	const status = (attribute.STATUS ?? '').toUpperCase();
 
-	if (COSMETIC_NODE_TYPES.has(lower(nodeType)) || COSMETIC_ATTRIBUTES.has(name)) {
-		return { severity: 'Cosmetic', reason: 'Documentation only' };
+	// Documentation only — nothing for a reviewer to decide on.
+	if (DOC_ONLY_NODE_TYPES.has(lower(nodeType)) || DOC_ONLY_ATTRIBUTES.has(name)) {
+		return null;
 	}
 	if (status === 'ADDED') {
 		return { severity: 'Compatible', reason: 'Attribute added' };
@@ -127,7 +130,7 @@ function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): { se
 		if (!wasMandatory && isMandatory) {
 			return { severity: 'Breaking', reason: 'Field became mandatory — existing payloads may be rejected' };
 		}
-		return { severity: 'Cosmetic', reason: 'No effective change' };
+		return null;
 	}
 
 	if (NARROWING_ATTRIBUTES.has(name)) {
@@ -141,7 +144,7 @@ function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): { se
 		if (delta > 0) {
 			return { severity: 'Compatible', reason: `${attribute.NAME} increased` };
 		}
-		return { severity: 'Cosmetic', reason: 'No effective change' };
+		return null;
 	}
 
 	if (IDENTITY_ATTRIBUTES.has(name)) {
@@ -155,9 +158,9 @@ function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): { se
 	return { severity: 'Breaking', reason: `${attribute.NAME} changed — review required` };
 }
 
-function classifyElement(nodeType: string, status: string): { severity: ChangeSeverity; reason: string } {
-	if (COSMETIC_NODE_TYPES.has(lower(nodeType))) {
-		return { severity: 'Cosmetic', reason: 'Documentation only' };
+function classifyElement(nodeType: string, status: string): Classification {
+	if (DOC_ONLY_NODE_TYPES.has(lower(nodeType))) {
+		return null;
 	}
 	switch ((status ?? '').toUpperCase()) {
 		case 'ADDED':
@@ -236,7 +239,11 @@ export function analyzeChanges(
 		// A modified element is only interesting through its attributes.
 		if (status === 'MODIFIED' && attributeDiffs.length > 0) {
 			for (const attribute of attributeDiffs) {
-				const { severity, reason } = classifyAttribute(elementType, attribute);
+				const classification = classifyAttribute(elementType, attribute);
+				if (!classification) {
+					continue;
+				}
+				const { severity, reason } = classification;
 				rows.push({
 					semanticId: entry.SEMANTIC_ID,
 					elementType,
@@ -254,7 +261,11 @@ export function analyzeChanges(
 			continue;
 		}
 
-		const { severity, reason } = classifyElement(elementType, status);
+		const classification = classifyElement(elementType, status);
+		if (!classification) {
+			continue;
+		}
+		const { severity, reason } = classification;
 		rows.push({
 			semanticId: entry.SEMANTIC_ID,
 			elementType,
@@ -271,14 +282,13 @@ export function analyzeChanges(
 	}
 
 	// Riskiest first — that is the order a reviewer wants to work through.
-	const weight: Record<ChangeSeverity, number> = { Breaking: 0, Compatible: 1, Cosmetic: 2 };
+	const weight: Record<ChangeSeverity, number> = { Breaking: 0, Compatible: 1 };
 	rows.sort((left, right) => weight[left.severity] - weight[right.severity] || left.elementName.localeCompare(right.elementName));
 
 	return {
 		rows,
 		breaking: rows.filter((row) => row.severity === 'Breaking').length,
 		compatible: rows.filter((row) => row.severity === 'Compatible').length,
-		cosmetic: rows.filter((row) => row.severity === 'Cosmetic').length,
 		total: rows.length,
 		headline: buildHeadline(groups, rows.length)
 	};

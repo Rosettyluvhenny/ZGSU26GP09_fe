@@ -58,18 +58,12 @@
 								state="Success"
 								icon="sap-icon://accept"
 								class="sapUiSmallMarginBegin" />
-							<ObjectStatus
-								text="{detailCompare>/changeCosmetic} cosmetic"
-								state="None"
-								icon="sap-icon://document-text"
-								class="sapUiSmallMarginBegin" />
 							<ToolbarSpacer />
 							<SegmentedButton selectedKey="{detailCompare>/changeFilter}" selectionChange=".onChangeFilterSelect">
 								<items>
 									<SegmentedButtonItem key="all" text="All" />
 									<SegmentedButtonItem key="Breaking" text="Breaking" />
 									<SegmentedButtonItem key="Compatible" text="Compatible" />
-									<SegmentedButtonItem key="Cosmetic" text="Cosmetic" />
 								</items>
 							</SegmentedButton>
 						</OverflowToolbar>

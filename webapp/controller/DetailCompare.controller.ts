@@ -77,7 +77,6 @@ export default class DetailCompare extends BaseController {
 				changeHeadline: '',
 				changeBreaking: 0,
 				changeCompatible: 0,
-				changeCosmetic: 0,
 				changeTotal: 0
 			}),
 			'detailCompare'
@@ -784,7 +783,6 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		model.setProperty('/changeHeadline', analysis.headline);
 		model.setProperty('/changeBreaking', analysis.breaking);
 		model.setProperty('/changeCompatible', analysis.compatible);
-		model.setProperty('/changeCosmetic', analysis.cosmetic);
 		model.setProperty('/changeTotal', analysis.total);
 
 		// Land on the risky changes when there are any, otherwise show everything.
