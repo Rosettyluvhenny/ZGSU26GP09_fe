@@ -5,6 +5,10 @@
         {
             "name": "$XSAPPNAME.User",
             "description": "General app access"
+        },
+        {
+            "name": "$XSAPPNAME.AiUser",
+            "description": "May spend the shared AI provider quota via the /ai proxy routes"
         }
     ],
     "role-templates": [
@@ -14,6 +18,13 @@
             "scope-references": [
                 "$XSAPPNAME.User"
             ]
+        },
+        {
+            "name": "AiUser",
+            "description": "Access to the AI assistant",
+            "scope-references": [
+                "$XSAPPNAME.AiUser"
+            ]
         }
     ],
     "role-collections": [
@@ -22,6 +33,13 @@
             "description": "Access to ZGP9 app",
             "role-template-references": [
                 "$XSAPPNAME.User"
+            ]
+        },
+        {
+            "name": "ZGP9_AiUser",
+            "description": "Access to the ZGP9 AI assistant (granted separately: it spends a shared paid quota)",
+            "role-template-references": [
+                "$XSAPPNAME.AiUser"
             ]
         }
     ],

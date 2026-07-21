@@ -1,5 +1,91 @@
+const fs = require("fs");
+const path = require("path");
+const { Readable } = require("stream");
+
 const TARGET_PREFIX = "/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001";
 const TARGET_BASE_URL = "https://s40lp1.ucc.cit.tum.de";
+
+// Local stand-in for the BTP destinations behind the approuter's /ai routes
+// (see approuter/xs-app.json). Same paths in both environments, so the frontend
+// never branches on where it is running. Keys come from the git-ignored .env and
+// stay on this side of the wire — nothing is ever sent to the browser.
+const AI_ROUTES = {
+	"/ai/groq/chat/completions": {
+		url: "https://api.groq.com/openai/v1/chat/completions",
+		envVar: "GROQ_API_KEY",
+	},
+	"/ai/openrouter/chat/completions": {
+		url: "https://openrouter.ai/api/v1/chat/completions",
+		envVar: "OPENROUTER_API_KEY",
+	},
+};
+
+let dotEnvCache = null;
+
+/** Minimal .env reader — avoids a dependency for something only dev uses. */
+function readDotEnv() {
+	if (dotEnvCache) {
+		return dotEnvCache;
+	}
+	dotEnvCache = {};
+	try {
+		const raw = fs.readFileSync(path.join(__dirname, "..", "..", ".env"), "utf8");
+		for (const line of raw.split("\n")) {
+			const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+			if (match) {
+				dotEnvCache[match[1]] = match[2].trim().replace(/^['"]|['"]$/g, "");
+			}
+		}
+	} catch {
+		// No .env; the AI routes report the missing key on first use.
+	}
+	return dotEnvCache;
+}
+
+async function handleAiRequest(req, res, route) {
+	const apiKey = process.env[route.envVar] || readDotEnv()[route.envVar] || "";
+	if (!apiKey) {
+		res.statusCode = 500;
+		res.setHeader("Content-Type", "application/json");
+		addCorsHeaders(req, res);
+		res.end(
+			JSON.stringify({
+				error: {
+					message: `${route.envVar} is not set. Copy .env.example to .env and add your key (local dev only).`,
+				},
+			})
+		);
+		return;
+	}
+
+	const body = await readBody(req);
+	const response = await fetch(route.url, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${apiKey}`,
+		},
+		body,
+	});
+
+	res.statusCode = response.status;
+	const contentType = response.headers.get("content-type");
+	if (contentType) {
+		res.setHeader("Content-Type", contentType);
+	}
+	addCorsHeaders(req, res);
+	// Defeat any buffering between here and the browser so SSE chunks arrive live.
+	res.setHeader("Cache-Control", "no-cache, no-transform");
+	res.setHeader("X-Accel-Buffering", "no");
+	res.flushHeaders?.();
+
+	if (!response.body) {
+		res.end();
+		return;
+	}
+	// Piped rather than buffered: the chat renders tokens as they stream in.
+	Readable.fromWeb(response.body).pipe(res);
+}
 
 // Drop only true TCP-level hop-by-hop headers; forward everything else verbatim.
 const hopByHopHeaders = new Set([
@@ -39,7 +125,31 @@ function addCorsHeaders(req, res) {
 
 module.exports = function () {
 	return async function proxyMiddleware(req, res, next) {
-		if (!req.url || !req.url.startsWith(TARGET_PREFIX)) {
+		if (!req.url) {
+			next();
+			return;
+		}
+
+		const aiRoute = AI_ROUTES[req.url.split("?")[0]];
+		if (aiRoute) {
+			if (req.method === "OPTIONS") {
+				addCorsHeaders(req, res);
+				res.statusCode = 204;
+				res.end();
+				return;
+			}
+			try {
+				await handleAiRequest(req, res, aiRoute);
+			} catch (error) {
+				res.statusCode = 502;
+				res.setHeader("Content-Type", "application/json");
+				addCorsHeaders(req, res);
+				res.end(JSON.stringify({ error: { message: error?.message ?? String(error) } }));
+			}
+			return;
+		}
+
+		if (!req.url.startsWith(TARGET_PREFIX)) {
 			next();
 			return;
 		}

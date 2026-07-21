@@ -78,6 +78,70 @@ With the self-contained build, the bootstrap URL in `index.html` has already bee
 
 (When using yarn, do `yarn build:opt` and `yarn start:dist` instead.)
 
+## AI Assistant Configuration
+
+The AI chat calls the providers through the approuter, never directly. The provider
+API keys live in BTP destinations and are attached server-side, so **no key is ever
+shipped to the browser**. Do not reintroduce a key into `webapp/` — anything under
+`webapp/` ends up in `Component-preload.js` and its sourcemaps, readable by any user.
+
+### Local development
+
+```sh
+cp .env.example .env   # then paste your keys
+npm start
+```
+
+`.env` is git-ignored and is read by `ui5-middleware-sap-proxy/lib/sap-proxy.js`, which
+serves the same `/ai/...` paths locally that the approuter serves when deployed. The
+frontend therefore has no environment-specific branching.
+
+### BTP setup (once per subaccount)
+
+In the BTP Cockpit under **Connectivity → Destinations**, create two destinations:
+
+| Field | `AI_GROQ` | `AI_OPENROUTER` |
+| --- | --- | --- |
+| URL | `https://api.groq.com/openai/v1` | `https://openrouter.ai/api/v1` |
+| Type | HTTP | HTTP |
+| Proxy Type | Internet | Internet |
+| Authentication | NoAuthentication | NoAuthentication |
+
+On each, add an additional property carrying the key:
+
+```
+URL.headers.Authorization = Bearer <your-key>
+```
+
+Then assign the **`ZGP9_AiUser`** role collection to the users who may use the assistant.
+It is deliberately separate from `ZGP9_User`: the AI routes spend a shared quota, so
+access is an explicit grant rather than something every app user gets.
+
+> **Note:** SAP KBA [3341287](https://userapps.support.sap.com/sap/support/knowledge/en/3341287)
+> reports `URL.headers.<name>` being ignored by some *standalone* approuter versions. This
+> was verified working on `@sap/approuter` ^15 with the setup above. If a future upgrade
+> breaks it, the symptom is a 401 from the provider on **both** routes at once (a single
+> route failing is a bad key value instead), and the fix is a small approuter extension
+> that injects the header from a CF environment variable.
+>
+> Do not add comment keys such as `_comment` to `xs-app.json` — the approuter validates it
+> against a strict schema and refuses to start on unknown properties.
+
+### Key rotation
+
+Keys rotate entirely in the cockpit — edit the destination property and restart the
+approuter. No rebuild, no redeploy, no code change.
+
+Recommended hardening on the provider side, since any `ZGP9_AiUser` can spend the quota:
+
+- Use a dedicated key per environment so rotating prod does not break dev.
+- On OpenRouter, set a per-key credit limit with a daily reset. This caps the blast
+  radius of any compromise to a known amount.
+
+The approuter routes in `xs-app.json` match **only** `chat/completions`. Keep it that
+way: a broader pattern such as `^/ai/openrouter/(.*)$` would also expose the provider's
+key-management endpoints (e.g. `GET /api/v1/key`, which returns your credit balance).
+
 ## Check the Code
 
 Do the following to run a TypeScript check:

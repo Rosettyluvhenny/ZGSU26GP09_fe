@@ -147,8 +147,6 @@ export default abstract class BaseController extends Controller {
 				input: '',
 				busy: false,
 				thinking: false,
-				hasKey: this.aiChatService.hasApiKey(),
-				apiKeyInput: '',
 				contextLabel: '',
 				suggestions: [] as { text: string }[],
 				models: [] as AiModelOption[],
@@ -156,7 +154,6 @@ export default abstract class BaseController extends Controller {
 			});
 			this.setModel(model, 'aiChat');
 		}
-		model.setProperty('/hasKey', this.aiChatService.hasApiKey());
 		model.setProperty('/models', this.aiChatService.getModelOptions());
 		model.setProperty('/selectedModel', this.aiChatService.getPreferredModel());
 		model.setProperty('/contextLabel', context?.label ?? '');
@@ -220,17 +217,6 @@ export default abstract class BaseController extends Controller {
 		const model = this.getModel('aiChat') as JSONModel;
 		const selected = (model.getProperty('/selectedModel') as string) || AI_MODEL_AUTO;
 		this.aiChatService.setPreferredModel(selected);
-	}
-
-	public onAiChatSaveKey(): void {
-		const model = this.getModel('aiChat') as JSONModel;
-		const key = ((model.getProperty('/apiKeyInput') as string) ?? '').trim();
-		if (!key) {
-			return;
-		}
-		this.aiChatService.setApiKey(key);
-		model.setProperty('/apiKeyInput', '');
-		model.setProperty('/hasKey', true);
 	}
 
 	public onAiSuggestedPrompt(event: { getSource: () => { getText: () => string } }): void {
@@ -301,10 +287,6 @@ export default abstract class BaseController extends Controller {
 				messages.push(errorMessage);
 			} else {
 				messages[assistantIndex] = errorMessage;
-			}
-			// A 401 means the stored key is invalid -> ask for it again.
-			if ((error as { status?: number }).status === 401) {
-				model.setProperty('/hasKey', false);
 			}
 		} finally {
 			model.setProperty('/messages', [...messages]);

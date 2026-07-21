@@ -30,26 +30,10 @@
 					class="sapUiTinyMargin"
 					visible="{= !!${aiChat>/contextLabel} }" />
 
-				<!-- API key setup, shown until a key is saved -->
-				<VBox class="sapUiSmallMargin" visible="{= !${aiChat>/hasKey} }">
-					<MessageStrip
-						text="No OpenRouter API key configured. Create a free key at openrouter.ai/keys and paste it below."
-						type="Warning"
-						showIcon="true" />
-					<HBox class="sapUiTinyMarginTop" width="100%">
-						<Input
-							value="{aiChat>/apiKeyInput}"
-							placeholder="sk-or-v1-..."
-							width="100%"
-							submit=".onAiChatSaveKey" />
-						<Button text="Save" type="Emphasized" press=".onAiChatSaveKey" class="sapUiTinyMarginBegin" />
-					</HBox>
-				</VBox>
-
 				<!-- Messages: fixed height so long conversations scroll inside this container -->
 				<ScrollContainer id="aiChatScroll" width="100%" height="26rem" vertical="true" horizontal="false" class="aiChatScroll">
 					<VBox class="sapUiTinyMargin" width="100%">
-						<VBox visible="{= ${aiChat>/messages}.length === 0 &amp;&amp; ${aiChat>/hasKey} }" alignItems="Center" class="sapUiMediumMarginTop">
+						<VBox visible="{= ${aiChat>/messages}.length === 0 }" alignItems="Center" class="sapUiMediumMarginTop">
 							<core:Icon src="sap-icon://da" size="2.5rem" color="Neutral" />
 							<Text text="Ask anything about the XML metadata on this page." class="sapUiSmallMarginTop" />
 							<HBox wrap="Wrap" justifyContent="Center" class="sapUiSmallMarginTop" items="{aiChat>/suggestions}">
@@ -85,14 +69,14 @@
 					value="{aiChat>/input}"
 					placeholder="Ask about this XML..."
 					width="100%"
-					enabled="{= !${aiChat>/busy} &amp;&amp; ${aiChat>/hasKey} }"
+					enabled="{= !${aiChat>/busy} }"
 					submit=".onAiChatSend" />
 				<Button
 					icon="sap-icon://paper-plane"
 					type="Emphasized"
 					tooltip="Send"
 					press=".onAiChatSend"
-					enabled="{= !${aiChat>/busy} &amp;&amp; ${aiChat>/hasKey} }" />
+					enabled="{= !${aiChat>/busy} }" />
 			</Toolbar>
 		</footer>
 	</Dialog>

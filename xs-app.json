@@ -9,6 +9,22 @@
             "csrfProtection": false
         },
         {
+            "source": "^/ai/groq/chat/completions$",
+            "target": "/chat/completions",
+            "destination": "AI_GROQ",
+            "authenticationType": "xsuaa",
+            "scope": "$XSAPPNAME.AiUser",
+            "csrfProtection": false
+        },
+        {
+            "source": "^/ai/openrouter/chat/completions$",
+            "target": "/chat/completions",
+            "destination": "AI_OPENROUTER",
+            "authenticationType": "xsuaa",
+            "scope": "$XSAPPNAME.AiUser",
+            "csrfProtection": false
+        },
+        {
             "source": "^(.*)",
             "target": "$1",
             "authenticationType": "xsuaa"

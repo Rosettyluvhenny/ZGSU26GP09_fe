@@ -9,7 +9,9 @@ modules:
       disk-quota: 512M
       memory: 256M
     properties:
-      XS_APP_LOG_LEVEL: debug
+      # Keep this at warning in deployed environments: debug logs outbound request
+      # detail, which is the one place the destination-injected AI key could surface.
+      XS_APP_LOG_LEVEL: warning
     requires:
       - name: zgp9-html5-repo-runtime
       - name: zgp9-uaa

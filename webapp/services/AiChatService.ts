@@ -1,5 +1,4 @@
 import ServiceError from './ServiceError';
-import { GROQ_API_KEY, OPENROUTER_API_KEY } from './AiKey';
 
 export interface AiChatMessage {
 	role: 'system' | 'user' | 'assistant';
@@ -13,8 +12,8 @@ interface AiModelRef {
 
 interface AiProvider {
 	name: string;
+	/** Approuter route, not the provider's own URL — see the comment on PROVIDERS. */
 	url: string;
-	apiKey: string;
 	models: AiModelRef[];
 }
 
@@ -30,39 +29,37 @@ export interface AiModelOption {
 
 export const AI_MODEL_AUTO = 'auto';
 
-const API_KEY_STORAGE_KEY = 'com.zgp9.fe.openrouter.apiKey';
 const MODEL_STORAGE_KEY = 'com.zgp9.fe.aiChat.selectedModel';
 const CHAT_STORAGE_PREFIX = 'com.zgp9.fe.aiChat.';
 
-// The keys live in the git-ignored AiKey.ts (see AiKey.example.ts).
-const DEFAULT_API_KEY = OPENROUTER_API_KEY;
-
-// Providers are tried in order; within a provider, models are tried in order.
-// When one is rate-limited/unavailable the next is used, so exhausting one
-// provider's daily quota rolls over to the next. All are OpenAI-compatible.
-const buildProviders = (openRouterKey: string): AiProvider[] =>
-	[
-		{
-			name: 'Groq',
-			url: 'https://api.groq.com/openai/v1/chat/completions',
-			apiKey: GROQ_API_KEY,
-			models: [
-				{ id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
-				{ id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
-				{ id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' }
-			]
-		},
-		{
-			name: 'OpenRouter',
-			url: 'https://openrouter.ai/api/v1/chat/completions',
-			apiKey: openRouterKey,
-			models: [
-				{ id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra' },
-				{ id: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3' },
-				{ id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B' }
-			]
-		}
-	].filter((provider) => provider.apiKey.length > 0);
+// These are approuter routes, not provider URLs. The approuter forwards each to a
+// BTP destination (AI_GROQ / AI_OPENROUTER) that attaches the provider's API key
+// server-side, so no key is ever shipped to or held by the browser. Locally the same
+// paths are served by ui5-middleware-sap-proxy.js reading keys from .env.
+//
+// Providers are tried in order; within a provider, models are tried in order. When one
+// is rate-limited/unavailable the next is used, so exhausting one provider's daily
+// quota rolls over to the next. All are OpenAI-compatible.
+const PROVIDERS: AiProvider[] = [
+	{
+		name: 'Groq',
+		url: '/ai/groq/chat/completions',
+		models: [
+			{ id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
+			{ id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
+			{ id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' }
+		]
+	},
+	{
+		name: 'OpenRouter',
+		url: '/ai/openrouter/chat/completions',
+		models: [
+			{ id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra' },
+			{ id: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3' },
+			{ id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B' }
+		]
+	}
+];
 
 const candidateKey = (candidate: AiModelCandidate): string => `${candidate.provider.name}::${candidate.model.id}`;
 
@@ -75,30 +72,10 @@ interface OpenRouterResponse {
 }
 
 export default class AiChatService {
-	public getApiKey(): string {
-		try {
-			return window.localStorage.getItem(API_KEY_STORAGE_KEY) || DEFAULT_API_KEY;
-		} catch {
-			return DEFAULT_API_KEY;
-		}
-	}
-
-	public setApiKey(apiKey: string): void {
-		try {
-			window.localStorage.setItem(API_KEY_STORAGE_KEY, apiKey.trim());
-		} catch {
-			// Storage unavailable (private mode); the key just won't survive a reload.
-		}
-	}
-
-	public hasApiKey(): boolean {
-		return buildProviders(this.getApiKey()).length > 0;
-	}
-
 	/** Options for the model picker: "Auto" plus every configured provider/model pair. */
 	public getModelOptions(): AiModelOption[] {
 		const options: AiModelOption[] = [{ key: AI_MODEL_AUTO, text: 'Auto (best available)' }];
-		for (const provider of buildProviders(this.getApiKey())) {
+		for (const provider of PROVIDERS) {
 			for (const model of provider.models) {
 				options.push({
 					key: candidateKey({ provider, model }),
@@ -182,12 +159,7 @@ export default class AiChatService {
 	 * the chain still acts as fallback when it fails.
 	 */
 	public async askStream(messages: AiChatMessage[], onDelta: (fullText: string) => void, preferredModel: string = AI_MODEL_AUTO): Promise<string> {
-		const providers = buildProviders(this.getApiKey());
-		if (providers.length === 0) {
-			throw new ServiceError(401, 'No AI API key configured. Get a free key at https://openrouter.ai/keys.');
-		}
-
-		const candidates: AiModelCandidate[] = providers.flatMap((provider) => provider.models.map((model) => ({ provider, model })));
+		const candidates: AiModelCandidate[] = PROVIDERS.flatMap((provider) => provider.models.map((model) => ({ provider, model })));
 		if (preferredModel !== AI_MODEL_AUTO) {
 			const preferredIndex = candidates.findIndex((candidate) => candidateKey(candidate) === preferredModel);
 			if (preferredIndex > 0) {
@@ -196,11 +168,7 @@ export default class AiChatService {
 		}
 
 		let lastError: ServiceError | null = null;
-		const skipProviders = new Set<string>();
 		for (const candidate of candidates) {
-			if (skipProviders.has(candidate.provider.name)) {
-				continue;
-			}
 			let started = false;
 			try {
 				return await this.callModelStream(candidate.provider, candidate.model.id, messages, (fullText) => {
@@ -214,10 +182,11 @@ export default class AiChatService {
 				if (started) {
 					throw lastError;
 				}
-				// 401/403 means this provider's key is bad -> its other models
-				// won't help, but the next provider still might.
+				// 401/403 now come from the approuter rather than the AI provider, so
+				// they are an app-level auth problem that every route shares — trying
+				// the remaining candidates would just repeat the same failure.
 				if (lastError.status === 401 || lastError.status === 403) {
-					skipProviders.add(candidate.provider.name);
+					throw lastError;
 				}
 			}
 		}
@@ -229,9 +198,11 @@ export default class AiChatService {
 		const response = await fetch(provider.url, {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${provider.apiKey}`
+				'Content-Type': 'application/json'
 			},
+			// Same-origin call to the approuter; the session cookie is what authenticates
+			// it, and the approuter attaches the provider key on the way out.
+			credentials: 'same-origin',
 			body: JSON.stringify({
 				model,
 				messages,
@@ -249,7 +220,11 @@ export default class AiChatService {
 			} catch {
 				// Keep the generic message.
 			}
-			if (response.status === 429) {
+			if (response.status === 401) {
+				message = 'Your session has expired. Reload the page and sign in again.';
+			} else if (response.status === 403) {
+				message = 'Your user is not authorized to use the AI assistant. Ask an administrator for the ZGP9_AiUser role collection.';
+			} else if (response.status === 429) {
 				message = `${provider.name} free-tier quota reached. Wait a moment and try again.`;
 			}
 			throw new ServiceError(response.status, message);
