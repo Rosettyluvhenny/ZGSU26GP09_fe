@@ -6,15 +6,15 @@
 	xmlns:core="sap.ui.core"
 	xmlns:f="sap.f">
 
-	<f:DynamicPage id="logsPage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="logsPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="Logs" level="H1" />
+					<HBox alignItems="Center">
+						<Title text="Logs" level="H1" />
+						<ObjectStatus text="{logList>/countLabel}" state="Information" class="sapUiSmallMarginBegin" />
+					</HBox>
 				</f:heading>
-				<f:content>
-					<ObjectStatus text="{logList>/countLabel}" state="Information" />
-				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
 		<f:header>

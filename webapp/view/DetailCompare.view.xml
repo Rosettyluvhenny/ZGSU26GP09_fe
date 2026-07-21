@@ -6,7 +6,7 @@
 	xmlns:f="sap.f"
 	xmlns:l="sap.ui.layout">
 
-	<f:DynamicPage id="detailComparePage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="detailComparePage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>

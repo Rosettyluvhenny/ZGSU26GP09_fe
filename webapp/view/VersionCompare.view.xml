@@ -5,17 +5,17 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:f="sap.f">
 
-	<f:DynamicPage id="versionComparePage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="versionComparePage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="Version Comparison" level="H1" />
+					<HBox alignItems="Center">
+						<Title text="Version Comparison" level="H1" />
+						<ObjectStatus text="{versionCompare>/changeCount} changed" icon="sap-icon://edit" state="Warning" class="sapUiMediumMarginBegin" />
+						<ObjectStatus text="{versionCompare>/differCount} different" icon="sap-icon://compare" state="Error" class="sapUiMediumMarginBegin" />
+						<ObjectStatus text="{versionCompare>/unchangeCount} unchanged" icon="sap-icon://accept" state="Success" class="sapUiMediumMarginBegin" />
+					</HBox>
 				</f:heading>
-				<f:content>
-					<ObjectStatus text="{versionCompare>/changeCount} changed" icon="sap-icon://edit" state="Warning" />
-					<ObjectStatus text="{versionCompare>/differCount} different" icon="sap-icon://compare" state="Error" class="sapUiMediumMarginBegin" />
-					<ObjectStatus text="{versionCompare>/unchangeCount} unchanged" icon="sap-icon://accept" state="Success" class="sapUiMediumMarginBegin" />
-				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
 		<f:header>

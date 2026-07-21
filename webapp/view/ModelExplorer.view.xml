@@ -7,16 +7,16 @@
 	xmlns:l="sap.ui.layout"
 	xmlns:core="sap.ui.core">
 
-	<f:DynamicPage id="modelExplorerPage" toggleHeaderOnTitleClick="false" busy="{model>/busy}">
+	<f:DynamicPage id="modelExplorerPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true" busy="{model>/busy}">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="Model Explorer" level="H1" />
+					<HBox alignItems="Center">
+						<Title text="Model Explorer" level="H1" />
+						<Title text="{model>/serviceName}" level="H3" visible="{= !!${model>/serviceName} }" class="sapUiMediumMarginBegin" />
+						<ObjectStatus text="OData {model>/version}" state="Information" class="sapUiMediumMarginBegin" visible="{= !!${model>/version} }" />
+					</HBox>
 				</f:heading>
-				<f:content>
-					<Title text="{model>/serviceName}" level="H3" visible="{= !!${model>/serviceName} }" />
-					<ObjectStatus text="OData {model>/version}" state="Information" class="sapUiMediumMarginBegin" visible="{= !!${model>/version} }" />
-				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
 		<f:header>

@@ -5,7 +5,7 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:f="sap.f">
 
-	<f:DynamicPage id="jobDetailPage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="jobDetailPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>

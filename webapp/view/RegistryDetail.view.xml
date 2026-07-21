@@ -7,7 +7,7 @@
 	xmlns:form="sap.ui.layout.form"
 	xmlns:l="sap.ui.layout">
 
-	<f:DynamicPage id="registryDetailPage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="registryDetailPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
