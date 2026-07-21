@@ -44,6 +44,78 @@
 		</f:header>
 		<f:content>
 			<VBox class="sapUiSmallMargin" busy="{detailCompare>/compareWorkspaceBusy}">
+				<Panel expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+					<headerToolbar>
+						<OverflowToolbar>
+							<Title text="Change Review" level="H3" />
+							<ObjectStatus
+								text="{detailCompare>/changeBreaking} breaking"
+								state="Error"
+								icon="sap-icon://alert"
+								class="sapUiSmallMarginBegin" />
+							<ObjectStatus
+								text="{detailCompare>/changeCompatible} compatible"
+								state="Success"
+								icon="sap-icon://accept"
+								class="sapUiSmallMarginBegin" />
+							<ObjectStatus
+								text="{detailCompare>/changeCosmetic} cosmetic"
+								state="None"
+								icon="sap-icon://document-text"
+								class="sapUiSmallMarginBegin" />
+							<ToolbarSpacer />
+							<SegmentedButton selectedKey="{detailCompare>/changeFilter}" selectionChange=".onChangeFilterSelect">
+								<items>
+									<SegmentedButtonItem key="all" text="All" />
+									<SegmentedButtonItem key="Breaking" text="Breaking" />
+									<SegmentedButtonItem key="Compatible" text="Compatible" />
+									<SegmentedButtonItem key="Cosmetic" text="Cosmetic" />
+								</items>
+							</SegmentedButton>
+						</OverflowToolbar>
+					</headerToolbar>
+					<content>
+						<VBox>
+							<Text text="{detailCompare>/changeHeadline}" class="sapUiTinyMarginBegin sapUiTinyMarginBottom" />
+							<Table
+								id="changeTable"
+								items="{detailCompare>/changeRows}"
+								growing="true"
+								growingThreshold="50"
+								mode="None"
+								itemPress=".onChangeRowPress"
+								noDataText="No changes in this category.">
+								<columns>
+									<Column width="16rem"><Text text="Element" /></Column>
+									<Column width="11rem"><Text text="Type" /></Column>
+									<Column width="10rem"><Text text="Attribute" /></Column>
+									<Column width="9rem"><Text text="Before" /></Column>
+									<Column width="9rem"><Text text="After" /></Column>
+									<Column width="9rem"><Text text="Severity" /></Column>
+									<Column><Text text="Reason" /></Column>
+								</columns>
+								<items>
+									<ColumnListItem
+										type="Active"
+										highlight="{path: 'detailCompare>severity', formatter: '.formatSeverityState'}">
+										<cells>
+											<ObjectIdentifier title="{detailCompare>elementName}" text="{detailCompare>elementPath}" />
+											<Text text="{detailCompare>elementType}" />
+											<Text text="{detailCompare>attribute}" />
+											<Text text="{path: 'detailCompare>oldValue', formatter: '.formatChangeValue'}" />
+											<Text text="{path: 'detailCompare>newValue', formatter: '.formatChangeValue'}" />
+											<ObjectStatus
+												text="{detailCompare>severity}"
+												state="{path: 'detailCompare>severity', formatter: '.formatSeverityState'}" />
+											<Text text="{detailCompare>reason}" />
+										</cells>
+									</ColumnListItem>
+								</items>
+							</Table>
+						</VBox>
+					</content>
+				</Panel>
+
 				<l:Splitter width="100%" height="34rem" class="sapUiSmallMarginBottom">
 					<Page title="Base Node Tree ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
 						<layoutData>
@@ -80,7 +152,7 @@
 					</Page>
 				</l:Splitter>
 
-				<Toolbar design="Transparent" class="sapUiTinyMarginTop">
+				<Toolbar id="xmlDiffToolbar" design="Transparent" class="sapUiTinyMarginTop">
 					<Title text="XML Diff" level="H3" />
 					<ToolbarSpacer />
 					<SegmentedButton selectedKey="{detailCompare>/xmlViewMode}" selectionChange=".onXmlViewModeChange">

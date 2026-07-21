@@ -61,33 +61,43 @@
 							<IconTabBar stretchContentHeight="true" applyContentPadding="false" expandable="false" selectedKey="entities">
 								<items>
 									<IconTabFilter key="entities" icon="sap-icon://tree" tooltip="Entity Types" text="Entities" count="{model>/counts/entityTypes}">
-										<List items="{model>/entityTypes}" mode="SingleSelectMaster" noDataText="No entity types">
-											<StandardListItem
-												title="{model>name}"
-												description="{= ${model>keys}.length + ' key · ' + ${model>properties}.length + ' props' }"
-												type="Active"
-												press=".onSelectEntityType" />
-										</List>
+										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
+											<List items="{model>/entityTypes}" mode="SingleSelectMaster" noDataText="No entity types">
+												<StandardListItem
+													title="{model>name}"
+													description="{= ${model>keys}.length + ' key · ' + ${model>properties}.length + ' props' }"
+													type="Active"
+													press=".onSelectEntityType" />
+											</List>
+										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="sets" icon="sap-icon://database" tooltip="Entity Sets" text="Sets" count="{model>/counts/entitySets}">
-										<List items="{model>/entitySets}" mode="SingleSelectMaster" noDataText="No entity sets">
-											<StandardListItem title="{model>name}" description="{model>entityType}" type="Active" press=".onSelectEntitySet" />
-										</List>
+										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
+											<List items="{model>/entitySets}" mode="SingleSelectMaster" noDataText="No entity sets">
+												<StandardListItem title="{model>name}" description="{model>entityType}" type="Active" press=".onSelectEntitySet" />
+											</List>
+										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="complex" icon="sap-icon://combine" tooltip="Complex Types" text="Complex" count="{model>/counts/complexTypes}">
-										<List items="{model>/complexTypes}" mode="SingleSelectMaster" noDataText="No complex types">
-											<StandardListItem title="{model>name}" description="{= ${model>properties}.length + ' props' }" type="Active" press=".onSelectComplexType" />
-										</List>
+										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
+											<List items="{model>/complexTypes}" mode="SingleSelectMaster" noDataText="No complex types">
+												<StandardListItem title="{model>name}" description="{= ${model>properties}.length + ' props' }" type="Active" press=".onSelectComplexType" />
+											</List>
+										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="enums" icon="sap-icon://list" tooltip="Enum Types" text="Enums" count="{model>/counts/enumTypes}">
-										<List items="{model>/enumTypes}" mode="SingleSelectMaster" noDataText="No enum types">
-											<StandardListItem title="{model>name}" description="{= ${model>members}.length + ' members' }" type="Active" press=".onSelectEnumType" />
-										</List>
+										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
+											<List items="{model>/enumTypes}" mode="SingleSelectMaster" noDataText="No enum types">
+												<StandardListItem title="{model>name}" description="{= ${model>members}.length + ' members' }" type="Active" press=".onSelectEnumType" />
+											</List>
+										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="ops" icon="sap-icon://action" tooltip="Actions &amp; Functions" text="Ops" count="{model>/counts/operations}">
-										<List items="{model>/operations}" mode="SingleSelectMaster" noDataText="No actions or functions">
-											<StandardListItem title="{model>name}" description="{model>kind}" type="Active" press=".onSelectOperation" />
-										</List>
+										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
+											<List items="{model>/operations}" mode="SingleSelectMaster" noDataText="No actions or functions">
+												<StandardListItem title="{model>name}" description="{model>kind}" type="Active" press=".onSelectOperation" />
+											</List>
+										</ScrollContainer>
 									</IconTabFilter>
 								</items>
 							</IconTabBar>
