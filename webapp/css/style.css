@@ -79,8 +79,26 @@
 	cursor: pointer;
 }
 
-.versionDetailXmlHighlighted {
-	background-color: var(--sapList_Hover_Background) !important;
+/* Brief flash when revealing a line from the tree / change list.
+   Outline-only so diff row colors stay intact; class is cleared by JS after the animation. */
+@keyframes versionDetailXmlFlash {
+	0%,
+	40% {
+		box-shadow: inset 4px 0 0 var(--sapContent_Selected_Foreground, #0070f2);
+		outline-color: var(--sapContent_Selected_Foreground, #0070f2);
+	}
+	100% {
+		box-shadow: none;
+		outline-color: transparent;
+	}
+}
+
+.versionDetailXmlTable .sapMLIB.versionDetailXmlHighlighted,
+.versionDetailXmlTable .sapMLIB.versionDetailXmlHighlighted[data-diffstatus],
+.versionDetailXmlTable .sapMLIB.versionDetailXmlHighlighted[data-linetype] {
+	outline: 2px solid var(--sapContent_Selected_Foreground, #0070f2);
+	outline-offset: -2px;
+	animation: versionDetailXmlFlash 1.4s ease-out forwards;
 }
 
 li[data-diffstatus="Warning"],
@@ -106,12 +124,14 @@ tr[data-diffstatus="Error"] {
 :root {
 	--appDiffDelBg: #ffd7d5;
 	--appDiffInsBg: #ccffd8;
+	--appDiffModBg: #fff3cd;
 	--appDiffEmptyBg: #f0f0f0;
 }
 
 html.sapUiTheme-sap_horizon_dark {
 	--appDiffDelBg: #5c2b2b;
 	--appDiffInsBg: #244d30;
+	--appDiffModBg: #5c4a1f;
 	--appDiffEmptyBg: #2a2a2e;
 }
 
@@ -121,6 +141,10 @@ tr[data-linetype="del"] {
 
 tr[data-linetype="ins"] {
 	background-color: var(--appDiffInsBg) !important;
+}
+
+tr[data-linetype="mod"] {
+	background-color: var(--appDiffModBg) !important;
 }
 
 tr[data-linetype="empty"] {

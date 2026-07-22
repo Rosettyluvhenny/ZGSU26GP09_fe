@@ -145,6 +145,7 @@
                 </Key>
                 <Property Name="LogId" Type="Edm.Guid" Nullable="false"/>
                 <Property Name="ActionType" Type="Edm.String" Nullable="false" MaxLength="2"/>
+                <Property Name="ActionText" Type="Edm.String" Nullable="false" MaxLength="20"/>
                 <Property Name="Actor" Type="Edm.String" Nullable="false" MaxLength="12"/>
                 <Property Name="ActionAt" Type="Edm.DateTimeOffset"/>
                 <Property Name="IpAddress" Type="Edm.String" Nullable="false" MaxLength="45"/>
@@ -715,9 +716,13 @@
                 </Annotation>
             </Annotations>
             <Annotations Target="SAP__self.LogType/ActionType">
+                <Annotation Term="SAP__common.Text" Path="ActionText"/>
                 <Annotation Term="SAP__common.IsUpperCase"/>
                 <Annotation Term="SAP__common.Label" String="Action"/>
                 <Annotation Term="SAP__common.QuickInfo" String="Action data element"/>
+            </Annotations>
+            <Annotations Target="SAP__self.LogType/ActionText">
+                <Annotation Term="SAP__common.Label" String="Action Text"/>
             </Annotations>
             <Annotations Target="SAP__self.LogType/Actor">
                 <Annotation Term="SAP__common.IsUpperCase"/>

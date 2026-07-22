@@ -77,7 +77,7 @@ export default class VersionService {
 				{ headers }
 			)
 		) as unknown as VersionCompareActionResult;
-		return delay(mapCompareResult(payload));
+		return mapCompareResult(payload);
 	}
 
 	private async loadVersionsFromBackend(registryId: string): Promise<RegistryVersion[]> {

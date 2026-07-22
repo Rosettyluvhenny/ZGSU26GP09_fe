@@ -16,8 +16,8 @@ let sandbox: any;
 //  Sample data
 // ─────────────────────────────────────────────────────────────────────────────
 const SAMPLE_JOBS: Job[] = [
-    { id: "job-1", status: "Completed", executedBy: "alice", startedAt: "2024-01-01T08:00:00Z", finishedAt: "2024-01-01T08:05:00Z", durationMs: 300000, triggerType: "MANUAL", totalRegistry: 5, changeCount: 2, newVersionCount: 1, logs: [], errorMessage: "", summary: "" },
-    { id: "job-2", status: "Running",   executedBy: "system", startedAt: "2024-01-02T09:00:00Z", finishedAt: null, durationMs: null, triggerType: "SCHEDULE", totalRegistry: 10, changeCount: 0, newVersionCount: 0, logs: [], errorMessage: "", summary: "" }
+    { id: "job-1", status: "Completed", executedBy: "alice", startedAt: "2024-01-01T08:00:00Z", finishedAt: "2024-01-01T08:05:00Z", durationMs: 300000, triggerType: "MANUAL", triggerText: "Manual", totalRegistry: 5, changeCount: 2, newVersionCount: 1, logs: [], errorMessage: "", summary: "" },
+    { id: "job-2", status: "Running",   executedBy: "system", startedAt: "2024-01-02T09:00:00Z", finishedAt: null, durationMs: null, triggerType: "SCHEDULE", triggerText: "Schedule", totalRegistry: 10, changeCount: 0, newVersionCount: 0, logs: [], errorMessage: "", summary: "" }
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

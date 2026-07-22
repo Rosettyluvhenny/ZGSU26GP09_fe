@@ -1,61 +1,18 @@
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import Fragment from 'sap/ui/core/Fragment';
+import MessageToast from 'sap/m/MessageToast';
 import type Dialog from 'sap/m/Dialog';
 import type UI5Event from 'sap/ui/base/Event';
 
 import BaseController from './BaseController';
 import type { LogEntry } from '../model/types';
 import { LOG_PAGE_SIZE, type LogQueryFilter } from '../services/LogService';
+import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 
 interface FilterOption {
 	key: string;
 	text: string;
 }
-
-const ACTION_TYPE_LABELS: Record<string, string> = {
-	VI: 'View',
-	CR: 'Create',
-	UP: 'Update',
-	DE: 'Delete',
-	GE: 'Generate',
-	CO: 'Compare',
-	LO: 'Login',
-	LG: 'Logout',
-	SC: 'Scan',
-	GN: 'Generate',
-	CM: 'Compare'
-};
-
-const ACTION_TYPE_OPTIONS: FilterOption[] = [
-	{ key: 'All', text: 'All' },
-	{ key: 'VI', text: 'View (VI)' },
-	{ key: 'CR', text: 'Create (CR)' },
-	{ key: 'UP', text: 'Update (UP)' },
-	{ key: 'DE', text: 'Delete (DE)' },
-	{ key: 'GE', text: 'Generate (GE)' },
-	{ key: 'GN', text: 'Generate (GN)' },
-	{ key: 'CO', text: 'Compare (CO)' },
-	{ key: 'CM', text: 'Compare (CM)' },
-	{ key: 'SC', text: 'Scan (SC)' },
-	{ key: 'LO', text: 'Login (LO)' },
-	{ key: 'LG', text: 'Logout (LG)' }
-];
-
-const LOG_RESULT_OPTIONS: FilterOption[] = [
-	{ key: 'All', text: 'All' },
-	{ key: 'SUCCESS', text: 'Success' },
-	{ key: 'FAIL', text: 'Fail' },
-	{ key: 'FAILURE', text: 'Failure' },
-	{ key: 'ERROR', text: 'Error' }
-];
-
-const OBJECT_TYPE_OPTIONS: FilterOption[] = [
-	{ key: 'All', text: 'All' },
-	{ key: 'REGISTRY', text: 'Registry' },
-	{ key: 'DETAIL', text: 'Detail' },
-	{ key: 'VERSION', text: 'Version' },
-	{ key: 'SCANJOB', text: 'Scan Job' }
-];
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -65,29 +22,35 @@ export default class Logs extends BaseController {
 	private dateFrom: Date | null = null;
 	private dateTo: Date | null = null;
 	private loadingMore = false;
+	/** Distinct values seen from backend responses — never hard-coded. */
+	private knownActions = new Map<string, string>();
+	private knownLogResults = new Set<string>();
+	private knownObjectIdTypes = new Set<string>();
 
 	public onInit(): void {
-		this.setModel(
-			new JSONModel({
-				items: [] as LogEntry[],
-				busy: false,
-				loadingMore: false,
-				search: '',
-				actionType: 'All',
-				logResult: 'All',
-				objectIdType: 'All',
-				actionTypeOptions: ACTION_TYPE_OPTIONS,
-				logResultOptions: LOG_RESULT_OPTIONS,
-				objectIdTypeOptions: OBJECT_TYPE_OPTIONS,
-				selectedLog: null as LogEntry | null,
-				activeJobId: '',
-				activeJobLabel: '',
-				totalCount: 0,
-				hasMore: false,
-				countLabel: '0 entries'
-			}),
-			'logList'
-		);
+		const model = new JSONModel({
+			items: [] as LogEntry[],
+			busy: false,
+			loadingMore: false,
+			search: '',
+			actionType: 'All',
+			logResult: 'All',
+			objectIdType: 'All',
+			// Filter options are built from values returned by the backend — never invented.
+			actionTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
+			logResultOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
+			objectIdTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
+			selectedLog: null as LogEntry | null,
+			activeJobId: '',
+			activeJobLabel: '',
+			totalCount: 0,
+			hasMore: false,
+			countLabel: '0 entries'
+		});
+		// JSONModel default sizeLimit is 100 — without raising it, More can load 207
+		// into the model while the table only renders the first 100 rows.
+		model.setSizeLimit(5000);
+		this.setModel(model, 'logList');
 
 		this.getRouter()
 			.getRoute('logs')
@@ -97,7 +60,7 @@ export default class Logs extends BaseController {
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
-		const args = (event as unknown as { getParameter: (name: string) => Record<string, unknown> }).getParameter('arguments') as Record<string, unknown>;
+		const args = (event as Route$PatternMatchedEvent).getParameter('arguments') as Record<string, unknown>;
 		const query = args['?query'] as Record<string, string> | undefined;
 		const jobId = query?.jobId ?? '';
 
@@ -138,8 +101,8 @@ export default class Logs extends BaseController {
 		await this.loadLogs(true);
 	}
 
-	public onFilterChange(): void {
-		// Applied on Go / Refresh (server-side).
+	public async onFilterChange(): Promise<void> {
+		await this.loadLogs(true);
 	}
 
 	public onDateRangeChange(event: UI5Event): void {
@@ -165,16 +128,51 @@ export default class Logs extends BaseController {
 		void this.openDetailDialog(log);
 	}
 
-	public onNavigateToObject(): void {
+	public async onNavigateToObject(): Promise<void> {
 		const log = (this.getModel('logList') as JSONModel).getProperty('/selectedLog') as LogEntry | null;
-		if (!log || !log.objectId) {
+		if (!log || !log.objectId || !this.isSuccessResult(log.logResult)) {
 			return;
 		}
 
-		this.closeDetailDialog();
-
-		if (log.objectIdType === 'REGISTRY') {
+		const objectType = (log.objectIdType || '').toUpperCase();
+		if (objectType === 'REGISTRY') {
+			this.closeDetailDialog();
 			this.navTo('registryDetail', { registryId: log.objectId });
+			return;
+		}
+
+		if (objectType === 'VERSION') {
+			try {
+				const version = await this.getOwnerComponent().getVersionService().getVersion(log.objectId);
+				const registryId = version.groupId;
+				if (!registryId) {
+					MessageToast.show('Cannot open version: registry is missing.');
+					return;
+				}
+				this.closeDetailDialog();
+				this.navTo('versionDetail', { registryId, versionId: log.objectId });
+			} catch (error) {
+				await this.handleServiceError(error);
+			}
+			return;
+		}
+
+		if (objectType === 'DETAIL') {
+			try {
+				const detail = await this.getOwnerComponent().getDetailService().getDetail(log.objectId);
+				if (!detail.groupId || !detail.versionId) {
+					MessageToast.show('Cannot open detail: version or registry is missing.');
+					return;
+				}
+				this.closeDetailDialog();
+				this.navTo('versionDetail', {
+					registryId: detail.groupId,
+					versionId: detail.versionId,
+					query: { detailId: log.objectId }
+				});
+			} catch (error) {
+				await this.handleServiceError(error);
+			}
 		}
 	}
 
@@ -182,7 +180,7 @@ export default class Logs extends BaseController {
 		this.closeDetailDialog();
 	}
 
-	public async onClearJobFilter(): Promise<void> {
+	public onClearJobFilter(): void {
 		const model = this.getModel('logList') as JSONModel;
 		model.setProperty('/activeJobId', '');
 		model.setProperty('/activeJobLabel', '');
@@ -190,21 +188,19 @@ export default class Logs extends BaseController {
 	}
 
 	public formatLogResultState(result: string): 'Success' | 'Error' | 'None' {
-		const normalized = (result || '').toUpperCase();
-		if (normalized === 'S' || normalized === 'SUCCESS') {
+		if (this.isSuccessResult(result)) {
 			return 'Success';
 		}
+		const normalized = (result || '').toUpperCase();
 		if (normalized === 'F' || normalized.startsWith('FAIL') || normalized === 'ERROR' || normalized === 'E') {
 			return 'Error';
 		}
 		return 'None';
 	}
 
-	public formatActionType(code: string): string {
-		if (!code) {
-			return '';
-		}
-		return ACTION_TYPE_LABELS[code.toUpperCase()] ?? code;
+	private isSuccessResult(result: string): boolean {
+		const normalized = (result || '').toUpperCase();
+		return normalized === 'S' || normalized === 'SUCCESS';
 	}
 
 	public formatShortId(id: string): string {
@@ -248,12 +244,64 @@ export default class Logs extends BaseController {
 			model.setProperty('/totalCount', totalCount);
 			model.setProperty('/hasMore', hasMore);
 			model.setProperty('/countLabel', this.buildCountLabel(items.length, totalCount));
+			this.refreshFilterOptions(items);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
 			model.setProperty('/loadingMore', false);
 			this.loadingMore = false;
+		}
+	}
+
+	/** Accumulate distinct backend values and rebuild Select options (never invent codes). */
+	private refreshFilterOptions(items: LogEntry[]): void {
+		for (const item of items) {
+			const actionType = (item.actionType || '').trim();
+			const actionText = (item.actionText || '').trim() || actionType;
+			const result = (item.logResult || '').trim();
+			const objectType = (item.objectIdType || '').trim();
+			if (actionType) {
+				this.knownActions.set(actionType, actionText);
+			}
+			if (result) {
+				this.knownLogResults.add(result);
+			}
+			if (objectType) {
+				this.knownObjectIdTypes.add(objectType);
+			}
+		}
+
+		const model = this.getModel('logList') as JSONModel;
+		model.setProperty(
+			'/actionTypeOptions',
+			[
+				{ key: 'All', text: 'All' },
+				...[...this.knownActions.entries()]
+					.sort((a, b) => a[1].localeCompare(b[1]))
+					.map(([key, text]) => ({ key, text }))
+			]
+		);
+		model.setProperty('/logResultOptions', this.buildOptionsFromSet(this.knownLogResults));
+		model.setProperty('/objectIdTypeOptions', this.buildOptionsFromSet(this.knownObjectIdTypes));
+
+		// If the current selection vanished from the option list, fall back to All.
+		this.ensureSelectedFilterKey('/actionType', '/actionTypeOptions');
+		this.ensureSelectedFilterKey('/logResult', '/logResultOptions');
+		this.ensureSelectedFilterKey('/objectIdType', '/objectIdTypeOptions');
+	}
+
+	private buildOptionsFromSet(values: Set<string>): FilterOption[] {
+		const unique = [...values].sort((a, b) => a.localeCompare(b));
+		return [{ key: 'All', text: 'All' }, ...unique.map((value) => ({ key: value, text: value }))];
+	}
+
+	private ensureSelectedFilterKey(selectedPath: string, optionsPath: string): void {
+		const model = this.getModel('logList') as JSONModel;
+		const selected = (model.getProperty(selectedPath) as string) || 'All';
+		const options = (model.getProperty(optionsPath) as FilterOption[]) ?? [];
+		if (!options.some((option) => option.key === selected)) {
+			model.setProperty(selectedPath, 'All');
 		}
 	}
 

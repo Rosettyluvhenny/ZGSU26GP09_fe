@@ -1,6 +1,5 @@
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 import type UI5Event from 'sap/ui/base/Event';
-import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
 import BaseController from './BaseController';
@@ -13,33 +12,31 @@ export default class VersionCompare extends BaseController {
 	private registryId: string | null = null;
 	private leftVersionId: string | null = null;
 	private rightVersionId: string | null = null;
-	private treeScrollSyncAttached = false;
-	private xmlScrollSyncAttached = false;
 
 	public onInit(): void {
-		this.setModel(
-			new JSONModel({
-				busy: false,
-				result: null,
-				change: [],
-				differ: [],
-				unchange: [],
-				changeCount: 0,
-				differCount: 0,
-				unchangeCount: 0,
-				baseDetail: null,
-				compareDetail: null,
-				baseTree: [],
-				compareTree: [],
-				baseXml: '',
-				compareXml: '',
-				baseLineStarts: [],
-				compareLineStarts: [],
-				selectedCompareEntry: null,
+		const model = new JSONModel({
+			busy: false,
+			result: null,
+			change: [],
+			differ: [],
+			unchange: [],
+			changeCount: 0,
+			differCount: 0,
+			unchangeCount: 0,
+			baseDetail: null,
+			compareDetail: null,
+			baseTree: [],
+			compareTree: [],
+			baseXml: '',
+			compareXml: '',
+			baseLineStarts: [],
+			compareLineStarts: [],
+			selectedCompareEntry: null,
 
-			}),
-			'versionCompare'
-		);
+		});
+		// Growing tables are still capped by JSONModel sizeLimit (default 100).
+		model.setSizeLimit(5000);
+		this.setModel(model, 'versionCompare');
 		this.getRouter()
 			.getRoute("versionCompare")
 			.attachPatternMatched((event) => {
@@ -73,6 +70,10 @@ export default class VersionCompare extends BaseController {
 			return;
 		}
 
+		if (!this.isValidDetailId(entry.baseDetailId) || !this.isValidDetailId(entry.compareDetailId)) {
+			return;
+		}
+
 		this.getRouter().navTo('detailCompare', {
 			registryId: this.registryId,
 			leftVersionId: this.leftVersionId,
@@ -88,11 +89,11 @@ export default class VersionCompare extends BaseController {
 			return;
 		}
 
-		const isBaseValid = entry.baseDetailId && entry.baseDetailId !== '00000000-0000-0000-0000-000000000000' && entry.baseDetailId.trim() !== '';
+		const isBaseValid = this.isValidDetailId(entry.baseDetailId);
 		const validDetailId = isBaseValid ? entry.baseDetailId : entry.compareDetailId;
 		const targetVersionId = isBaseValid ? this.leftVersionId : this.rightVersionId;
 
-		if (!validDetailId || !targetVersionId) {
+		if (!this.isValidDetailId(validDetailId) || !targetVersionId) {
 			return;
 		}
 
@@ -107,6 +108,13 @@ export default class VersionCompare extends BaseController {
 
 	// Tree selection and scrolling logic removed as it belongs to DetailCompare
 
+	private isValidDetailId(detailId?: string | null): detailId is string {
+		if (!detailId || !detailId.trim()) {
+			return false;
+		}
+		const normalized = detailId.replace(/[{}]/g, '').trim().toLowerCase();
+		return normalized !== '00000000-0000-0000-0000-000000000000';
+	}
 	private async loadComparison(): Promise<void> {
 		if (!this.registryId || !this.leftVersionId || !this.rightVersionId) {
 			return;
@@ -114,7 +122,6 @@ export default class VersionCompare extends BaseController {
 
 		const model = this.getModel('versionCompare') as JSONModel;
 		model.setProperty('/busy', true);
-		BusyIndicator.show(0);
 		try {
 			const result = (await this.getOwnerComponent().getVersionService().compareVersions(this.leftVersionId, this.rightVersionId));
 			model.setProperty('/result', result);
@@ -128,7 +135,6 @@ export default class VersionCompare extends BaseController {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
-			BusyIndicator.hide();
 		}
 	}
 

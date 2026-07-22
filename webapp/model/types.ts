@@ -80,6 +80,8 @@ export interface Job {
 export interface LogEntry {
 	id: string;
 	actionType: string;
+	/** Human-readable action label from BE (ActionText); fall back to actionType if missing. */
+	actionText: string;
 	actor: string;
 	actionAt: string;
 	ipAddress: string;
@@ -147,7 +149,7 @@ export interface XmlLineEntry {
 	text: string;
 	isWhitespace: boolean;
 	highlight?: string;
-	lineType?: 'same' | 'del' | 'ins' | 'empty';
+	lineType?: 'same' | 'del' | 'ins' | 'mod' | 'empty';
 }
 
 export interface VersionActionResult {

@@ -95,8 +95,22 @@ export default class LogService {
 			parts.push(`ActionAt le ${toODataDateTime(to)}`);
 		}
 		if (filter.search?.trim()) {
-			const term = escapeODataString(filter.search.trim());
-			parts.push(`(contains(Remarks,'${term}') or contains(Actor,'${term}'))`);
+			const raw = filter.search.trim();
+			const normalizedGuid = raw.replace(/[{}]/g, '');
+			const looksLikeGuid = /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/.test(normalizedGuid);
+			const objectTypeTerm = raw.toUpperCase();
+			const knownObjectTypes = ['REGISTRY', 'DETAIL', 'VERSION', 'SCANJOB'];
+			if (looksLikeGuid) {
+				parts.push(`ObjectId eq ${normalizedGuid}`);
+			} else if (knownObjectTypes.includes(objectTypeTerm)) {
+				// Avoid duplicating objectIdType filter when the dropdown already selected the same value.
+				if (!filter.objectIdType || filter.objectIdType === 'All' || filter.objectIdType.toUpperCase() !== objectTypeTerm) {
+					parts.push(`objectIdType eq '${escapeODataString(objectTypeTerm)}'`);
+				}
+			} else {
+				const term = escapeODataString(raw);
+				parts.push(`(contains(Remarks,'${term}') or contains(Actor,'${term}'))`);
+			}
 		}
 
 		const query: string[] = [];

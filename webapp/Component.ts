@@ -2,19 +2,15 @@ import UIComponent from 'sap/ui/core/UIComponent';
 import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
 import Theming from 'sap/ui/core/Theming';
-import JSONModel from 'sap/ui/model/json/JSONModel';
-import type { Router$BeforeRouteMatchedEvent } from 'sap/ui/core/routing/Router';
 import MessageModel from 'sap/ui/model/message/MessageModel';
 
-import { readThemePreference, writeSessionStorage } from './services/SessionStorage';
-import type { SessionData } from './model/types';
+import { readThemePreference } from './services/SessionStorage';
 
 import AuthenticationService from './services/AuthenticationService';
 import DetailService from './services/DetailService';
 import ErrorHandler from './services/ErrorHandler';
 import JobService from './services/JobService';
 import LogService from './services/LogService';
-import ODataClient from './services/ODataClient';
 import RegistryService from './services/RegistryService';
 import VersionService from './services/VersionService';
 import models from './model/models';

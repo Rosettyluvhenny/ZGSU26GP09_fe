@@ -15,7 +15,7 @@ export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
 
 	public onInit(): void {
-		this.getRouter().attachRouteMatched((event) => { void this.onGlobalRouteMatched(event); });
+		this.getRouter().attachRouteMatched((event) => { this.onGlobalRouteMatched(event); });
 
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
@@ -59,7 +59,7 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
+	private onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): void {
 		const routeName = event.getParameter("name");
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
@@ -107,7 +107,7 @@ export default class MainShell extends BaseController {
 		this.getUiModel().setProperty("/isDarkTheme", nextIsDark);
 	}
 
-	public async onLogout(): Promise<void> {
+	public onLogout(): void {
 		ODataClient.clearSecurityState();
 		(this.getSessionModel()).setData({
 			userName: "",
