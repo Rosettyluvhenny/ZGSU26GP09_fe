@@ -14,8 +14,9 @@ let sandbox: any;
 //  Sample data
 // ─────────────────────────────────────────────────────────────────────────────
 function makeLog(overrides: Partial<LogEntry> = {}): LogEntry {
+    const actionType = overrides.actionType ?? "LOGIN";
     return {
-        id: "log-1", actionType: "LOGIN", actor: "alice",
+        id: "log-1", actionType, actionText: overrides.actionText ?? actionType, actor: "alice",
         actionAt: "2024-06-01T10:00:00.000Z", ipAddress: "10.0.0.1",
         remarks: "", logResult: "SUCCESS", objectId: "reg-1", objectIdType: "REGISTRY",
         jobId: "",
@@ -24,9 +25,9 @@ function makeLog(overrides: Partial<LogEntry> = {}): LogEntry {
 }
 
 const SAMPLE_LOGS: LogEntry[] = [
-    makeLog({ id: "log-1", actionType: "LOGIN",  logResult: "SUCCESS", objectIdType: "REGISTRY", actionAt: "2024-06-01T10:00:00.000Z" }),
-    makeLog({ id: "log-2", actionType: "UPDATE",  logResult: "FAILURE", objectIdType: "VERSION", objectId: "ver-1", actionAt: "2024-06-02T12:00:00.000Z" }),
-    makeLog({ id: "log-3", actionType: "DELETE",  logResult: "SUCCESS", objectIdType: "REGISTRY", objectId: "reg-2", actionAt: "2024-06-03T15:00:00.000Z", actor: "bob" })
+    makeLog({ id: "log-1", actionType: "LO", actionText: "Login",  logResult: "SUCCESS", objectIdType: "REGISTRY", actionAt: "2024-06-01T10:00:00.000Z" }),
+    makeLog({ id: "log-2", actionType: "UP", actionText: "Update",  logResult: "FAILURE", objectIdType: "VERSION", objectId: "ver-1", actionAt: "2024-06-02T12:00:00.000Z" }),
+    makeLog({ id: "log-3", actionType: "DE", actionText: "Delete",  logResult: "SUCCESS", objectIdType: "REGISTRY", objectId: "reg-2", actionAt: "2024-06-03T15:00:00.000Z", actor: "bob" })
 ];
 
 function pageOf(items: LogEntry[], totalCount = items.length, hasMore = false) {
@@ -114,6 +115,13 @@ QUnit.test("initial filter states are all 'All'", function (assert) {
     assert.strictEqual(data.logResult, "All");
     assert.strictEqual(data.objectIdType, "All");
 });
+QUnit.test("initial filter options only contain All (no invented codes)", function (assert) {
+    onInitCtrl.onInit();
+    const data = onInitSetModelSpy.firstCall.args[0].getData();
+    assert.deepEqual(data.actionTypeOptions, [{ key: "All", text: "All" }]);
+    assert.deepEqual(data.logResultOptions, [{ key: "All", text: "All" }]);
+    assert.deepEqual(data.objectIdTypeOptions, [{ key: "All", text: "All" }]);
+});
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  onRefresh
@@ -183,11 +191,11 @@ QUnit.module("Logs – onFilterChange", {
 QUnit.test("filters by actionType correctly", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
-    modelData["/actionType"] = "UPDATE";
-    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actionType === "UPDATE")));
+    modelData["/actionType"] = "UP";
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actionType === "UP")));
     await ctrl.onGo();
     const items = modelData["/items"] as LogEntry[];
-    assert.ok(items.every(l => l.actionType === "UPDATE"), "All items must have actionType=UPDATE");
+    assert.ok(items.every(l => l.actionType === "UP"), "All items must have actionType=UP");
 });
 QUnit.test("filters by logResult correctly", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
@@ -210,8 +218,8 @@ QUnit.test("filters by objectIdType correctly", async function (assert) {
 QUnit.test("'All' filter shows all items", async function (assert) {
     const { ctrl, modelData, logService } = buildLogsFixture();
     await ctrl.onRefresh();
-    modelData["/actionType"] = "DELETE";
-    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actionType === "DELETE")));
+    modelData["/actionType"] = "DE";
+    logService.getLogs.resolves(pageOf(SAMPLE_LOGS.filter(l => l.actionType === "DE")));
     await ctrl.onGo();
     modelData["/actionType"] = "All";
     logService.getLogs.resolves(pageOf(SAMPLE_LOGS));
@@ -313,29 +321,67 @@ QUnit.module("Logs – onNavigateToObject", {
 
 QUnit.test("navigates to registryDetail for objectIdType=REGISTRY", function (assert) {
     const { ctrl, modelData, navToStub } = buildLogsFixture();
-    modelData["/selectedLog"] = makeLog({ objectIdType: "REGISTRY", objectId: "reg-42" });
-    ctrl.onNavigateToObject();
+    modelData["/selectedLog"] = makeLog({ objectIdType: "REGISTRY", objectId: "reg-42", logResult: "SUCCESS" });
+    void ctrl.onNavigateToObject();
     assert.ok(navToStub.calledOnce, "navTo must be called");
     assert.strictEqual(navToStub.firstCall.args[0], "registryDetail");
     assert.deepEqual(navToStub.firstCall.args[1], { registryId: "reg-42" });
 });
+QUnit.test("navigates to versionDetail for objectIdType=VERSION", async function (assert) {
+    const { ctrl, modelData, navToStub } = buildLogsFixture();
+    const getVersion = sinon.stub().resolves({ id: "ver-1", groupId: "reg-9" });
+    sandbox.stub(ctrl, "getOwnerComponent").returns({
+        getVersionService: () => ({ getVersion }),
+        getRouter: () => ({ navTo: navToStub })
+    } as any);
+    modelData["/selectedLog"] = makeLog({ objectIdType: "VERSION", objectId: "ver-1", logResult: "SUCCESS" });
+    await ctrl.onNavigateToObject();
+    assert.ok(getVersion.calledOnceWithExactly("ver-1"), "must resolve version for registry id");
+    assert.ok(navToStub.calledOnce, "navTo must be called");
+    assert.strictEqual(navToStub.firstCall.args[0], "versionDetail");
+    assert.deepEqual(navToStub.firstCall.args[1], { registryId: "reg-9", versionId: "ver-1" });
+});
+QUnit.test("navigates to versionDetail for objectIdType=DETAIL", async function (assert) {
+    const { ctrl, modelData, navToStub } = buildLogsFixture();
+    const getDetail = sinon.stub().resolves({ id: "det-1", groupId: "reg-3", versionId: "ver-8" });
+    sandbox.stub(ctrl, "getOwnerComponent").returns({
+        getDetailService: () => ({ getDetail }),
+        getRouter: () => ({ navTo: navToStub })
+    } as any);
+    modelData["/selectedLog"] = makeLog({ objectIdType: "DETAIL", objectId: "det-1", logResult: "SUCCESS" });
+    await ctrl.onNavigateToObject();
+    assert.ok(getDetail.calledOnceWithExactly("det-1"), "must resolve detail for version/registry");
+    assert.ok(navToStub.calledOnce, "navTo must be called");
+    assert.strictEqual(navToStub.firstCall.args[0], "versionDetail");
+    assert.deepEqual(navToStub.firstCall.args[1], {
+        registryId: "reg-3",
+        versionId: "ver-8",
+        query: { detailId: "det-1" }
+    });
+});
+QUnit.test("does NOT navigate when result is not SUCCESS", function (assert) {
+    const { ctrl, modelData, navToStub } = buildLogsFixture();
+    modelData["/selectedLog"] = makeLog({ objectIdType: "REGISTRY", objectId: "reg-42", logResult: "FAIL" });
+    void ctrl.onNavigateToObject();
+    assert.ok(!navToStub.called, "navTo must NOT be called for non-success results");
+});
 QUnit.test("does NOT navigate when selectedLog is null", function (assert) {
     const { ctrl, modelData, navToStub } = buildLogsFixture();
     modelData["/selectedLog"] = null;
-    ctrl.onNavigateToObject();
+    void ctrl.onNavigateToObject();
     assert.ok(!navToStub.called, "navTo must NOT be called when selectedLog is null");
 });
 QUnit.test("does NOT navigate when objectId is empty", function (assert) {
     const { ctrl, modelData, navToStub } = buildLogsFixture();
-    modelData["/selectedLog"] = makeLog({ objectId: "" });
-    ctrl.onNavigateToObject();
+    modelData["/selectedLog"] = makeLog({ objectId: "", logResult: "SUCCESS" });
+    void ctrl.onNavigateToObject();
     assert.ok(!navToStub.called, "navTo must NOT be called when objectId is empty");
 });
 QUnit.test("does NOT navigate for unknown objectIdType", function (assert) {
     const { ctrl, modelData, navToStub } = buildLogsFixture();
-    modelData["/selectedLog"] = makeLog({ objectIdType: "JOB", objectId: "job-1" });
-    ctrl.onNavigateToObject();
-    assert.ok(!navToStub.called, "navTo must NOT be called for non-REGISTRY types");
+    modelData["/selectedLog"] = makeLog({ objectIdType: "JOB", objectId: "job-1", logResult: "SUCCESS" });
+    void ctrl.onNavigateToObject();
+    assert.ok(!navToStub.called, "navTo must NOT be called for non-REGISTRY/VERSION/DETAIL types");
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -408,26 +454,24 @@ QUnit.module("Logs – filter option building", {
     afterEach() { sandbox.restore(); }
 });
 
-QUnit.test("uses static actionTypeOptions with All and known codes", async function (assert) {
+QUnit.test("builds filter options from loaded log values only", async function (assert) {
     const { ctrl, modelData } = buildLogsFixture();
-    ctrl.onInit();
-    // onInit sets model via setModel — fixture stubs getModel only; verify formatter + static list via refresh path defaults
     await ctrl.onRefresh();
-    // Options come from onInit JSONModel in real app; here verify formatters and that Go still works
-    assert.strictEqual(ctrl.formatActionType("VI"), "View");
-    assert.strictEqual(ctrl.formatActionType("CR"), "Create");
-    assert.ok(SAMPLE_LOGS.length > 0);
-    assert.strictEqual((modelData["/items"] as LogEntry[]).length, SAMPLE_LOGS.length);
+    const actionOptions = modelData["/actionTypeOptions"] as Array<{ key: string; text: string }>;
+    const resultOptions = modelData["/logResultOptions"] as Array<{ key: string; text: string }>;
+    const objectOptions = modelData["/objectIdTypeOptions"] as Array<{ key: string; text: string }>;
+    assert.strictEqual(actionOptions[0]?.key, "All");
+    assert.ok(actionOptions.some(o => o.key === "LO" && o.text === "Login"), "Action filter shows ActionText, keys ActionType");
+    assert.ok(actionOptions.some(o => o.key === "UP" && o.text === "Update"), "Update from ActionText must appear");
+    assert.ok(!actionOptions.some(o => o.key === "VI"), "invented VI must not appear");
+    assert.ok(resultOptions.some(o => o.key === "SUCCESS"));
+    assert.ok(objectOptions.some(o => o.key === "REGISTRY"));
 });
 QUnit.test("formatShortId truncates long GUIDs", function (assert) {
     const { ctrl } = buildLogsFixture();
     assert.strictEqual(ctrl.formatShortId("8b95f36a-4f27-1fe1-a188-c0e8262dd8a5"), "8b95f36a…d8a5");
     assert.strictEqual(ctrl.formatShortId("short"), "short");
     assert.strictEqual(ctrl.formatShortId(""), "—");
-});
-QUnit.test("formatActionType falls back to raw code", function (assert) {
-    const { ctrl } = buildLogsFixture();
-    assert.strictEqual(ctrl.formatActionType("XYZ"), "XYZ");
 });
 QUnit.test("logResult FAIL maps to Error state", function (assert) {
     const { ctrl } = buildLogsFixture();

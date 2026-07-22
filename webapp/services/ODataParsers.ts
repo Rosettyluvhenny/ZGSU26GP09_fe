@@ -263,9 +263,11 @@ export function mapDetailEntity(entity: ODataRecord): RegistryDetail {
 }
 
 export function mapLogEntity(entity: ODataRecord): LogEntry {
+	const actionType = asString(entity.ActionType);
 	return {
 		id: asString(entity.LogId) || asString(entity.id),
-		actionType: asString(entity.ActionType),
+		actionType,
+		actionText: asString(entity.ActionText) || actionType,
 		actor: asString(entity.Actor),
 		actionAt: asIsoDate(entity.ActionAt),
 		ipAddress: asString(entity.IpAddress),

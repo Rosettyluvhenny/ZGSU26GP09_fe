@@ -157,17 +157,17 @@ QUnit.module("MainShell – onLogout", {
     afterEach() { sandbox.restore(); }
 });
 
-QUnit.test("resets session model to unauthenticated state", async function (assert) {
+QUnit.test("resets session model to unauthenticated state", function (assert) {
     const { ctrl, sessionModelStub } = buildShellFixture();
-    await ctrl.onLogout();
+    ctrl.onLogout();
     assert.ok(sessionModelStub.setData.calledOnce, "sessionModel.setData must be called");
     const sessionData = sessionModelStub.setData.firstCall.args[0];
     assert.strictEqual(sessionData.userName, "", "userName must be cleared");
     assert.strictEqual(sessionData.csrfToken, "", "csrfToken must be cleared");
     assert.strictEqual(sessionData.loginAt, null, "loginAt must be null");
 });
-QUnit.test("sets canExecuteScanJob to false", async function (assert) {
+QUnit.test("sets canExecuteScanJob to false", function (assert) {
     const { ctrl, uiModelData } = buildShellFixture();
-    await ctrl.onLogout();
+    ctrl.onLogout();
     assert.strictEqual(uiModelData["/canExecuteScanJob"], false);
 });

@@ -11,10 +11,8 @@
 					<Text text="{logList>/selectedLog/id}" />
 					<Label text="Created At" />
 					<Text text="{path: 'logList>/selectedLog/actionAt', formatter: '.formatDateTime'}" />
-					<Label text="Action Type" />
-					<ObjectIdentifier
-						title="{path: 'logList>/selectedLog/actionType', formatter: '.formatActionType'}"
-						text="{logList>/selectedLog/actionType}" />
+					<Label text="Action" />
+					<Text text="{logList>/selectedLog/actionText}" />
 					<Label text="Result" />
 					<ObjectStatus text="{logList>/selectedLog/logResult}" state="{path: 'logList>/selectedLog/logResult', formatter: '.formatLogResultState'}" />
 					<Label text="Actor" />
@@ -34,10 +32,10 @@
 		</content>
 		<beginButton>
 			<Button
-				text="Open Registry"
+				text="{= ${logList>/selectedLog/objectIdType} === 'VERSION' ? 'Open Version' : (${logList>/selectedLog/objectIdType} === 'DETAIL' ? 'Open Detail' : 'Open Registry') }"
 				type="Emphasized"
 				icon="sap-icon://business-objects-experience"
-				visible="{= ${logList>/selectedLog/objectIdType} === 'REGISTRY' &amp;&amp; !!${logList>/selectedLog/objectId} }"
+				visible="{= (${logList>/selectedLog/logResult} === 'SUCCESS' || ${logList>/selectedLog/logResult} === 'S') &amp;&amp; (${logList>/selectedLog/objectIdType} === 'REGISTRY' || ${logList>/selectedLog/objectIdType} === 'VERSION' || ${logList>/selectedLog/objectIdType} === 'DETAIL') &amp;&amp; !!${logList>/selectedLog/objectId} }"
 				press=".onNavigateToObject" />
 		</beginButton>
 		<endButton>

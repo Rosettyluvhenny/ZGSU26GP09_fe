@@ -13,7 +13,6 @@ import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 import Control from 'sap/ui/core/Control';
 
 import BaseController from './BaseController';
-import ServiceError from '../services/ServiceError';
 import type { Registry, RegistryCreateInput, RegistryValueHelpItem } from '../model/types';
 
 /**

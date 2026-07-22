@@ -4,12 +4,6 @@ import ServiceError from './ServiceError';
 import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail, SendMailParams, SendMailResult } from '../model/types';
 import { mapDetailEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
-function delay<T>(value: T, ms = 250): Promise<T> {
-	return new Promise((resolve) => {
-		setTimeout(() => resolve(value), ms);
-	});
-}
-
 function normalizeGuid(value: string): string {
 	return value.replace(/[{}]/g, '').trim();
 }
@@ -76,8 +70,7 @@ export default class DetailService {
 	private readonly client = new ODataClient();
 
 	public async getDetails(versionId: string): Promise<RegistryDetail[]> {
-		const backendDetails = await this.loadDetailsFromBackend(versionId);
-		return delay(backendDetails);
+		return this.loadDetailsFromBackend(versionId);
 	}
 
 	public async getDetail(detailId: string): Promise<RegistryDetail> {
@@ -85,16 +78,16 @@ export default class DetailService {
 		if (!backendDetail) {
 			throw new ServiceError(404, 'Detail not found.');
 		}
-		return delay(backendDetail);
+		return backendDetail;
 	}
 
 	public async getParsedDetail(detailId: string): Promise<DetailMetadataResult> {
 		const parsedDetail = await this.loadParsedMetadataFromBackend(detailId);
 		if (parsedDetail) {
-			return delay(parsedDetail);
+			return parsedDetail;
 		}
 		const detail = await this.getDetail(detailId);
-		return delay({ detailId: detail.id, metadataXml: detail.xml });
+		return { detailId: detail.id, metadataXml: detail.xml };
 	}
 
 	public async getNodeTree(detailId: string): Promise<NodeTreeResponseItem[]> {
@@ -106,9 +99,9 @@ export default class DetailService {
 			)
 		) as unknown as NodeTreeActionResult;
 		if (Array.isArray(payload.NODETREE)) {
-			return delay(payload.NODETREE.map(mapNodeTreeItem));
+			return payload.NODETREE.map(mapNodeTreeItem);
 		}
-		return delay([] as NodeTreeResponseItem[]);
+		return [] as NodeTreeResponseItem[];
 	}
 
 	public async compareNodeTree(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[]> {
@@ -123,9 +116,9 @@ export default class DetailService {
 			)
 		) as unknown as NodeDiffActionResult;
 		if (Array.isArray(payload.NODEDIFF)) {
-			return delay(payload.NODEDIFF.map(mapNodeDiffItem));
+			return payload.NODEDIFF.map(mapNodeDiffItem);
 		}
-		return delay([] as NodeDiffEntry[]);
+		return [] as NodeDiffEntry[];
 	}
 
 	private async loadDetailsFromBackend(versionId: string): Promise<RegistryDetail[]> {
@@ -171,30 +164,13 @@ export default class DetailService {
 			{ headers: await this.client.ensureWriteHeaders('POST') }
 		);
 		const entity = normalizeODataEntity(raw);
-		// BE trả về PascalCase theo ZI_EMAIL_SEND_RESULT complex type
+		// Backend returns PascalCase per ZI_EMAIL_SEND_RESULT complex type
 		return {
 			success: !!(entity.Success ?? entity.success),
 			message: asString(entity.Message ?? entity.message),
 			failedRecip: asString(entity.FailedRecip ?? entity.failedRecip),
 			recipientDetail: asString(entity.RecipientDetail ?? entity.recipientDetail)
 		};
-	}
-
-	public async compareDetail(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[] | null> {
-		const payload = await this.client.postJson(
-		`Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree`,
-		{
-			BaseDetailId: baseDetailId,
-			CompareDetailId: compareDetailId
-		},
-			{ headers: await this.client.ensureWriteHeaders('POST') }
-		);
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length || !Array.isArray(entity.NODEDIFF)) {
-			return null;
-		}
-
-		return entity.NODEDIFF.map(mapNodeDiffItem);
 	}
 
 
