@@ -14,15 +14,9 @@
     "role-templates": [
         {
             "name": "User",
-            "description": "General app access",
+            "description": "General app access, including the AI assistant",
             "scope-references": [
-                "$XSAPPNAME.User"
-            ]
-        },
-        {
-            "name": "AiUser",
-            "description": "Access to the AI assistant",
-            "scope-references": [
+                "$XSAPPNAME.User",
                 "$XSAPPNAME.AiUser"
             ]
         }
@@ -33,13 +27,6 @@
             "description": "Access to ZGP9 app",
             "role-template-references": [
                 "$XSAPPNAME.User"
-            ]
-        },
-        {
-            "name": "ZGP9_AiUser",
-            "description": "Access to the ZGP9 AI assistant (granted separately: it spends a shared paid quota)",
-            "role-template-references": [
-                "$XSAPPNAME.AiUser"
             ]
         }
     ],

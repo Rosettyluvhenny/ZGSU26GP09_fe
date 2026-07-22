@@ -113,9 +113,12 @@ On each, add an additional property carrying the key:
 URL.headers.Authorization = Bearer <your-key>
 ```
 
-Then assign the **`ZGP9_AiUser`** role collection to the users who may use the assistant.
-It is deliberately separate from `ZGP9_User`: the AI routes spend a shared quota, so
-access is an explicit grant rather than something every app user gets.
+Then assign the **`ZGP9_User`** role collection to anyone who should use the app. It grants
+both `$XSAPPNAME.User` and `$XSAPPNAME.AiUser`, so app access and AI access come together.
+
+The AI routes still *check* for `$XSAPPNAME.AiUser` (see the `scope` property in
+`xs-app.json`), so access can be split again later by removing that scope from the `User`
+role template and giving it its own role collection — no route changes needed.
 
 > **Note:** SAP KBA [3341287](https://userapps.support.sap.com/sap/support/knowledge/en/3341287)
 > reports `URL.headers.<name>` being ignored by some *standalone* approuter versions. This
