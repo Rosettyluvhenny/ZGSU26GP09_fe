@@ -2,6 +2,22 @@
 	width: 100%;
 }
 
+/* ── Fluid tables ──────────────────────────────────────────────────────────
+   sap.m responsive tables shrink-wrap to the sum of their column widths, so on
+   a wide screen they leave dead space on the right and any width-less column
+   collapses to 0. Forcing the inner table to span its container makes the
+   columns expand proportionally to fill the available width (fluid on desktop),
+   while the demandPopin breakpoints still collapse columns on small screens. */
+.sapMList .sapMListTbl {
+	width: 100% !important;
+}
+
+/* The XML source/diff tables are the exception: their monospace content must keep
+   its natural width and scroll horizontally, so they opt back out of the fill. */
+.versionDetailXmlTable .sapMListTbl {
+	width: auto !important;
+}
+
 /* ── Side navigation hide ────────────────────────────────────────────────── */
 
 /* With sideExpanded=false the ToolPage still shows an icon-only rail; this

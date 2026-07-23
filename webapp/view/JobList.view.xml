@@ -16,23 +16,23 @@
 		</f:title>
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
-				<Toolbar>
+				<OverflowToolbar>
 					<Button text="Run Scan Job" type="Emphasized" press=".onRunScanJob" visible="{ui>/canExecuteScanJob}" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
 					<SearchField width="18rem" placeholder="Search jobs" liveChange=".onSearchLiveChange" />
-				</Toolbar>
+				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
 		<f:content>
 			<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" growing="true" mode="None">
 				<columns>
 					<Column width="12rem"><Text text="Job ID" /></Column>
-					<Column width="14rem"><Text text="Trigger Type" /></Column>
+					<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Trigger Type" /></Column>
 					<Column width="9rem"><Text text="Status" /></Column>
-					<Column width="11rem"><Text text="Started At" /></Column>
-					<Column width="11rem"><Text text="Finished At" /></Column>
-					<Column width="11rem"><Text text="Executed By" /></Column>
+					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Started At" /></Column>
+					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Finished At" /></Column>
+					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Executed By" /></Column>
 				</columns>
 				<items>
 					<ColumnListItem type="Navigation" press=".onRowPress">

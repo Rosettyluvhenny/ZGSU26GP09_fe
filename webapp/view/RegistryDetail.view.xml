@@ -78,9 +78,9 @@
 						<Table id="versionsTable" items="{registryDetail>/versions}" mode="MultiSelect" growing="true" selectionChange=".onVersionSelectionChange">
 							<columns>
 								<Column width="10rem"><Text text="Version Number" /></Column>
-								<Column width="11rem"><Text text="Created By" /></Column>
+								<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Created By" /></Column>
 								<Column width="11rem"><Text text="Created At" /></Column>
-								<Column width="16rem"><Text text="TriggerType" /></Column>
+								<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="TriggerType" /></Column>
 							</columns>
 							<items>
 								<ColumnListItem>

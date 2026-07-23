@@ -36,6 +36,8 @@ export default {
 			selectedRegistryStatus: 'All',
 			isDarkTheme: (readThemePreference() ?? 'sap_horizon').includes('dark'),
 			sideNavVisible: true,
+			isPhoneWidth: window.matchMedia('(max-width: 599px)').matches,
+			isNarrowWidth: window.matchMedia('(max-width: 1023px)').matches,
 			canExecuteScanJob: false,
 			canCreate: false,
 			canUpdate: false,

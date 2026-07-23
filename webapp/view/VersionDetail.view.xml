@@ -83,7 +83,7 @@
 					<ToolbarSpacer />
 				</OverflowToolbar>
 
-				<l:Splitter width="100%" height="40rem" class="sapUiSmallMarginTop">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '64rem' : '40rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }" class="sapUiSmallMarginTop">
 					<Page title="Node Tree" showHeader="true" enableScrolling="false" busy="{versionDetail>/selectedDetailBusy}" class="versionDetailSplitPage">
 						<layoutData>
 							<l:SplitterLayoutData size="24rem" resizable="true" />

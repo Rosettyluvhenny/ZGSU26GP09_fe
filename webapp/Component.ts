@@ -3,6 +3,7 @@ import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
 import Theming from 'sap/ui/core/Theming';
 import MessageModel from 'sap/ui/model/message/MessageModel';
+import JSONModel from 'sap/ui/model/json/JSONModel';
 
 import { readThemePreference } from './services/SessionStorage';
 
@@ -45,8 +46,32 @@ export default class Component extends UIComponent {
 		this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter());
 
+		this.registerViewportWidthTracking();
 
 		this.getRouter().initialize();
+	}
+
+	// Keep a viewport-width flag on the ui model so layouts (e.g. the split-view
+	// Splitters) can switch to a stacked orientation on narrow screens. Unlike
+	// device>/system/phone, this reacts to desktop window resizing and browser zoom.
+	private registerViewportWidthTracking(): void {
+		const ui = this.getModel('ui') as JSONModel;
+		// matchMedia reflects the CSS viewport width, so it fires reliably on window
+		// resize and also when the user zooms the browser (unlike Device.resize, which
+		// is throttled and can miss programmatic/emulated resizes).
+		// isPhoneWidth (<600px) drives the shell nav overlay; isNarrowWidth (<1024px)
+		// drives the split-view panes (tree ‖ XML) so they stack vertically whenever
+		// there isn't enough room to show them side by side comfortably.
+		const phoneMql = window.matchMedia('(max-width: 599px)');
+		const narrowMql = window.matchMedia('(max-width: 1023px)');
+		const update = (): void => {
+			ui.setProperty('/isPhoneWidth', phoneMql.matches);
+			ui.setProperty('/isNarrowWidth', narrowMql.matches);
+		};
+		update();
+		phoneMql.addEventListener('change', update);
+		narrowMql.addEventListener('change', update);
+		window.addEventListener('resize', update);
 	}
 
 	private applyStoredTheme(): void {

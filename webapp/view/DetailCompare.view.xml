@@ -78,15 +78,16 @@
 								growingThreshold="50"
 								mode="None"
 								itemPress=".onChangeRowPress"
-								noDataText="No changes in this category.">
+								noDataText="No changes in this category."
+								width="100%">
 								<columns>
-									<Column width="16rem"><Text text="Element" /></Column>
-									<Column width="11rem"><Text text="Type" /></Column>
-									<Column width="10rem"><Text text="Attribute" /></Column>
-									<Column width="9rem"><Text text="Before" /></Column>
-									<Column width="9rem"><Text text="After" /></Column>
-									<Column width="9rem"><Text text="Severity" /></Column>
-									<Column><Text text="Reason" /></Column>
+									<Column width="22%" minScreenWidth="6rem"><Text text="Element" /></Column>
+									<Column width="13%" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
+									<Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="Attribute" /></Column>
+									<Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="Before" /></Column>
+									<Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="After" /></Column>
+									<Column width="11%"><Text text="Severity" /></Column>
+									<Column width="18%" minScreenWidth="Tablet" demandPopin="true"><Text text="Reason" /></Column>
 								</columns>
 								<items>
 									<ColumnListItem
@@ -110,7 +111,7 @@
 					</content>
 				</Panel>
 
-				<l:Splitter width="100%" height="34rem" class="sapUiSmallMarginBottom">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '54rem' : '34rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }" class="sapUiSmallMarginBottom">
 					<Page title="Base Node Tree ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
 						<layoutData>
 							<l:SplitterLayoutData size="50%" resizable="true" />
@@ -157,7 +158,7 @@
 					</SegmentedButton>
 				</Toolbar>
 
-				<l:Splitter width="100%" height="36rem">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '58rem' : '36rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }">
 				<Page title="Base XML ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
 					<layoutData>
 						<l:SplitterLayoutData size="50%" resizable="true" />

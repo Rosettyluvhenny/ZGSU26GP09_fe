@@ -46,7 +46,7 @@
 					class="sapUiSmallMarginBottom"
 					visible="{= !!${model>/parseError} }" />
 
-				<l:Splitter width="100%" height="42rem">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '64rem' : '42rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }">
 					<!-- Left: categorised element lists -->
 					<Page showHeader="false" enableScrolling="false" class="versionDetailSplitPage">
 						<layoutData>

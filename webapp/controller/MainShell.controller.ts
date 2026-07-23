@@ -21,7 +21,11 @@ export default class MainShell extends BaseController {
 			onAfterRendering: () => this.flushPendingNavigation(),
 		});
 
-		const sideNavVisible = readSideNavPreference();
+		// On phone-width screens the side navigation renders as a full-screen overlay,
+		// so default it collapsed and let the user open it via the menu button — the
+		// stored preference only drives the desktop/tablet experience.
+		const isPhoneWidth = window.matchMedia("(max-width: 599px)").matches;
+		const sideNavVisible = isPhoneWidth ? false : readSideNavPreference();
 		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
 		this.applySideNavVisibility(sideNavVisible);
 
@@ -119,6 +123,12 @@ export default class MainShell extends BaseController {
 	}
 
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {
+		// On phone the nav is a full-screen overlay; close it so it doesn't cover the
+		// page the user just navigated to.
+		if (window.matchMedia("(max-width: 599px)").matches && this.getUiModel().getProperty("/sideNavVisible")) {
+			this.getUiModel().setProperty("/sideNavVisible", false);
+			this.applySideNavVisibility(false);
+		}
 		this.pendingRoute = route;
 		this.flushPendingNavigation();
 	}

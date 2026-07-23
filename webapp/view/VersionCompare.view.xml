@@ -33,9 +33,9 @@
 							<Table items="{versionCompare>/change}" growing="true" noDataText="No changed details.">
 								<columns>
 									<Column width="18rem"><Text text="Service Def" /></Column>
-									<Column width="16rem"><Text text="Base Detail" /></Column>
-									<Column width="16rem"><Text text="Compare Detail" /></Column>
-									<Column width="10rem"><Text text="Type" /></Column>
+									<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Base Detail" /></Column>
+									<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Compare Detail" /></Column>
+									<Column width="10rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
 									<Column width="9rem"><Text text="Action" /></Column>
 								</columns>
 								<items>
@@ -56,9 +56,9 @@
 							<Table items="{versionCompare>/differ}" growing="true" noDataText="No differing details.">
 								<columns>
 									<Column width="18rem"><Text text="Service Def" /></Column>
-									<Column width="16rem"><Text text="Base Detail" /></Column>
-									<Column width="16rem"><Text text="Compare Detail" /></Column>
-									<Column width="10rem"><Text text="Type" /></Column>
+									<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Base Detail" /></Column>
+									<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Compare Detail" /></Column>
+									<Column width="10rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
 									<Column width="9rem"><Text text="Action" /></Column>
 								</columns>
 								<items>
@@ -79,9 +79,9 @@
 							<Table items="{versionCompare>/unchange}" growing="true" noDataText="No unchanged details.">
 								<columns>
 									<Column width="18rem"><Text text="Service Def" /></Column>
-									<Column width="16rem"><Text text="Base Detail" /></Column>
-									<Column width="16rem"><Text text="Compare Detail" /></Column>
-									<Column width="10rem"><Text text="Type" /></Column>
+									<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Base Detail" /></Column>
+									<Column width="16rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Compare Detail" /></Column>
+									<Column width="10rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
 								</columns>
 								<items>
 									<ColumnListItem>
