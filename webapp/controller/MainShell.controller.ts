@@ -119,6 +119,11 @@ export default class MainShell extends BaseController {
 			loginAt: null,
 		});
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
+		this.reloadApp();
+	}
+
+	/** Isolated for unit tests — avoid reloading the QUnit page under the runner. */
+	protected reloadApp(): void {
 		window.location.reload();
 	}
 
@@ -139,16 +144,11 @@ export default class MainShell extends BaseController {
 		}
 
 		if (!this.byId("shellFcl")) {
-			console.log("shellFcl not found yet, waiting...");
 			return;
 		}
 
 		const route = this.pendingRoute;
 		this.pendingRoute = null;
-		const fcl = this.byId("shellFcl");
-		console.log("id:", fcl?.getId());
-		console.log("class:", fcl?.getMetadata().getName());
-		console.log("is FCL:", fcl?.isA("sap.f.FlexibleColumnLayout"));
 		this.navTo(route, {}, true);
 	}
 

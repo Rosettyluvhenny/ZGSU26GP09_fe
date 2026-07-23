@@ -26,9 +26,6 @@ export default {
 	tests: {
 		"unit/unitTests": {
 			title: "Unit tests for com.zgp9.fe"
-		},
-		"integration/opaTests": {
-			title: "Integration tests for com.zgp9.fe"
 		}
 	}
 } satisfies SuiteConfiguration;
