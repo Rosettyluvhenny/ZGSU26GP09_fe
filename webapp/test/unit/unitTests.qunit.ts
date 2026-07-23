@@ -1,5 +1,6 @@
 // import all QUnit unit tests here
 import "./controller/BaseController.qunit";
+import "./controller/Home.qunit";
 import "./controller/Login.qunit";
 import "./controller/Main.qunit";
 import "./controller/MainShell.qunit";

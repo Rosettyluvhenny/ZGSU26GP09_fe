@@ -4,21 +4,33 @@
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:l="sap.ui.layout"
-	xmlns:core="sap.ui.core">
+	xmlns:core="sap.ui.core"
+	xmlns:mc="sap.suite.ui.microchart">
 
 	<Page id="homePage" title="Home" showHeader="false" busy="{home>/busy}">
 		<content>
 			<VBox class="sapUiMediumMargin">
 				<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" class="sapUiSmallMarginBottom" />
-				<Text text="Here's a snapshot of your registries and scan jobs." class="sapUiMediumMarginBottom" />
+				<HBox alignItems="Center" class="sapUiMediumMarginBottom">
+					<Text text="Here's a snapshot of your registries and scan jobs." />
+					<ToolbarSpacer />
+					<Text
+						text="{= ${home>/lastUpdated} ? 'Updated ' + ${path: 'home>/lastUpdated', formatter: '.formatRelativeTime'} : '' }"
+						class="sapUiTinyMarginEnd"
+						visible="{= !!${home>/lastUpdated} }" />
+					<Button icon="sap-icon://refresh" tooltip="Refresh now" type="Transparent" press=".onManualRefresh" />
+				</HBox>
 
 				<!-- KPI tiles -->
 				<HBox wrap="Wrap" class="sapUiSmallMarginBottom">
 					<GenericTile header="Total Registries" subheader="All services" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
 						<tileContent>
-							<TileContent>
+							<TileContent footer="{= ${home>/kpiDelta/totalNew} > 0 ? '+' + ${home>/kpiDelta/totalNew} + ' new this week' : 'No new registries this week' }">
 								<content>
-									<NumericContent value="{home>/registryStats/total}" icon="sap-icon://database" withMargin="false" />
+									<NumericContent
+										value="{home>/registryStats/total}"
+										icon="sap-icon://database"
+										withMargin="false" />
 								</content>
 							</TileContent>
 						</tileContent>
@@ -28,9 +40,13 @@
 							<core:CustomData key="status" value="P" />
 						</customData>
 						<tileContent>
-							<TileContent>
+							<TileContent footer="{= ${home>/kpiDelta/publishedChanged} + ' changed this week' }">
 								<content>
-									<NumericContent value="{home>/registryStats/published}" icon="sap-icon://sys-enter-2" valueColor="Good" withMargin="false" />
+									<NumericContent
+										value="{home>/registryStats/published}"
+										icon="sap-icon://sys-enter-2"
+										valueColor="Good"
+										withMargin="false" />
 								</content>
 							</TileContent>
 						</tileContent>
@@ -40,9 +56,13 @@
 							<core:CustomData key="status" value="U" />
 						</customData>
 						<tileContent>
-							<TileContent>
+							<TileContent footer="{= ${home>/kpiDelta/unpublishedChanged} + ' changed this week' }">
 								<content>
-									<NumericContent value="{home>/registryStats/unpublished}" icon="sap-icon://pending" valueColor="Critical" withMargin="false" />
+									<NumericContent
+										value="{home>/registryStats/unpublished}"
+										icon="sap-icon://pending"
+										valueColor="Critical"
+										withMargin="false" />
 								</content>
 							</TileContent>
 						</tileContent>
@@ -52,14 +72,48 @@
 							<core:CustomData key="status" value="A" />
 						</customData>
 						<tileContent>
-							<TileContent>
+							<TileContent footer="{= ${home>/kpiDelta/archiveChanged} + ' changed this week' }">
 								<content>
-									<NumericContent value="{home>/registryStats/archive}" icon="sap-icon://box" valueColor="Error" withMargin="false" />
+									<NumericContent
+										value="{home>/registryStats/archive}"
+										icon="sap-icon://box"
+										valueColor="Error"
+										withMargin="false" />
 								</content>
 							</TileContent>
 						</tileContent>
 					</GenericTile>
 				</HBox>
+
+				<Panel headerText="Scan Activity — last 14 days" expandable="false" class="sapUiSmallMarginBottom">
+					<content>
+						<VBox width="100%" height="5rem" class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginTopBottom">
+							<mc:ColumnMicroChart
+								size="Responsive"
+								width="100%"
+								height="100%"
+								columns="{path: 'home>/scanTrend', templateShareable: false}">
+								<mc:ColumnMicroChartData value="{home>value}" color="Good" label="{home>label}" />
+							</mc:ColumnMicroChart>
+						</VBox>
+					</content>
+				</Panel>
+
+				<Panel
+					headerText="{= 'Attention Required' + (${home>/attentionCount} ? ' — ' + ${home>/attentionCount} : '') }"
+					expandable="false"
+					class="sapUiSmallMarginBottom">
+					<content>
+						<List items="{home>/attentionItems}" noDataText="All caught up — nothing needs your attention.">
+							<StandardListItem
+								icon="{home>icon}"
+								title="{home>text}"
+								highlight="{home>state}"
+								type="Active"
+								press=".onAttentionItemPress" />
+						</List>
+					</content>
+				</Panel>
 
 				<Panel headerText="Quick Actions" expandable="false" class="sapUiSmallMarginBottom">
 					<content>
@@ -75,30 +129,55 @@
 				<l:Grid defaultSpan="L6 M12 S12">
 					<Panel headerText="Recently Changed Registries" expandable="false">
 						<content>
-							<List items="{home>/recentRegistries}" noDataText="No registries yet.">
-								<StandardListItem
-									icon="sap-icon://database"
-									title="{home>registryName}"
-									description="{= ${home>serviceType} + ' · ' + ${home>lastChangedBy} + ' · ' + ${path: 'home>lastChangedAt', formatter: '.formatRelativeTime'} }"
-									info="{home>statusText}"
-									infoState="{path: 'home>status', formatter: '.formatStatusState'}"
-									type="Active"
-									press=".onRegistryPress" />
-							</List>
+							<Text text="No registries yet." class="sapUiSmallMargin" visible="{= ${home>/recentRegistries}.length === 0 }" />
+							<VBox items="{path: 'home>/recentRegistries', templateShareable: false}">
+								<Panel expandable="true" expanded="false" class="sapUiTinyMarginBottom">
+									<headerToolbar>
+										<OverflowToolbar>
+											<Title text="{home>registryName}" level="H5" />
+											<Label text="{home>serviceType}" class="sapUiTinyMarginBegin" />
+											<ToolbarSpacer />
+											<ObjectStatus text="{home>statusText}" state="{path: 'home>status', formatter: '.formatStatusState'}" />
+											<ObjectStatus text="{= 'v' + ${home>versionNo} }" visible="{= !!${home>versionNo} }" class="sapUiTinyMarginBegin" />
+										</OverflowToolbar>
+									</headerToolbar>
+									<content>
+										<VBox class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginBottom">
+											<Text text="{home>changeSummary/headline}" />
+											<Text text="{= 'Scanned ' + ${path: 'home>lastChangedAt', formatter: '.formatRelativeTime'} }" class="sapUiTinyMarginTop" />
+											<Text text="{= 'Last changed by ' + (${home>lastChangedBy} || 'unknown') }" class="sapUiTinyMarginTop" />
+											<MessageStrip
+												text="Breaking change detected — one or more elements were removed since the last scan."
+												type="Error"
+												showIcon="true"
+												class="sapUiTinyMarginTop"
+												visible="{home>changeSummary/breaking}" />
+											<List items="{home>changeSummary/details}" class="sapUiTinyMarginTop" visible="{= ${home>changeSummary/details}.length > 0 }">
+												<StandardListItem
+													title="{home>text}"
+													icon="{= ${home>severity} === 'Breaking' ? 'sap-icon://message-error' : 'sap-icon://message-success' }"
+													iconInset="false" />
+											</List>
+											<Button text="Open Registry" type="Transparent" icon="sap-icon://arrow-right" press=".onRegistryPress" class="sapUiTinyMarginTop" />
+										</VBox>
+									</content>
+								</Panel>
+							</VBox>
 						</content>
 					</Panel>
 
-					<Panel headerText="Recent Scan Jobs" expandable="false">
+					<Panel headerText="Recent Activity" expandable="false">
 						<content>
-							<List items="{home>/recentJobs}" noDataText="No scan jobs yet.">
+							<List items="{path: 'home>/activity', templateShareable: false}" noDataText="No recent activity yet.">
 								<StandardListItem
-									icon="sap-icon://activity-items"
-									title="{= 'Job ' + ${home>id} }"
-									description="{= ${home>triggerType} + ' · ' + ${home>executedBy} + ' · ' + ${path: 'home>startedAt', formatter: '.formatRelativeTime'} }"
-									info="{home>status}"
-									infoState="{path: 'home>status', formatter: '.formatStatusState'}"
+									icon="{home>icon}"
+									title="{home>title}"
+									description="{home>subtitle}"
+									info="{home>timeAgo}"
+									highlight="{home>state}"
+									tooltip="{= ${home>objectIdType} + ' ' + ${home>objectId} }"
 									type="Active"
-									press=".onJobPress" />
+									press=".onActivityPress" />
 							</List>
 						</content>
 					</Panel>
