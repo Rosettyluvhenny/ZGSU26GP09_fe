@@ -5,10 +5,6 @@
         {
             "name": "$XSAPPNAME.User",
             "description": "General app access"
-        },
-        {
-            "name": "$XSAPPNAME.AiUser",
-            "description": "May spend the shared AI provider quota via the /ai proxy routes"
         }
     ],
     "role-templates": [
@@ -16,8 +12,7 @@
             "name": "User",
             "description": "General app access, including the AI assistant",
             "scope-references": [
-                "$XSAPPNAME.User",
-                "$XSAPPNAME.AiUser"
+                "$XSAPPNAME.User"
             ]
         }
     ],

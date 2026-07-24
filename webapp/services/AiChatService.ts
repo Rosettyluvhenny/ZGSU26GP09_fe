@@ -223,7 +223,7 @@ export default class AiChatService {
 			if (response.status === 401) {
 				message = 'Your session has expired. Reload the page and sign in again.';
 			} else if (response.status === 403) {
-				message = 'Your user is not authorized to use the AI assistant. Ask an administrator for the ZGP9_AiUser role collection.';
+				message = 'The AI assistant is currently unavailable. Please try again later or contact an administrator.';
 			} else if (response.status === 429) {
 				message = `${provider.name} free-tier quota reached. Wait a moment and try again.`;
 			}
