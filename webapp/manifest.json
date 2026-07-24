@@ -49,8 +49,7 @@
 				"sap.m": {},
 				"sap.f": {},
 				"sap.tnt": {},
-				"sap.ui.layout": {},
-				"sap.suite.ui.microchart": {}
+				"sap.ui.layout": {}
 			}
 		},
 		"flexEnabled": false,

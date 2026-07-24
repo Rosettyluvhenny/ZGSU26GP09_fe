@@ -4,8 +4,7 @@
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:l="sap.ui.layout"
-	xmlns:core="sap.ui.core"
-	xmlns:mc="sap.suite.ui.microchart">
+	xmlns:core="sap.ui.core">
 
 	<Page id="homePage" title="Home" showHeader="false" busy="{home>/busy}">
 		<content>
@@ -22,8 +21,8 @@
 				</HBox>
 
 				<!-- KPI tiles -->
-				<HBox wrap="Wrap" class="sapUiSmallMarginBottom">
-					<GenericTile header="Total Registries" subheader="All services" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+				<HBox wrap="Wrap" renderType="Bare" class="kpiTileRow sapUiSmallMarginBottom">
+					<GenericTile header="Total Registries" subheader="All services" press=".onNavigateRegistries" class="kpiTile">
 						<tileContent>
 							<TileContent footer="{= ${home>/kpiDelta/totalNew} > 0 ? '+' + ${home>/kpiDelta/totalNew} + ' new this week' : 'No new registries this week' }">
 								<content>
@@ -35,7 +34,7 @@
 							</TileContent>
 						</tileContent>
 					</GenericTile>
-					<GenericTile header="Published" subheader="Live services" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+					<GenericTile header="Published" subheader="Live services" press=".onNavigateRegistries" class="kpiTile">
 						<customData>
 							<core:CustomData key="status" value="P" />
 						</customData>
@@ -51,7 +50,7 @@
 							</TileContent>
 						</tileContent>
 					</GenericTile>
-					<GenericTile header="Unpublished" subheader="Not live" press=".onNavigateRegistries" class="sapUiTinyMarginEnd sapUiTinyMarginBottom">
+					<GenericTile header="Unpublished" subheader="Not live" press=".onNavigateRegistries" class="kpiTile">
 						<customData>
 							<core:CustomData key="status" value="U" />
 						</customData>
@@ -67,7 +66,7 @@
 							</TileContent>
 						</tileContent>
 					</GenericTile>
-					<GenericTile header="Archived" subheader="Retired" press=".onNavigateRegistries" class="sapUiTinyMarginBottom">
+					<GenericTile header="Archived" subheader="Retired" press=".onNavigateRegistries" class="kpiTile">
 						<customData>
 							<core:CustomData key="status" value="A" />
 						</customData>
@@ -87,14 +86,30 @@
 
 				<Panel headerText="Scan Activity — last 14 days" expandable="false" class="sapUiSmallMarginBottom">
 					<content>
-						<VBox width="100%" height="5rem" class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginTopBottom">
-							<mc:ColumnMicroChart
-								size="Responsive"
-								width="100%"
-								height="100%"
-								columns="{path: 'home>/scanTrend', templateShareable: false}">
-								<mc:ColumnMicroChartData value="{home>value}" color="Good" label="{home>label}" />
-							</mc:ColumnMicroChart>
+						<VBox class="scanActivity sapUiSmallMargin">
+							<HBox alignItems="End" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+								<VBox>
+									<Text text="{home>/scanSummary/total}" class="scanActivityTotal" />
+									<Text text="scans in the last 14 days" class="scanActivityCaption" />
+								</VBox>
+								<VBox alignItems="End" visible="{= ${home>/scanSummary/peakValue} > 0 }">
+									<Text text="Peak · {home>/scanSummary/peakValue}" class="scanActivityPeak" />
+									<Text text="{home>/scanSummary/peakLabel}" class="scanActivityCaption" />
+								</VBox>
+							</HBox>
+							<HBox class="scanActivityChart" items="{path: 'home>/scanTrend', templateShareable: false}">
+								<VBox class="scanActivityCol" justifyContent="End" tooltip="{home>tooltip}">
+									<VBox class="scanActivityBar" height="{= ${home>heightPct} + '%' }">
+										<customData>
+											<core:CustomData key="scanbar" value="{home>state}" writeToDom="true" />
+										</customData>
+									</VBox>
+								</VBox>
+							</HBox>
+							<HBox justifyContent="SpaceBetween" class="sapUiTinyMarginTop">
+								<Text text="{home>/scanSummary/startLabel}" class="scanActivityCaption" />
+								<Text text="{home>/scanSummary/endLabel}" class="scanActivityCaption" />
+							</HBox>
 						</VBox>
 					</content>
 				</Panel>

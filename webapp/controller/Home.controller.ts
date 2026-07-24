@@ -46,6 +46,19 @@ interface ActivityItem {
 interface ScanTrendPoint {
 	label: string;
 	value: number;
+	/** Bar height as a percentage of the tallest day (0-value days get a small stub). */
+	heightPct: number;
+	/** Drives the bar styling via a writeToDom data-attribute: today | empty | normal. */
+	state: 'today' | 'empty' | 'normal';
+	tooltip: string;
+}
+
+interface ScanTrendSummary {
+	total: number;
+	peakValue: number;
+	peakLabel: string;
+	startLabel: string;
+	endLabel: string;
 }
 
 interface ChangeDetail {
@@ -117,6 +130,7 @@ export default class Home extends BaseController {
 				recentRegistries: [] as RegistryCard[],
 				activity: [] as ActivityItem[],
 				scanTrend: [] as ScanTrendPoint[],
+				scanSummary: { total: 0, peakValue: 0, peakLabel: '', startLabel: '', endLabel: '' } as ScanTrendSummary,
 				attentionItems: [] as AttentionItem[],
 				attentionCount: 0,
 				lastUpdated: null as string | null
@@ -329,7 +343,9 @@ export default class Home extends BaseController {
 			model.setProperty('/kpiDelta', this.computeKpiDelta(registries));
 			model.setProperty('/recentRegistries', recentRegistryCards);
 			model.setProperty('/activity', this.buildActivity(jobs, logs));
-			model.setProperty('/scanTrend', this.bucketScanTrend(jobs));
+			const scanActivity = this.bucketScanTrend(jobs);
+			model.setProperty('/scanTrend', scanActivity.points);
+			model.setProperty('/scanSummary', scanActivity.summary);
 			model.setProperty('/attentionItems', attentionItems);
 			model.setProperty('/attentionCount', attentionItems.length);
 			model.setProperty('/lastUpdated', new Date().toISOString());
@@ -477,8 +493,8 @@ export default class Home extends BaseController {
 		}
 	}
 
-	/** 14 daily buckets (oldest → newest) of scan-job counts, for the activity sparkline. */
-	private bucketScanTrend(jobs: Job[]): ScanTrendPoint[] {
+	/** 14 daily buckets (oldest → newest) of scan-job counts, plus summary stats, for the activity chart. */
+	private bucketScanTrend(jobs: Job[]): { points: ScanTrendPoint[]; summary: ScanTrendSummary } {
 		const now = new Date();
 		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 		const counts = new Array<number>(SCAN_TREND_DAYS).fill(0);
@@ -496,13 +512,47 @@ export default class Home extends BaseController {
 			}
 		}
 
+		const maxValue = Math.max(1, ...counts);
+		const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
+		const fullFormat = new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric' });
+
 		const points: ScanTrendPoint[] = [];
-		const labelFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
+		let total = 0;
+		let peakValue = 0;
+		let peakOffset = 0;
 		for (let offset = SCAN_TREND_DAYS - 1; offset >= 0; offset--) {
+			const value = counts[offset];
 			const dayStart = startOfToday - offset * DAY_MS;
-			points.push({ label: labelFormat.format(new Date(dayStart)), value: counts[offset] });
+			total += value;
+			if (value > peakValue) {
+				peakValue = value;
+				peakOffset = offset;
+			}
+
+			const isToday = offset === 0;
+			const state: ScanTrendPoint['state'] = value === 0 ? 'empty' : isToday ? 'today' : 'normal';
+			// Non-zero bars keep a legible minimum height; empty days show a faint baseline stub.
+			const heightPct = value === 0 ? 6 : Math.max(14, Math.round((value / maxValue) * 100));
+			const scanWord = value === 1 ? 'scan' : 'scans';
+			const dayName = isToday ? 'Today' : fullFormat.format(new Date(dayStart));
+			points.push({
+				label: dateFormat.format(new Date(dayStart)),
+				value,
+				heightPct,
+				state,
+				tooltip: `${dayName} — ${value} ${scanWord}`
+			});
 		}
-		return points;
+
+		const summary: ScanTrendSummary = {
+			total,
+			peakValue,
+			peakLabel: peakValue > 0 ? dateFormat.format(new Date(startOfToday - peakOffset * DAY_MS)) : '',
+			startLabel: dateFormat.format(new Date(startOfToday - (SCAN_TREND_DAYS - 1) * DAY_MS)),
+			endLabel: 'Today'
+		};
+
+		return { points, summary };
 	}
 
 	private normalizeId(value: string): string {

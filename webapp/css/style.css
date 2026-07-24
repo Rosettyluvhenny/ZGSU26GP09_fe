@@ -312,3 +312,96 @@ html.sapUiTheme-sap_horizon_dark {
 	color: var(--sapWarningColor, #e9730c);
 }
 
+/* ── Home KPI tiles ──────────────────────────────────────────────────────────
+   The four registry-count tiles are fixed-width GenericTiles; in a plain HBox
+   they hug the left and leave dead space on the right. Letting them flex-grow
+   equally makes the row span the full width like the panels below, while the
+   flex-basis keeps them wrapping onto multiple rows on narrow screens. */
+.kpiTileRow {
+	width: 100%;
+	gap: 0.75rem;
+	align-items: stretch;
+}
+
+.kpiTileRow > .kpiTile {
+	flex: 1 1 11rem;
+	width: auto !important;
+}
+
+/* ── Scan Activity chart ─────────────────────────────────────────────────────
+   Custom bar chart on the Home dashboard. Replaces the stock ColumnMicroChart,
+   which rendered thin, left-hugging columns with no axis or context. Bars are
+   plain divs sized inline (height %) by the controller; the today/empty state
+   is emitted as a data-attribute via writeToDom CustomData (same pattern as the
+   diff and chat styling above) so CSS can theme each state. */
+:root {
+	--appScanBarTop: #7c63e6;
+	--appScanBarBottom: #5b3fd6;
+	--appScanBarTodayTop: #a693ff;
+	--appScanBarTodayBottom: #6d54e0;
+}
+
+html.sapUiTheme-sap_horizon_dark {
+	--appScanBarTop: #9d8bff;
+	--appScanBarBottom: #6d54e0;
+	--appScanBarTodayTop: #b3a4ff;
+	--appScanBarTodayBottom: #7d66ec;
+}
+
+.scanActivityTotal {
+	font-size: 1.75rem;
+	font-weight: 700;
+	line-height: 1.1;
+	color: var(--sapTextColor, #223548);
+}
+
+.scanActivityPeak {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--sapTextColor, #223548);
+}
+
+.scanActivityCaption {
+	font-size: 0.75rem;
+	color: var(--sapContent_LabelColor, #556b82);
+}
+
+/* The bar row. flex-end anchors bars to the baseline; the border is the axis. */
+.scanActivityChart {
+	align-items: flex-end;
+	height: 6rem;
+	gap: 5px;
+	padding-top: 0.25rem;
+	border-bottom: 1px solid var(--sapList_BorderColor, #d9d9d9);
+}
+
+.scanActivityCol {
+	flex: 1 1 0;
+	height: 100%;
+	min-width: 0;
+	justify-content: flex-end;
+	cursor: default;
+}
+
+.scanActivityBar {
+	width: 100%;
+	min-height: 4px;
+	border-radius: 4px 4px 0 0;
+	background: linear-gradient(180deg, var(--appScanBarTop) 0%, var(--appScanBarBottom) 100%);
+	transition: filter 0.15s ease;
+}
+
+.scanActivityCol:hover .scanActivityBar {
+	filter: brightness(1.1);
+}
+
+.scanActivityBar[data-scanbar="today"] {
+	background: linear-gradient(180deg, var(--appScanBarTodayTop) 0%, var(--appScanBarTodayBottom) 100%);
+	box-shadow: 0 0 0 2px var(--sapContent_Selected_Background, rgba(91, 63, 214, 0.18));
+}
+
+.scanActivityBar[data-scanbar="empty"] {
+	background: var(--sapList_BorderColor, #e5e5e5);
+	opacity: 0.55;
+}
+

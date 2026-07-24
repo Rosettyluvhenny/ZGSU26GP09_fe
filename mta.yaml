@@ -6,8 +6,8 @@ modules:
     type: approuter.nodejs
     path: approuter
     parameters:
-      disk-quota: 512M
-      memory: 256M
+      disk-quota: 384M
+      memory: 192M
     properties:
       # Keep this at warning in deployed environments: debug logs outbound request
       # detail, which is the one place the destination-injected AI key could surface.
