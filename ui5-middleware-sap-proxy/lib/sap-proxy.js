@@ -149,6 +149,32 @@ module.exports = function () {
 			return;
 		}
 
+		// Mirror the approuter's central logout so the frontend uses the same /logout
+		// path locally. There is no XSUAA session to end in dev, so we skip straight to
+		// the sign-out page the approuter's logoutPage points at, and serve that page
+		// from the approuter module's resources so dev and prod look identical.
+		const pathname = req.url.split("?")[0];
+		if (pathname === "/logout") {
+			res.statusCode = 302;
+			res.setHeader("Location", "/logout.html");
+			res.end();
+			return;
+		}
+		if (pathname === "/logout.html") {
+			const logoutPage = path.join(__dirname, "..", "..", "approuter", "resources", "logout.html");
+			try {
+				const html = fs.readFileSync(logoutPage);
+				res.statusCode = 200;
+				res.setHeader("Content-Type", "text/html; charset=utf-8");
+				res.end(html);
+			} catch {
+				res.statusCode = 302;
+				res.setHeader("Location", "/");
+				res.end();
+			}
+			return;
+		}
+
 		if (!req.url.startsWith(TARGET_PREFIX)) {
 			next();
 			return;

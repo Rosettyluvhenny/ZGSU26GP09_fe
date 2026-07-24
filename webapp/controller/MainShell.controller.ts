@@ -119,12 +119,19 @@ export default class MainShell extends BaseController {
 			loginAt: null,
 		});
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
-		this.reloadApp();
+		this.redirectToLogout();
 	}
 
-	/** Isolated for unit tests — avoid reloading the QUnit page under the runner. */
-	protected reloadApp(): void {
-		window.location.reload();
+	/**
+	 * Full-page navigation to the approuter's central logout endpoint. This is what
+	 * actually ends the session on BTP: the approuter clears its session cookie and
+	 * the XSUAA session, then redirects to logoutPage "/". A plain reload could not do
+	 * this — the session cookie survived it, so the approuter re-served the app and the
+	 * user appeared stuck logged in. Locally the sap-proxy mirrors /logout as a redirect
+	 * to "/". Isolated for unit tests so the QUnit page is not navigated under the runner.
+	 */
+	protected redirectToLogout(): void {
+		window.location.assign("/logout");
 	}
 
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {

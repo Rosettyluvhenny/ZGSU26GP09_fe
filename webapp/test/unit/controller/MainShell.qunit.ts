@@ -55,7 +55,7 @@ function buildShellFixture(isDarkTheme = false): ShellFixture {
         attachRouteMatched: sinon.stub()
     } as any);
     sandbox.stub(ctrl, "byId").returns(undefined as any);
-    sandbox.stub(ctrl, "reloadApp");
+    sandbox.stub(ctrl, "redirectToLogout");
 
     return { ctrl, uiModelData, sessionModelStub, navToStub, themingStub };
 }
@@ -109,7 +109,7 @@ QUnit.module("MainShell – onLogout", {
     afterEach() { sandbox.restore(); }
 });
 
-QUnit.test("clears session, disables scan, and reloads", function (assert) {
+QUnit.test("clears session, disables scan, and redirects to central logout", function (assert) {
     const { ctrl, sessionModelStub, uiModelData } = buildShellFixture();
     ctrl.onLogout();
 
@@ -118,5 +118,5 @@ QUnit.test("clears session, disables scan, and reloads", function (assert) {
     assert.strictEqual(sessionData.csrfToken, "");
     assert.strictEqual(sessionData.loginAt, null);
     assert.strictEqual(uiModelData["/canExecuteScanJob"], false);
-    assert.ok((ctrl as any).reloadApp.calledOnce);
+    assert.ok((ctrl as any).redirectToLogout.calledOnce);
 });

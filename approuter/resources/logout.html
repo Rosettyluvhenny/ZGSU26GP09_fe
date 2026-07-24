@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="robots" content="noindex" />
+	<title>Signed out — Registry Control Center</title>
+	<style>
+		* { box-sizing: border-box; }
+		html, body { height: 100%; margin: 0; }
+		body {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+			font-family: "72", "72full", Arial, Helvetica, sans-serif;
+			background: linear-gradient(135deg, #5b3fd6 0%, #33257f 100%);
+			color: #223548;
+		}
+		.card {
+			width: 100%;
+			max-width: 420px;
+			background: #ffffff;
+			border-radius: 16px;
+			box-shadow: 0 18px 50px rgba(20, 10, 60, 0.35);
+			padding: 2.5rem 2rem;
+			text-align: center;
+		}
+		.badge {
+			width: 64px;
+			height: 64px;
+			margin: 0 auto 1.25rem;
+			border-radius: 50%;
+			background: #eef0fb;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.badge svg { width: 32px; height: 32px; stroke: #5b3fd6; }
+		h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem; }
+		p { font-size: 0.9375rem; line-height: 1.5; color: #556b82; margin: 0 0 1.75rem; }
+		.btn {
+			display: inline-block;
+			width: 100%;
+			padding: 0.75rem 1rem;
+			border-radius: 8px;
+			background: #5b3fd6;
+			color: #ffffff;
+			font-size: 0.9375rem;
+			font-weight: 600;
+			text-decoration: none;
+			transition: background 0.15s ease;
+		}
+		.btn:hover { background: #4c34b8; }
+		.btn:active { background: #402c9c; }
+		.brand {
+			margin-top: 1.75rem;
+			font-size: 0.75rem;
+			letter-spacing: 0.02em;
+			color: #8a97a8;
+		}
+	</style>
+</head>
+<body>
+	<main class="card">
+		<div class="badge" aria-hidden="true">
+			<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+				<polyline points="16 17 21 12 16 7" />
+				<line x1="21" y1="12" x2="9" y2="12" />
+			</svg>
+		</div>
+		<h1>You've been signed out</h1>
+		<p>Your session has ended and it's safe to close this tab. Sign back in whenever you're ready.</p>
+		<a class="btn" href="/">Sign in again</a>
+		<div class="brand">Registry Control Center</div>
+	</main>
+</body>
+</html>
