@@ -72,8 +72,36 @@
 		</div>
 		<h1>You've been signed out</h1>
 		<p>Your session has ended and it's safe to close this tab. Sign back in whenever you're ready.</p>
-		<a class="btn" href="/">Sign in again</a>
+		<a class="btn" id="signInBtn" href="/">Sign in again</a>
 		<div class="brand">Registry Control Center</div>
 	</main>
+	<script>
+		// The app-level /logout only ends the approuter + XSUAA session. The identity
+		// provider (IAS) keeps its own browser SSO cookie, so navigating straight to "/"
+		// silently signs the user back in. "Sign in again" therefore routes through the
+		// IAS end-session endpoint to clear that cookie, then returns to the app, which
+		// then shows a fresh login prompt.
+		//
+		// IAS only honours post_logout_redirect_uri when (a) client_id is supplied so it
+		// can resolve the app, and (b) that exact return URL is registered as a Post
+		// Logout Redirect URI for the app in the IAS admin console
+		// (Applications -> ZGP9 App -> Trust -> OpenID Connect Configuration). The value
+		// registered there must match window.location.origin + "/" below, trailing slash
+		// included.
+		//
+		// CLIENT_ID / IAS_HOST come from the approuter's bound `identity` service
+		// (cf env zgp9-fe-approuter -> VCAP_SERVICES.identity.credentials); update them if
+		// that service instance is ever recreated, and re-register the redirect URI in IAS.
+		(function () {
+			var IAS_HOST = "https://abltjjfnl.trial-accounts.ondemand.com";
+			var CLIENT_ID = "59acd132-e5aa-443f-adf8-fc21d74cd2d6";
+			var returnTo = window.location.origin + "/";
+			document.getElementById("signInBtn").setAttribute(
+				"href",
+				IAS_HOST + "/oauth2/logout?client_id=" + encodeURIComponent(CLIENT_ID) +
+					"&post_logout_redirect_uri=" + encodeURIComponent(returnTo)
+			);
+		})();
+	</script>
 </body>
 </html>
