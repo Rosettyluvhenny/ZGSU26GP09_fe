@@ -20,7 +20,7 @@ interface ExtendedTreeBinding {
 }
 
 import type { NodeDiffEntry, NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, computeLineDiff, highlightXmlLine, normalizeXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, canMergeAsXmlModification, computeLineDiff, highlightXmlLine, normalizeXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 import { analyzeChanges, type ChangeRow, type ChangeSeverity } from '../services/ChangeAnalysis';
 
 /**
@@ -383,33 +383,17 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		// ── Build aligned rows with LCS line diff ──────────────────────────────
 		interface AlignedRow { op: 'same' | 'del' | 'ins' | 'change'; bNo: number; cNo: number; bLine: string; cLine: string; }
 
-		// Normalize attributes before LCS compare; keep original lines for display
+		// Normalize attributes before LCS compare; keep original lines for display.
 		const ops = computeLineDiff(baseXml.split('\n'), compareXml.split('\n'), normalizeXmlLine);
 
-		// Similarity of two lines = shared tokens / total tokens.
-		// Use normalized keys so attribute order does not affect similarity
-		const lineSimilarity = (a: string, b: string): number => {
-			const ka = normalizeXmlLine(a);
-			const kb = normalizeXmlLine(b);
-			if (ka === kb) return 1;
-			const tokenize = (s: string) => new Set(s.trim().match(/\S+/g) ?? []);
-			const sa = tokenize(ka), sb = tokenize(kb);
-			if (sa.size === 0 && sb.size === 0) return 1;
-			if (sa.size === 0 || sb.size === 0) return 0;
-			let common = 0;
-			sa.forEach(t => { if (sb.has(t)) common++; });
-			return (2 * common) / (sa.size + sb.size);
-		};
-
-		// Post-process: merge adjacent (del, ins) → change only when lines are similar (≥50%).
-		// If completely different, keep separate del/ins to avoid false merges.
+		// Merge adjacent (del, ins) → change only when identity unchanged (NodeTree MOD).
 		const merged: Array<{ op: 'same' | 'del' | 'ins' | 'change'; bLine: string; cLine: string }> = [];
 		let k = 0;
 		while (k < ops.length) {
 			const cur = ops[k];
 			const next = k + 1 < ops.length ? ops[k + 1] : undefined;
 			if (cur.op === 'del' && next !== undefined && next.op === 'ins'
-					&& lineSimilarity(cur.line, next.line) >= 0.5) {
+					&& canMergeAsXmlModification(cur.line, next.line)) {
 				merged.push({ op: 'change', bLine: cur.line, cLine: next.line });
 				k += 2;
 			} else if (cur.op === 'del') {
@@ -419,7 +403,6 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				merged.push({ op: 'ins', bLine: '', cLine: cur.line });
 				k++;
 			} else {
-				// same: each side keeps its own original text
 				merged.push({ op: 'same', bLine: cur.baseLine, cLine: cur.compareLine });
 				k++;
 			}
@@ -1533,34 +1516,18 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		const ops = computeLineDiff(baseXml.split('\n'), compareXml.split('\n'), normalizeXmlLine);
 		const emptyRow = (): XmlLineEntry => ({ lineNo: 0, text: '', isWhitespace: true, highlight: 'None', lineType: 'empty' });
 
-		// Same as lineSimilarity in buildCompareHtml: use normalized key
-		const lineSimilarity = (a: string, b: string): number => {
-			const ka = normalizeXmlLine(a);
-			const kb = normalizeXmlLine(b);
-			if (ka === kb) return 1;
-			const tok = (s: string) => new Set(s.match(/\S+/g) ?? []);
-			const sa = tok(ka), sb = tok(kb);
-			if (sa.size === 0 && sb.size === 0) return 1;
-			if (sa.size === 0 || sb.size === 0) return 0;
-			let common = 0;
-			sa.forEach(t => { if (sb.has(t)) common++; });
-			return (2 * common) / (sa.size + sb.size);
-		};
-
-		// Merge adjacent (del, ins) → 'change' when similar enough (≥50%),
-		// same as buildCompareHtml → base and compare stay on the same row
 		type MergedOp =
-			| { op: 'same';   baseLine: string; compareLine: string }
-			| { op: 'del';    line: string }
-			| { op: 'ins';    line: string }
+			| { op: 'same'; baseLine: string; compareLine: string }
+			| { op: 'del'; line: string }
+			| { op: 'ins'; line: string }
 			| { op: 'change'; baseLine: string; compareLine: string };
 
 		const merged: MergedOp[] = [];
 		let k = 0;
 		while (k < ops.length) {
-			const cur  = ops[k];
+			const cur = ops[k];
 			const next = k + 1 < ops.length ? ops[k + 1] : undefined;
-			if (cur.op === 'del' && next?.op === 'ins' && lineSimilarity(cur.line, next.line) >= 0.5) {
+			if (cur.op === 'del' && next?.op === 'ins' && canMergeAsXmlModification(cur.line, next.line)) {
 				merged.push({ op: 'change', baseLine: cur.line, compareLine: next.line });
 				k += 2;
 			} else {
@@ -1584,7 +1551,6 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				base.push(emptyRow());
 				compare.push({ lineNo: cNo++, text: op.line, isWhitespace: !op.line.trim(), highlight: 'None', lineType: 'ins' });
 			} else {
-				// Modified line pair: same row on both sides, yellow (not del/ins).
 				base.push({ lineNo: bNo++, text: op.baseLine, isWhitespace: !op.baseLine.trim(), highlight: 'None', lineType: 'mod' });
 				compare.push({ lineNo: cNo++, text: op.compareLine, isWhitespace: !op.compareLine.trim(), highlight: 'None', lineType: 'mod' });
 			}

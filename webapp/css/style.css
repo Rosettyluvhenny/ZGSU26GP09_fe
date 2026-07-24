@@ -151,23 +151,29 @@ html.sapUiTheme-sap_horizon_dark {
 	--appDiffEmptyBg: #2a2a2e;
 }
 
+/* sap.m.Table renders list items as <li>; keep <tr> for table-mode themes. */
+li[data-linetype="del"],
 tr[data-linetype="del"] {
 	background-color: var(--appDiffDelBg) !important;
 }
 
+li[data-linetype="ins"],
 tr[data-linetype="ins"] {
 	background-color: var(--appDiffInsBg) !important;
 }
 
+li[data-linetype="mod"],
 tr[data-linetype="mod"] {
 	background-color: var(--appDiffModBg) !important;
 }
 
+li[data-linetype="empty"],
 tr[data-linetype="empty"] {
 	background-color: var(--appDiffEmptyBg) !important;
 	opacity: 0.55;
 }
 
+li[data-linetype="empty"] .sapMListTblCell,
 tr[data-linetype="empty"] td {
 	border: none !important;
 }

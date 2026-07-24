@@ -204,10 +204,17 @@ QUnit.test("navigates for REGISTRY / VERSION / DETAIL success logs", async funct
     });
 });
 
-QUnit.test("does not navigate for failed / empty / unknown targets", function (assert) {
+QUnit.test("navigates for FAIL logs when object target is known", async function (assert) {
+    const { ctrl, modelData, navToStub } = buildLogsFixture();
+    modelData["/selectedLog"] = makeLog({ objectIdType: "REGISTRY", objectId: "reg-42", logResult: "FAIL" });
+    await ctrl.onNavigateToObject();
+    assert.strictEqual(navToStub.firstCall.args[0], "registryDetail");
+    assert.deepEqual(navToStub.firstCall.args[1], { registryId: "reg-42" });
+});
+
+QUnit.test("does not navigate for empty / unknown targets", function (assert) {
     const { ctrl, modelData, navToStub } = buildLogsFixture();
     const blocked = [
-        makeLog({ objectIdType: "REGISTRY", objectId: "reg-42", logResult: "FAIL" }),
         null,
         makeLog({ objectId: "", logResult: "SUCCESS" }),
         makeLog({ objectIdType: "JOB", objectId: "job-1", logResult: "SUCCESS" })
@@ -224,7 +231,7 @@ QUnit.module("Logs – helpers", {
     afterEach() { sandbox.restore(); }
 });
 
-QUnit.test("formatLogResultState and formatShortId", function (assert) {
+QUnit.test("formatLogResultState, formatLogActionState and formatShortId", function (assert) {
     const { ctrl } = buildLogsFixture();
     const states: Array<[string, string]> = [
         ["SUCCESS", "Success"],
@@ -238,6 +245,9 @@ QUnit.test("formatLogResultState and formatShortId", function (assert) {
     states.forEach(([input, expected]) => {
         assert.strictEqual(ctrl.formatLogResultState(input), expected, input || "(empty)");
     });
+    assert.strictEqual(ctrl.formatLogActionState("CREATE"), "Success");
+    assert.strictEqual(ctrl.formatLogActionState("UPDATE"), "Warning");
+    assert.strictEqual(ctrl.formatLogActionState("DELETE"), "None");
     assert.strictEqual(ctrl.formatShortId("8b95f36a-4f27-1fe1-a188-c0e8262dd8a5"), "8b95f36a…d8a5");
     assert.strictEqual(ctrl.formatShortId("short"), "short");
 });

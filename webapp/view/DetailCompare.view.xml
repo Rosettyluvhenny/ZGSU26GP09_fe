@@ -44,7 +44,7 @@
 		</f:header>
 		<f:content>
 			<VBox class="sapUiSmallMargin" busy="{detailCompare>/compareWorkspaceBusy}">
-				<Panel expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+				<Panel expandable="true" expanded="false" class="sapUiSmallMarginBottom">
 					<headerToolbar>
 						<OverflowToolbar>
 							<Title text="Change Review" level="H3" />
