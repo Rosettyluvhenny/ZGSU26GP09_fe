@@ -130,7 +130,7 @@ export default class Logs extends BaseController {
 
 	public async onNavigateToObject(): Promise<void> {
 		const log = (this.getModel('logList') as JSONModel).getProperty('/selectedLog') as LogEntry | null;
-		if (!log || !log.objectId || !this.isSuccessResult(log.logResult)) {
+		if (!log || !log.objectId) {
 			return;
 		}
 
@@ -188,19 +188,26 @@ export default class Logs extends BaseController {
 	}
 
 	public formatLogResultState(result: string): 'Success' | 'Error' | 'None' {
-		if (this.isSuccessResult(result)) {
+		const normalized = (result || '').toUpperCase();
+		if (normalized === 'S' || normalized === 'SUCCESS') {
 			return 'Success';
 		}
-		const normalized = (result || '').toUpperCase();
 		if (normalized === 'F' || normalized.startsWith('FAIL') || normalized === 'ERROR' || normalized === 'E') {
 			return 'Error';
 		}
 		return 'None';
 	}
 
-	private isSuccessResult(result: string): boolean {
-		const normalized = (result || '').toUpperCase();
-		return normalized === 'S' || normalized === 'SUCCESS';
+	/** CREATE → green, UPDATE → yellow; other actions stay neutral. */
+	public formatLogActionState(action: string): 'Success' | 'Warning' | 'None' {
+		const normalized = (action || '').toUpperCase().trim();
+		if (normalized === 'CREATE' || normalized === 'C') {
+			return 'Success';
+		}
+		if (normalized === 'UPDATE' || normalized === 'U' || normalized === 'UP') {
+			return 'Warning';
+		}
+		return 'None';
 	}
 
 	public formatShortId(id: string): string {

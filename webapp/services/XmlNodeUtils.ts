@@ -342,6 +342,86 @@ export function normalizeXmlLine(line: string): string {
 	return `<${tagName}${attrStr ? ' ' + attrStr : ''}${close}`;
 }
 
+/** Name/Namespace identity — rename ⇒ delete+add (match NodeTree), not mod. */
+const IDENTITY_ATTRS = ['Name', 'Namespace'] as const;
+
+function parseXmlElementLine(line: string): { kind: 'open' | 'close'; tagName: string; identity: string | null } | null {
+	const trimmed = line.trim();
+	if (!trimmed.startsWith('<')
+			|| trimmed.startsWith('<!--') || trimmed.startsWith('<?') || trimmed.startsWith('<!')) {
+		return null;
+	}
+
+	const close = /^<\/([\w:.-]+)\s*>$/.exec(trimmed);
+	if (close) {
+		return { kind: 'close', tagName: close[1], identity: null };
+	}
+
+	const open = /^<([\w:.-]+)([\s\S]*?)\s*\/?>$/.exec(trimmed);
+	if (!open) {
+		return null;
+	}
+
+	const tagName = open[1];
+	const attrBlock = open[2] ?? '';
+	let identity: string | null = null;
+	for (const attrName of IDENTITY_ATTRS) {
+		const rx = new RegExp(`(?:^|\\s)${attrName}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`);
+		const am = rx.exec(attrBlock);
+		if (am) {
+			identity = `${attrName}=${am[1] ?? am[2] ?? ''}`;
+			break;
+		}
+	}
+
+	return { kind: 'open', tagName, identity };
+}
+
+function xmlLineSimilarity(a: string, b: string): number {
+	const ka = normalizeXmlLine(a);
+	const kb = normalizeXmlLine(b);
+	if (ka === kb) return 1;
+	const tokenize = (s: string) => new Set(s.match(/\S+/g) ?? []);
+	const sa = tokenize(ka);
+	const sb = tokenize(kb);
+	if (sa.size === 0 && sb.size === 0) return 1;
+	if (sa.size === 0 || sb.size === 0) return 0;
+	let common = 0;
+	sa.forEach((t) => { if (sb.has(t)) common++; });
+	return (2 * common) / (sa.size + sb.size);
+}
+
+/**
+ * True only for attribute-only edits on the same tag + Name/Namespace.
+ * Rename / tag change must stay del+ins (NodeTree DELETED+ADDED).
+ *
+ * When tag + identity match, always treat as mod (ignore token similarity) so a
+ * multi-attribute edit cannot flip to del+ins while NodeTree still says MODIFIED.
+ * Similarity is only a fallback for lines without Name/Namespace (text, <key>, …).
+ */
+export function canMergeAsXmlModification(baseLine: string, compareLine: string, minSimilarity = 0.5): boolean {
+	const baseInfo = parseXmlElementLine(baseLine);
+	const compareInfo = parseXmlElementLine(compareLine);
+
+	if (baseInfo || compareInfo) {
+		if (!baseInfo || !compareInfo) {
+			return false;
+		}
+		if (baseInfo.kind !== compareInfo.kind || baseInfo.tagName !== compareInfo.tagName) {
+			return false;
+		}
+		if ((baseInfo.identity ?? '') !== (compareInfo.identity ?? '')) {
+			return false;
+		}
+		// Same element identity ⇒ attribute-only change ⇒ mod (align with NodeTree).
+		if (baseInfo.identity !== null) {
+			return true;
+		}
+	}
+
+	return xmlLineSimilarity(baseLine, compareLine) >= minSimilarity;
+}
+
 /**
  * Computes a line-level diff between two arrays of text lines.
  *

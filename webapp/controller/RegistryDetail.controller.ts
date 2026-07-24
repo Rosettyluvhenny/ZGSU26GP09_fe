@@ -1,5 +1,6 @@
 import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
+import History from 'sap/ui/core/routing/History';
 import Table from 'sap/m/Table';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
@@ -47,6 +48,13 @@ export default class RegistryDetail extends BaseController {
 	}
 
 	public onNavBack(): void {
+		// Prefer browser history so Logs → Registry Detail → Back returns to Logs
+		// (not always Registry List). Deep links still fall back to the list.
+		const previousHash = History.getInstance().getPreviousHash();
+		if (previousHash !== undefined && previousHash !== '') {
+			window.history.go(-1);
+			return;
+		}
 		this.navTo('registryList', {}, true);
 	}
 

@@ -89,7 +89,7 @@
 						<ColumnListItem type="Navigation" press=".onRowPress">
 							<cells>
 								<Text text="{path: 'logList>actionAt', formatter: '.formatDateTime'}" />
-								<Text text="{logList>actionText}" />
+								<ObjectStatus text="{logList>actionText}" state="{path: 'logList>actionText', formatter: '.formatLogActionState'}" />
 								<ObjectStatus text="{logList>logResult}" state="{path: 'logList>logResult', formatter: '.formatLogResultState'}" />
 								<Text text="{logList>actor}" />
 								<Text text="{logList>objectIdType}" />
