@@ -1,5 +1,5 @@
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
-import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
+import type { ListBase$SelectionChangeEvent } from 'sap/m/ListBase';
 import type UI5Event from 'sap/ui/base/Event';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
@@ -151,7 +151,9 @@ export default class ModelExplorer extends BaseController {
 	}
 
 	private selectFromEvent(event: UI5Event, kind: EdmKind): void {
-		const item = (event as ListBase$ItemPressEvent).getParameter('listItem') as {
+		// Driven by each List's `selectionChange` event (SingleSelectMaster), which
+		// reliably fires on tap and exposes the selected row as `listItem`.
+		const item = (event as ListBase$SelectionChangeEvent).getParameter('listItem') as unknown as {
 			getBindingContext: (name?: string) => { getObject: () => EdmElement } | null;
 		} | null;
 		const element = item?.getBindingContext('model')?.getObject();
