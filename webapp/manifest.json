@@ -21,11 +21,28 @@
 					"odataVersion": "4.0"
 				}
 			}
+		},
+		"crossNavigation": {
+			"inbounds": {
+				"ZGP9Registry-display": {
+					"semanticObject": "ZGP9Registry",
+					"action": "display",
+					"title": "{{appTitle}}",
+					"subTitle": "{{appDescription}}",
+					"icon": "sap-icon://business-objects-experience",
+					"signature": {
+						"parameters": {},
+						"additionalParameters": "allowed"
+					}
+				}
+			}
 		}
 	},
 	"sap.ui": {
 		"technology": "UI5",
-		"icons": {},
+		"icons": {
+			"icon": "sap-icon://business-objects-experience"
+		},
 		"deviceTypes": {
 			"desktop": true,
 			"tablet": true,

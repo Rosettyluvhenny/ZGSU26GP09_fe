@@ -1,0 +1,47 @@
+# ⚠️ Serves a page that DOES NOT CURRENTLY BOOT. `npm run start:flp` starts fine and every
+# resource returns 200, but webapp/test/flpSandbox.html hangs in UI5's boot task with an empty
+# console. Full diagnosis is in that file's header comment; the project fell back to verifying
+# the launchpad embedding inside the real FLP at Phase 7.1 instead. This config is kept because
+# it is the sound half — the framework resolution and sap.ushell install both work.
+specVersion: "4.0"
+metadata:
+  name: com.zgp9.fe
+type: application
+framework:
+  name: SAPUI5
+  # 1.108.33, matching ui5.yaml — the whole point of this config is to exercise the
+  # launchpad integration on the same UI5 the FLP on s40lp1 serves.
+  version: "1.108.33"
+  libraries:
+    - name: sap.f
+    - name: sap.tnt
+    - name: sap.ui.layout
+    - name: sap.m
+    - name: sap.ui.core
+    - name: themelib_sap_horizon
+    # sap.ushell is declared HERE and deliberately NOT in ui5.yaml.
+    #
+    # It exists only to serve webapp/test/flpSandbox.html locally. Adding it to ui5.yaml
+    # would drag its whole dependency tree (sap.ui.comp, sap.ui.table, sap.suite.ui.commons,
+    # sap.esh.search.ui, …) into the build as declared project dependencies — the exact
+    # mistake avoided in FLP_MIGRATION.md 1.4, where sap.ui.table was nearly added to satisfy
+    # a phantom runtime dependency.
+    #
+    # On the real launchpad sap.ushell is supplied by the FLP shell, not by the app, so the
+    # app must never declare it. Same reasoning as index-local.html: a dev-only affordance
+    # that must not leak into anything deployed.
+    - name: sap.ushell
+builder:
+  resources:
+    excludes:
+      - "test/e2e/**"
+      - "index-local.html"
+      - "test/flpSandbox.html"
+server:
+  customMiddleware:
+    - name: ui5-middleware-sap-proxy
+      afterMiddleware: compression
+    - name: ui5-tooling-transpile-middleware
+      afterMiddleware: compression
+    - name: ui5-middleware-livereload
+      afterMiddleware: compression

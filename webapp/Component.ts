@@ -92,7 +92,13 @@ export default class Component extends UIComponent {
 
 		const link = document.createElement('link');
 		link.rel = 'stylesheet';
-		link.href = new URL('css/style.css', document.baseURI).toString();
+		// sap.ui.require.toUrl, not new URL(…, document.baseURI): embedded in a launchpad the
+		// document *is* the launchpad's page, so baseURI points at the FLP root rather than at
+		// this app, and the stylesheet 404s. The app then renders unstyled rather than visibly
+		// broken, which is a slow failure to recognise. toUrl resolves through the resource
+		// root registered for com.zgp9.fe, which is correct on FLP, BTP, the ABAP standalone
+		// URL and local dev alike. See FLP_MIGRATION.md 3.5.
+		link.href = sap.ui.require.toUrl('com/zgp9/fe/css/style.css');
 		link.setAttribute('data-app-stylesheet', 'true');
 		document.head.appendChild(link);
 	}

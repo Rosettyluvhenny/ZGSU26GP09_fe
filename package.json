@@ -10,6 +10,7 @@
     "build:opt": "ui5 build self-contained --clean-dest --all",
     "start": "ui5 serve --port 8080 -o index-local.html",
     "start:cdn-latest": "ui5 serve --port 8080 -o index.html",
+    "start:flp": "ui5 serve --port 8080 --config ui5-flp.yaml -o test/flpSandbox.html",
     "start-cdn": "ui5 serve --port 8080 -o index-cdn.html",
     "start-coverage": "ui5 serve --port 8080 --config ui5-coverage.yaml",
     "start:dist": "npm start -- --config ui5-dist.yaml",

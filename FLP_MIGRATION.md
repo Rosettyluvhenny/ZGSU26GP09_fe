@@ -9,26 +9,42 @@ truth for where the migration stands and what order the remaining work happens i
 
 **Last updated:** 2026-07-26
 
-**Where things stand:** Phases 0, 1 and 2 are complete. The app **runs on UI5 1.108.33
-locally** with a clean typecheck. Phase 3 (the launchpad embedding code) has not been started.
+**Where things stand:** Phases 0, 1 and 2 are complete and **committed** (`630bf1d`). The app
+runs on UI5 1.108.33 locally. **Phase 3 is code-complete for 3.1–3.6** and passes every static
+check, but is **not yet runtime-verified** — see "Next action". 3.7 is deliberately deferred to
+after the migration; read it before assuming the AI chat is broken by accident.
 
-**Branch:** `migration`, based on commit `6493b72`.
+**Branch:** `migration`. Phase 1–2 sits on `630bf1d`; Phase 3 is on top of it.
 
-> ⚠️ **All Phase 1–2 work is UNCOMMITTED** — 21 modified files plus 2 new ones
-> (`webapp/index-local.html`, `webapp/ui5-108-types.d.ts`). Commit before doing anything else,
-> or an accidental `git checkout` / `git stash` loses roughly a day of work. Verify with
-> `git status` first; if the tree is already clean, this warning is stale and someone committed.
+> ⚠️ **All Phase 3 work is UNCOMMITTED.** New files: `webapp/services/Launchpad.ts`,
+> `webapp/test/flpSandbox.html`, `ui5-flp.yaml`. Modified: `Component.ts`, `models.ts`,
+> `MainShell.controller.ts`, `MainShell.view.xml`, `RegistryList.controller.ts`,
+> `manifest.json`, `ui5.yaml`, `package.json`, and this file. Commit before switching branches.
+> Verify with `git status`; if the tree is clean, this warning is stale and someone committed.
+>
+> *(The previous version of this warning covered Phase 1–2 and is now obsolete — that work is
+> in `630bf1d`.)*
 
-**Next action:** Phase 3.1 — the `isInLaunchpad()` helper. Phases 3.2–3.7 depend on it.
+**Next action:** Phase 4.2–4.4 — the remaining standalone click-through on 1.108 via
+`npm start`. That needs the university network for a reachable ABAP backend; without it the
+views load but stay empty. Then Phase 5 (ABAP deploy).
+
+**Do not** try to finish the local FLP sandbox first. It is abandoned and does not boot — see
+3.0 for the full diagnosis and for what was already ruled out. Phase 3 is verified at 7.1
+instead.
 
 **To confirm the current state before continuing:**
 
 ```
 npm run ts-typecheck     # expect: clean, exit 0
 npm run lint             # expect: exactly 1 error, Home.controller.ts:133 — PRE-EXISTING, not ours
-npm run ui5lint          # expect: exactly 1 error, manifest version — DELIBERATE, see 2.6
-npm start                # opens index-local.html on 1.108.33; Home view should render fully
+npm run ui5lint          # expect: exactly 2 errors, both DELIBERATE — see 2.6
+npm run test-unit        # expect: 78/82, the 4 pre-existing bucketScanTrend failures
+npm start                # opens index-local.html on 1.108.33 — standalone behaviour
+npm run start:flp        # opens the FLP sandbox on 1.108.33 — embedded behaviour (3.0)
 ```
+
+All five of the non-interactive checks above were green as of this update, with Phase 3 applied.
 
 Two console errors on `npm start` are expected and environmental, not regressions:
 `GET …/$metadata` and `CSRF fetch failed (502)`, both because no ABAP backend is reachable
@@ -304,6 +320,13 @@ to compile:
         `manifest.json` wholesale and losing unrelated manifest checks. It is a true statement
         about a deliberate, permanent constraint, so it stands as a standing reminder.
         `npm run ui5lint` therefore exits 1 by design; it is advisory and not part of `npm test`.
+      - **Correction (2026-07-26, during Phase 3):** the "1 error" figure above is stale.
+        `npm run ui5lint` reports **2 errors**, and has since Phase 4.6. The second is
+        `synchronizationMode` on the ODataModel — added deliberately in 4.6 item 2 because
+        1.108 *requires* it, and flagged by the linter precisely because later versions
+        deprecated it. Same situation as the version floor: a true finding about a deliberate,
+        permanent constraint. **Expect 2, not 1.** Verified against `HEAD` (`630bf1d`), so it is
+        not something Phase 3 introduced.
 
 - [x] 2.7 **Test harness: `ui5-coverage.yaml` deliberately stays on 1.149.1.**
       Running the QUnit suite on 1.108 does not work and is not worth making work. 1.108's
@@ -336,41 +359,156 @@ to compile:
 
 The app must work both embedded (FLP) and standalone (BTP, ABAP direct URL).
 
-- [ ] 3.1 One `isInLaunchpad()` helper — checks for `sap.ushell.Container` in a single
-      place. 3.3 and 3.4 both branch on it; do not scatter `sap.ushell` checks.
-- [ ] 3.2 `sap.app.crossNavigation.inbounds` in `manifest.json` — semantic object, action,
-      title, icon, signature. Must match the target mapping built in Phase 6.
-      Also fill `sap.ui.icons` (currently `{}`) so the tile has an icon.
-- [ ] 3.3 Hide the `tnt:ToolPage` header when embedded, keep `SideNavigation`
-      (`webapp/view/MainShell.view.xml:10-27`). Its header carries a title, the username,
-      a theme toggle and a Logout button — all four duplicated by the FLP shell bar.
+**Status: 3.1–3.6 are code-complete and pass every static check** (`ts-typecheck` clean, `lint`
+back to the 1 pre-existing error, `ui5lint` at its 2 deliberate ones, `test-unit` at the 78/82
+baseline). They stay `[~]` rather than `[x]` because the legend reserves `[x]` for *verified*.
+
+⚠️ **None of the embedded branches has ever executed.** The local sandbox that was supposed to
+exercise them does not boot (3.0), so `isInLaunchpad()` has only ever returned `false` in any
+code that has actually run. Every `isInLaunchpad()`-true path — the hidden header, the ushell
+logout, the FLP-shaped hash — is **written but unexercised**. `sap.ui.require.toUrl` (3.5) is
+the one exception: it runs on both branches and is exercised by ordinary `npm start`.
+
+By decision (option (b), 2026-07-26) these are verified **inside the real launchpad at 7.1**.
+Flip them to `[x]` there, not before. The accepted cost is that an embedding bug now surfaces
+after an ABAP deploy rather than locally — budget a round trip or two in Phases 5–7.
+
+- [!] 3.0 **Local FLP sandbox — ABANDONED, does not boot. Do not restart this without reading
+      the whole item.** The infrastructure works; the boot handshake does not.
+      **Symptom:** page title appears, body stays blank, spinner runs forever, console is
+      *completely empty* — no error, no failed request, no rejected promise.
+      **Diagnosis (confirmed):** `sandbox.js` hijacks UI5's boot sequence by assigning
+      `window["sap-ui-config"] = { "xx-bootTask": … }`. Core initialisation blocks on that task,
+      which does an async `sap.ui.require([… "sap/ushell/Container"])`. If that require never
+      settles, `fnCallback` is never invoked and Core waits forever. UI5's loader neither
+      rejects nor logs on this path, hence the clean console — the same silent-failure shape as
+      4.6 trap 1.
+      **Ruled out with evidence — do not re-check:** every resource returns HTTP 200
+      (`flpSandbox.html`, `sandbox.js`, `sap/ushell/Container.js`, `Renderer.js`,
+      `adapters/local/ContainerAdapter.js`, `Component.js`); `ui5-middleware-sap-proxy`
+      intercepts only `/sap/opu/odata4/…`, `/ai/*` and `/logout` and calls `next()` otherwise;
+      and none of this app's own code has run yet, since no Component is ever created.
+      **Still unknown:** *which* module in the Container chain fails to settle. Anyone resuming
+      should instrument the require, or diff against a Fiori-tools-generated `flpSandbox.html`
+      for 1.108 rather than reasoning from first principles as was done here.
+      **Cost/benefit, recorded honestly:** this was a timeboxed bet on catching 3.3/3.5/3.6
+      bugs locally, as 1.6 did for 4.6. It overran its box and did not pay off. Phase 3 is
+      verified inside the real launchpad at 7.1 instead — option (b).
+      Files are kept, not deleted, because the sound half is reusable: `sap.ushell@1.108.33`
+      resolves and installs from the artifact registry, and the whole library serves. Only the
+      handshake is unsolved. `ui5-flp.yaml` and `flpSandbox.html` both carry the warning inline.
+
+      Original design notes follow, still accurate for everything except that it boots:
+      Without a `sap.ushell.Container` the 3.3/3.5/3.6 paths are simply unreachable locally,
+      so every embedding bug would have cost an ABAP deploy cycle to find. Same argument as
+      1.6, which paid for itself three times over in 4.6.
+      - `webapp/test/flpSandbox.html` — boots `sap/ushell/bootstrap/sandbox.js`, then
+        `sap.ushell.Container.createRenderer().placeAt("content")`. Uses `createRenderer()`,
+        not `createRendererInternal()`, which arrived long after 1.108. Registers the app
+        under the intent `ZGP9Registry-display`, so **the semantic object now appears in a
+        fourth place** — keep it in step with 3.2, 6.1 and 6.3.
+      - `ui5-flp.yaml` — a serve-only config whose only difference from `ui5.yaml` is that it
+        declares `sap.ushell`. **Deliberately not added to `ui5.yaml`:** that would pull
+        `sap.ui.comp`, `sap.ui.table`, `sap.ui.mdc`, `sap.suite.ui.commons`, `sap.viz` and a
+        dozen more in as declared project dependencies — precisely the mistake avoided in 1.4.
+        On the real launchpad the shell supplies `sap.ushell`; the app must never declare it.
+      - `npm run start:flp`. Excluded from the build in both yamls, like `index-local.html`.
+      - ⚠️ **First run downloads well over a gigabyte** into `~/.ui5` (about 20 packages —
+        `sap.ushell` pulls most of the distribution). It is a one-time cache fill, but it is
+        far slower than any tooling start-up timeout, so a preview/dev-server wrapper that
+        kills slow starts will appear to fail. Warm the cache first with
+        `npx ui5 tree --config ui5-flp.yaml`, then start the server.
+      - ⚠️ **The page is very heavy on first load, and this cannot be fixed by building.**
+        `/resources/sap/ushell/library-preload.js` **404s under `ui5 serve`**: the SAPUI5 npm
+        packages ship source only (`@sapui5/sap.ushell/1.108.33/src`, no bundles), and an
+        application `ui5 build` builds only this project — `generateComponentPreload` covers
+        `com.zgp9.fe`, never the framework. So the browser fetches `sap.ushell` module by
+        module, which is thousands of requests.
+        Consequences: use a **real browser**, where the HTTP cache makes the second load
+        cheap. An embedded/automation browser pane was tried and its renderer went
+        unresponsive every time the page loaded, while a plain directory listing on the same
+        server responded fine — the module count, not a fault in these files (every resource
+        was independently confirmed to serve: `sandbox.js` 17 KB, `Renderer.js` 122 KB, both
+        HTTP 200).
+        If the load time ever becomes intolerable, the escape hatch is `ui5 build --all`,
+        which builds framework dependencies and emits their preload bundles — at the cost of a
+        multi-gigabyte build. Not needed for occasional Phase 3/7 checks; recorded so it is
+        not re-derived.
+      - Scope limit, do not overclaim it: the sandbox gives a real `Container`, an
+        intent-shaped hash and a shell bar. It does **not** reproduce s40lp1's catalog, target
+        mapping, roles or theme defaults. Phase 7.1 inside the real FLP is still required.
+- [~] 3.1 One `isInLaunchpad()` helper — `webapp/services/Launchpad.ts`. Exports
+      `isInLaunchpad()` and `logoutFromLaunchpad()`; every `sap.ushell` access in the app is
+      confined to that file.
+      Typing note: `@sapui5/ts-types-esm@1.108.33` ships `sap.ushell.d.ts`, but it declares the
+      `sap.ushell.services.Container` *class* and never declares the global singleton
+      `sap.ushell.Container` as a value — and that class's own member is generated as
+      `logout: undefined`, so it is unusable even once reached. Declaring the single member
+      actually called is smaller and more honest than fighting the generated types, and it
+      keeps `ui5-108-types.d.ts` restricted to the 1.108 downgrade.
+      The result is also surfaced once as `ui>/isInLaunchpad` (`webapp/model/models.ts`), so
+      views bind a flag instead of doing their own detection.
+- [~] 3.2 `sap.app.crossNavigation.inbounds` in `manifest.json` — **`ZGP9Registry` /
+      `display`** (Q5), with title, subtitle, icon and an empty-parameter signature at
+      `additionalParameters: "allowed"`. `sap.ui.icons` filled with
+      `sap-icon://business-objects-experience`, matching the Registry side-nav entry.
+      Must match the target mapping built in Phase 6.
+- [~] 3.3 Hide the `tnt:ToolPage` header when embedded, keep `SideNavigation`.
       Conditional bind, not a deletion: the standalone URL keeps the full header.
-      The theme toggle goes with the header — FLP owns theming via user settings.
-- [ ] 3.4 Logout — `webapp/controller/MainShell.controller.ts:114-135`. Currently always
-      `window.location.assign("/logout")`, which is the BTP approuter endpoint.
-      **This is already broken on the ABAP standalone URL today** — that path 404s there.
-      Needs: `sap.ushell.Container.logout()` when embedded, `/logout` on BTP.
-      The `redirectToLogout()` seam exists for tests; keep it.
-      Testable locally: `ui5-middleware-sap-proxy/lib/sap-proxy.js:157` mirrors `/logout`,
-      redirecting to `/logout.html`, so the BTP branch can be exercised with `npm start`.
-      Read deferred finding **A** before editing this — the two `xs-app.json` files disagree
-      about `logoutPage`, and the comment at lines 126-131 describes the stale one.
-- [ ] 3.5 Stylesheet path — `webapp/Component.ts:91` resolves `css/style.css` against
-      `document.baseURI`. Under FLP that is the launchpad's document, not your app root, so
-      the stylesheet 404s and the app renders unstyled rather than visibly broken.
-      → `sap.ui.require.toUrl("com/zgp9/fe/css/style.css")`.
-- [ ] 3.6 Direct hash reads — under FLP the hash is `#SemObj-action&/registries?status=X`.
-      - `webapp/controller/MainShell.controller.ts:163` — `window.location.hash.replace(/^#/, "")`
-        returns the whole FLP intent, breaking section highlighting.
-      - `webapp/controller/RegistryList.controller.ts:58-62` — hand-parses the query off the
-        hash, breaking the status filter.
-      Both should go through the router / `routeMatched` parameters.
-- [ ] 3.7 AI chat — `webapp/services/AiChatService.ts:46,55` post to `/ai/*`, which only the
-      BTP approuter serves. There is no host guard, so on ABAP it throws. Hide the feature
-      when the routes are absent rather than letting it fail.
+      **Correction to the plan — it counted four duplicated controls and there are five.**
+      The title, username, theme toggle and Logout button are all duplicated by the FLP shell
+      bar and are hidden individually. The **menu button is not**: below 600px the side
+      navigation collapses to an overlay (`MainShell.onInit`) and that button is the only way
+      to reopen it, so hiding the whole header would leave an embedded phone user with no
+      navigation at all.
+      Implemented as: header visible when `!isInLaunchpad || isPhoneWidth`; the four
+      duplicated controls each bound to `!isInLaunchpad`. Desktop FLP therefore shows no app
+      header at all, phone FLP shows a header carrying only the menu button.
+      Consequence accepted: on desktop FLP the side nav can no longer be collapsed. It is
+      visible and fully usable, just not dismissible — a convenience, not a function.
+- [~] 3.4 Logout — `webapp/controller/MainShell.controller.ts`. `logoutFromLaunchpad()` when
+      embedded, `window.location.assign("/logout")` on BTP. The `redirectToLogout()` seam is
+      kept; `MainShell.qunit.ts:58` stubs it, so the branch never runs under the test runner.
+      The stale comment was rewritten: per deferred finding **A** the live config is
+      `approuter/xs-app.json` with `logoutPage: "/logout.html"`, not the root `xs-app.json`'s
+      `"/"`. Confirmed from `mta.yaml:5-11`, which deploys a **standalone** approuter module —
+      so the root file, though bundled into the app zip by `ui5-task-zipper`, is not what
+      serves. Deduplicating the two files is still open; it touches the BTP bundle and was
+      deliberately left out of this branch.
+- [~] 3.5 Stylesheet path — `webapp/Component.ts` now uses
+      `sap.ui.require.toUrl("com/zgp9/fe/css/style.css")` instead of resolving against
+      `document.baseURI`, which under FLP is the launchpad's document rather than the app root.
+- [~] 3.6 Direct hash reads. **Only half of this item was a real bug.**
+      - `MainShell.controller.ts` `getCurrentHash()` was **dead code** — declared and never
+        called anywhere in `webapp/` (one grep hit, the declaration itself). Section
+        highlighting has always run off `onGlobalRouteMatched` and route parameters, which is
+        already FLP-correct. **Deleted rather than fixed**; there was nothing to fix.
+      - `RegistryList.controller.ts` `applyStatusFromCurrentHash()` was real. It is called from
+        `onInit` to catch a deep link before the first `patternMatched` fires. Now reads
+        `HashChanger.getInstance().getHash()` rather than `window.location.hash`: the shell
+        replaces UI5's `HashChanger` with one that reports only the app-internal part
+        (`registries?status=Published`) instead of the whole intent, so the first `?` found
+        belongs to the route rather than to the intent's own parameters. Identical behaviour
+        standalone, where the two are the same string.
+- [~] 3.7 AI chat — **approach decided, implementation DEFERRED to after the migration closes
+      (decided 2026-07-26).** `webapp/services/AiChatService.ts:46,55` post to `/ai/*`, which
+      only the BTP approuter serves. There is no host guard, so on ABAP it throws.
+      **Agreed fix, to be built later:** hide the feature whenever the app is not running on the
+      BTP approuter, using an **origin check, not a startup probe** — the `/ai/*` routes exist
+      only on the approuter (confirmed in `approuter/xs-app.json` and the `AI_GROQ` /
+      `AI_OPENROUTER` destinations at `mta.yaml:69-90`), so the origin already answers the
+      question and a probe would spend a request per page load re-asking it.
+      **Consequence of deferring — do not re-diagnose this as a migration regression.** Until it
+      is built, the AI chat is *live but broken* on ABAP. Expect it to fail at **5.4** and
+      **7.1**, in exactly three places: the AI chat button on `VersionDetail`, `ModelExplorer`
+      and `DetailCompare` (all open `webapp/view/fragments/AiChatDialog.fragment.xml`). BTP is
+      unaffected, and local `npm start` is unaffected because `ui5-middleware-sap-proxy` serves
+      the same `/ai/*` paths from `.env`.
+      Reopen this item at 7.7, alongside the README fixes.
 
 **Gate:** app builds and starts with no *new* console errors beyond the two environmental ones
-(`$metadata`, `CSRF 502`) that appear whenever no ABAP backend is reachable.
+(`$metadata`, `CSRF 502`) that appear whenever no ABAP backend is reachable. The deferred 3.7
+failure does not count against this gate locally — it only surfaces on ABAP.
 
 ---
 
@@ -484,9 +622,29 @@ Transaction and field names vary slightly by release; adjust to what the system 
 
 ## Phase 7 — Regression and close-out
 
-- [ ] 7.1 All 13 views again, this time **inside** FLP — 3.5 and 3.6 bugs only appear here
-- [ ] 7.2 FLP shell bar present, app header hidden, side nav working (3.3)
-- [ ] 7.3 Logout from inside FLP ends the session properly (3.4)
+> ⚠️ **7.1–7.3 now carry the entire verification burden for Phase 3.** The local sandbox that
+> was meant to catch these never booted (3.0), so every `isInLaunchpad()`-true branch reaches
+> the real launchpad completely unexercised. Treat this as first-run code, not as a regression
+> pass: expect to find bugs here, and budget deploy round trips (5.3 + 5.5) to fix them.
+
+- [ ] 7.1 All 13 views again, this time **inside** FLP — 3.5 and 3.6 bugs only appear here.
+      Specifically:
+      - **3.5** — is the app *styled*? A stylesheet 404 renders it unstyled rather than broken,
+        which is easy to walk past. Confirm `css/style.css` is 200 in the network tab, not just
+        that the page "looks fine".
+      - **3.6** — open a deep link with a status filter and confirm the filter actually applies.
+        The FLP hash is `#ZGP9Registry-display&/registries?status=Published`.
+      - Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.
+- [ ] 7.2 FLP shell bar present, app header hidden, side nav working (3.3).
+      Check **both widths**: on desktop the app header should be gone entirely; below 600px it
+      should reappear carrying only the menu button, which is the sole way to reopen the side
+      nav. Also confirm the desktop side nav is still usable while no longer collapsible — that
+      trade-off was accepted deliberately, see 3.3.
+- [ ] 7.3 Logout from inside FLP ends the session properly (3.4).
+      This is the branch most likely to be wrong: `sap.ushell.Container.logout()` has never run.
+      If it fails, check first whether `logout` exists on the container at all in 1.108 — the
+      shipped typings generate it as `logout: undefined`, which is why Launchpad.ts declares
+      its own minimal interface rather than trusting them.
 - [ ] 7.4 Back/forward browser navigation across app routes under the FLP hash
 - [ ] 7.5 FLP theme switch does not fight the app
 - [ ] 7.6 **BTP still works** — the coupling check. `mbt build -p=cf`,
@@ -563,12 +721,16 @@ intersect work in this plan, as noted.
 - **Q4 — Spaces/pages or classic groups?** If the system has spaces and pages switched on,
   6.5 becomes a page/space assignment instead of a group.
   Answer: _(record here)_
-- **Q5 — What semantic object and action?** ⚠️ **Needed at 3.2, blocks 6.1/6.3.** Both items say
-  "must match the other" but no name has been chosen. It must be in the customer namespace
-  (`Z`/`Y` prefix) and is written in two places that have to agree exactly:
-  `sap.app.crossNavigation.inbounds` in `manifest.json`, and the `/n/UI2/SEMOBJ` entry.
-  Suggestion: semantic object `ZGP9Registry`, action `display`.
-  Decision: _(record here)_
+- **Q5 — What semantic object and action?** ✅ **Answered 2026-07-26.**
+  **Semantic object `ZGP9Registry`, action `display`.** Now written in `manifest.json` under
+  `sap.app.crossNavigation.inbounds` (3.2). It must be created identically at `/n/UI2/SEMOBJ`
+  (6.1) and referenced by the target mapping (6.3) — three places, exact match required.
+  Also hardcoded as the intent key in `webapp/test/flpSandbox.html`, so **four** places if the
+  name ever changes.
+  Create authorization on `s40lp1` was confirmed before choosing it. `Z`/`Y` is not actually
+  enforced by the system — the customer view already contains entries like `PommApproval` and
+  `InventoryManagement1` — but the prefix is kept anyway to stay clear of the ~215 entries other
+  students own on this shared training system.
 
 ## Rollback
 
@@ -596,3 +758,11 @@ That is the whole revert — no controller edits to unpick, which is why it was 
 | 2026-07-26 | Run the QUnit suite on 1.149 while the app runs on 1.108 | 1.108's test starter needs a `/test-resources/<ns>/` URL an application project does not serve. The tests are stub-based controller logic and never covered control rendering, so the lost signal is near zero (Phase 2.7) |
 | 2026-07-26 | Leave `no-legacy-ui5-version-in-manifest` reporting | ui5lint has no per-rule disable; silencing it means ignoring `manifest.json` entirely. The finding is true and the constraint is permanent |
 | 2026-07-26 | Leave `index.html` / `index-cdn.html` on kebab-case attributes | They run on CDN 1.149 where kebab-case works; editing BTP's entry file mid-migration is risk without present benefit. Recorded as a prerequisite in 4.6 |
+| 2026-07-26 | Build a local FLP sandbox (`ui5-flp.yaml` + `flpSandbox.html`) before writing Phase 3 | The 3.3/3.5/3.6 paths are unreachable without a `sap.ushell.Container`, so each bug would otherwise cost an ABAP deploy cycle. Same bet as 1.6, which paid off three times in 4.6 |
+| 2026-07-26 | **Abandon that sandbox** and verify Phase 3 in the real FLP at 7.1 instead (option (b)) | It never booted: `sandbox.js` blocks Core on an `xx-bootTask` whose `sap/ushell/Container` require never settles, with an empty console and nothing to grep for. The bet was timeboxed and overran it. Accepted cost: embedding bugs now cost an ABAP deploy round trip to find (3.0) |
+| 2026-07-26 | Keep the broken sandbox files rather than delete them | The sound half is real and reusable — `sap.ushell@1.108.33` resolves from the artifact registry and the whole library serves. Only the boot handshake is unsolved, and the diagnosis plus everything already ruled out is written into both files |
+| 2026-07-26 | Declare `sap.ushell` in `ui5-flp.yaml` only, never in `ui5.yaml` | Adding it to the build config pulls `sap.ui.comp`, `sap.ui.table`, `sap.ui.mdc`, `sap.viz` and more in as project dependencies — the 1.4 mistake. On the real launchpad the shell supplies `sap.ushell`; the app must never declare it |
+| 2026-07-26 | Delete `MainShell.getCurrentHash()` rather than make it FLP-safe | It was dead code — one grep hit, the declaration. Section highlighting already runs off route parameters and was never broken under FLP. Half of 3.6 was a non-bug |
+| 2026-07-26 | Keep the app header at phone width even when embedded | The menu button is the only way to reopen the side nav below 600px, so hiding the whole header would leave an embedded phone user with no navigation. The plan counted four duplicated controls and missed this fifth, non-duplicated one |
+| 2026-07-26 | Guard the AI chat by **origin**, not by probing `/ai/*` at startup | The routes exist only on the BTP approuter, so the origin already determines availability; a probe would cost a request on every page load to learn what is statically known |
+| 2026-07-26 | **Defer building that guard until after the migration closes** | It is a pre-existing ABAP-only defect, not caused by or blocking the embedding work. Deferring keeps Phase 3 to launchpad-integration changes only. Cost is a known, written-down failure at 5.4 / 7.1 — see 3.7 |

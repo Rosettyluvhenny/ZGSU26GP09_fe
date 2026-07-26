@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "port": 8080
+    },
+    {
+      "name": "ui5-flp-sandbox",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:flp"],
+      "port": 8080
     }
   ]
 }

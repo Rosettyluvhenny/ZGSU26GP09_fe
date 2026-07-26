@@ -3,6 +3,7 @@ import type Control from "sap/ui/core/Control";
 import type { Router$RouteMatchedEvent } from "sap/ui/core/routing/Router";
 
 import BaseController from "./BaseController";
+import { isInLaunchpad, logoutFromLaunchpad } from "../services/Launchpad";
 import ODataClient from "../services/ODataClient";
 import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
@@ -125,14 +126,32 @@ export default class MainShell extends BaseController {
 	}
 
 	/**
-	 * Full-page navigation to the approuter's central logout endpoint. This is what
-	 * actually ends the session on BTP: the approuter clears its session cookie and
-	 * the XSUAA session, then redirects to logoutPage "/". A plain reload could not do
-	 * this — the session cookie survived it, so the approuter re-served the app and the
-	 * user appeared stuck logged in. Locally the sap-proxy mirrors /logout as a redirect
-	 * to "/". Isolated for unit tests so the QUnit page is not navigated under the runner.
+	 * Ends the session the way the current host expects.
+	 *
+	 * Embedded in a launchpad, the FLP owns the session: `Container.logout()` runs the
+	 * shell's registered logout handlers and performs its own redirect. Navigating to
+	 * "/logout" instead would skip all of that — and on the ABAP host that path does not
+	 * exist at all, since it is an approuter endpoint, so the ABAP standalone URL has been
+	 * 404ing on logout all along. See FLP_MIGRATION.md 3.4.
+	 *
+	 * Standalone on BTP, "/logout" is the approuter's central logout endpoint: it clears the
+	 * approuter session cookie and the XSUAA session, then redirects to the configured
+	 * logoutPage. A plain reload cannot do this — the session cookie survives it, so the
+	 * approuter re-serves the app and the user appears stuck logged in.
+	 *
+	 * The live logoutPage is "/logout.html", from approuter/xs-app.json. Note the root
+	 * xs-app.json still says "/" — it is bundled into the app zip but is not what the
+	 * standalone approuter reads (FLP_MIGRATION.md deferred finding A). Locally
+	 * ui5-middleware-sap-proxy mirrors /logout as a redirect to /logout.html, so this branch
+	 * is exercisable with npm start.
+	 *
+	 * Isolated for unit tests so the QUnit page is not navigated under the runner.
 	 */
 	protected redirectToLogout(): void {
+		if (isInLaunchpad()) {
+			logoutFromLaunchpad();
+			return;
+		}
 		window.location.assign("/logout");
 	}
 
@@ -159,9 +178,5 @@ export default class MainShell extends BaseController {
 		const route = this.pendingRoute;
 		this.pendingRoute = null;
 		this.navTo(route, {}, true);
-	}
-
-	private getCurrentHash(): string {
-		return window.location.hash.replace(/^#/, "");
 	}
 }
