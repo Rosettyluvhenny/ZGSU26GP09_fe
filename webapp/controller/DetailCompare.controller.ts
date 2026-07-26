@@ -1,10 +1,12 @@
 import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
-import TreeTable from 'sap/ui/table/TreeTable';
+import type Tree from 'sap/m/Tree';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
-import MessageBox from 'sap/m/MessageBox';
+// UI5 1.108 exports Icon/Action as named module exports rather than as members of the
+// default export, so MessageBox.Icon / MessageBox.Action do not type-check against it.
+import MessageBox, { Icon as MessageBoxIcon, Action as MessageBoxAction } from 'sap/m/MessageBox';
 import MessageToast from 'sap/m/MessageToast';
 import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
@@ -87,7 +89,7 @@ export default class DetailCompare extends BaseController {
 		this.setModel(model, 'detailCompare');
 		this.getRouter()
 			.getRoute("detailCompare")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
@@ -250,9 +252,9 @@ export default class DetailCompare extends BaseController {
 					`• ${ACTION_FULL} (${htmlSizeKb} KB) — may fail on backend/Gmail\n` +
 					`• Cancel`,
 					{
-						icon: MessageBox.Icon.WARNING,
+						icon: MessageBoxIcon.WARNING,
 						title: 'Large email',
-						actions: [ACTION_FULL, ACTION_DIFF, MessageBox.Action.CANCEL],
+						actions: [ACTION_FULL, ACTION_DIFF, MessageBoxAction.CANCEL],
 						emphasizedAction: ACTION_FULL,
 						onClose: (action?: string) => {
 							if (action === ACTION_DIFF) {
@@ -949,7 +951,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	private scheduleTreeExpansion(treeId: string): void {
-		const tree = this.byId(treeId) as TreeTable;
+		const tree = this.byId(treeId) as Tree;
 		if (!tree) {
 			return;
 		}

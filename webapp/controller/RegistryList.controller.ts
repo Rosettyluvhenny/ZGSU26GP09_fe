@@ -40,7 +40,7 @@ export default class RegistryList extends BaseController {
 			'registryList'
 		);
 
-		this.getRouter().getRoute('registryList').attachPatternMatched((event) => { void this.onRouteMatched(event); });
+		this.getRouter().getRoute('registryList').attachPatternMatched((event: Route$PatternMatchedEvent) => { void this.onRouteMatched(event); });
 		this.applyStatusFromCurrentHash();
 		void this.refreshRegistryPage();
 	}

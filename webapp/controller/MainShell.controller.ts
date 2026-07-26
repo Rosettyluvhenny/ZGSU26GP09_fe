@@ -1,5 +1,6 @@
-import Theming from "sap/ui/core/Theming";
+import Core from "sap/ui/core/Core";
 import type Control from "sap/ui/core/Control";
+import type { Router$RouteMatchedEvent } from "sap/ui/core/routing/Router";
 
 import BaseController from "./BaseController";
 import ODataClient from "../services/ODataClient";
@@ -15,7 +16,7 @@ export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
 
 	public onInit(): void {
-		this.getRouter().attachRouteMatched((event) => { this.onGlobalRouteMatched(event); });
+		this.getRouter().attachRouteMatched((event: Router$RouteMatchedEvent) => { this.onGlobalRouteMatched(event); });
 
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
@@ -63,7 +64,7 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	private onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): void {
+	private onGlobalRouteMatched(event: Router$RouteMatchedEvent): void {
 		const routeName = event.getParameter("name");
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
@@ -106,7 +107,8 @@ export default class MainShell extends BaseController {
 	public onToggleTheme(): void {
 		const nextIsDark = !this.getUiModel().getProperty("/isDarkTheme");
 		const nextTheme = nextIsDark ? DARK_THEME : LIGHT_THEME;
-		Theming.setTheme(nextTheme);
+		// ui5lint-disable-next-line no-deprecated-api -- sap/ui/core/Theming does not exist on the launchpad's UI5 1.108.33
+		Core.applyTheme(nextTheme);
 		writeThemePreference(nextTheme);
 		this.getUiModel().setProperty("/isDarkTheme", nextIsDark);
 	}

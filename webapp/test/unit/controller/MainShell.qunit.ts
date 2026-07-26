@@ -2,7 +2,7 @@
  * QUnit tests for MainShell controller
  */
 import MainShell from "com/zgp9/fe/controller/MainShell.controller";
-import Theming from "sap/ui/core/Theming";
+import Core from "sap/ui/core/Core";
 
 const LIGHT_THEME = "sap_horizon";
 const DARK_THEME = "sap_horizon_dark";
@@ -42,7 +42,7 @@ function buildShellFixture(isDarkTheme = false): ShellFixture {
         getData: sinon.stub().returns({ authenticated: true })
     };
     const navToStub = sinon.stub();
-    const themingStub = sandbox.stub(Theming, "setTheme");
+    const themingStub = sandbox.stub(Core, "applyTheme");
 
     sandbox.stub(ctrl, "getUiModel").returns(uiModelStub as any);
     sandbox.stub(ctrl, "getSessionModel").returns(sessionModelStub as any);

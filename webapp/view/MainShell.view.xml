@@ -8,7 +8,14 @@
 
 	<tnt:ToolPage id="shellPage" class="shellPage" sideExpanded="{ui>/sideNavVisible}">
 		<tnt:header>
-			<OverflowToolbar>
+			<!--
+				sap.tnt.ToolHeader, not sap.m.OverflowToolbar: on UI5 1.108 the ToolPage "header"
+				aggregation accepts only sap.tnt.IToolHeader, and an OverflowToolbar here logs
+				"is not valid for aggregation" and is not placed correctly. Newer UI5 relaxed the
+				aggregation, which is why this worked on 1.149. ToolHeader extends
+				OverflowToolbar, so the children below behave identically.
+			-->
+			<tnt:ToolHeader>
 				<Button
 					icon="sap-icon://menu2"
 					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
@@ -23,7 +30,7 @@
 					press=".onToggleTheme"
 					type="Transparent" />
 				<Button icon="sap-icon://log" text="Logout" press=".onLogout" type="Transparent" />
-			</OverflowToolbar>
+			</tnt:ToolHeader>
 		</tnt:header>
 		<tnt:sideContent>
 			<tnt:SideNavigation expanded="true" visible="{ui>/permissionsLoaded}">

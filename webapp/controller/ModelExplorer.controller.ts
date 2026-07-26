@@ -55,7 +55,7 @@ export default class ModelExplorer extends BaseController {
 
 		this.getRouter()
 			.getRoute('modelExplorer')
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
