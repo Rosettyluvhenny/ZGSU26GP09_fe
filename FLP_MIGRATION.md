@@ -7,27 +7,56 @@ truth for where the migration stands and what order the remaining work happens i
 
 ## ▶ RESUME HERE
 
-**Last updated:** 2026-07-26
+**Last updated:** 2026-07-27
 
-**Where things stand:** Phases 0, 1 and 2 are complete and **committed** (`630bf1d`). The app
-runs on UI5 1.108.33 locally. **Phase 3 is code-complete for 3.1–3.6** and passes every static
-check, but is **not yet runtime-verified** — see "Next action". 3.7 is deliberately deferred to
-after the migration; read it before assuming the AI chat is broken by accident.
+**Where things stand:** Phases 0–3 are **committed**; Phase 1–2 is `630bf1d`, Phase 3 is
+`4818ee1`. Phase 4 is complete apart from two role-blocked views. The app runs on UI5 1.108.33
+locally and has now been driven end to end against real data.
 
-**Branch:** `migration`. Phase 1–2 sits on `630bf1d`; Phase 3 is on top of it.
+**Phase 3 (3.1–3.6) is code-complete and passes every static check, but is NOT runtime-verified
+on the embedded path** — the local sandbox meant to prove it never booted (3.0), so it is
+verified inside the real launchpad at 7.1 instead. 3.7 is deliberately deferred to after the
+migration; read it before assuming the AI chat is broken by accident.
 
-> ⚠️ **All Phase 3 work is UNCOMMITTED.** New files: `webapp/services/Launchpad.ts`,
-> `webapp/test/flpSandbox.html`, `ui5-flp.yaml`. Modified: `Component.ts`, `models.ts`,
-> `MainShell.controller.ts`, `MainShell.view.xml`, `RegistryList.controller.ts`,
-> `manifest.json`, `ui5.yaml`, `package.json`, and this file. Commit before switching branches.
-> Verify with `git status`; if the tree is clean, this warning is stale and someone committed.
+**Branch:** `migration` — `6493b72` (init) → `630bf1d` (Phase 1–2) → `4818ee1` (Phase 3).
+
+> ⚠️ **UNCOMMITTED work as of this update**, in two unrelated groups:
+> 1. **The Phase 4 fixes** — four one-line view changes: `Home.view.xml` (icon +
+>    `templateShareable`), `VersionDetail.view.xml` (`core:Item width`), `DetailCompare.view.xml`
+>    (icon). Described in 4.6 items 4–6.
+> 2. **The semantic-object rename** (2026-07-27) — `ZGP9Registry`/`display` →
+>    `ZODataServiceRegistry`/`manage` in `manifest.json`, `webapp/test/flpSandbox.html` and a doc
+>    comment in `RegistryList.controller.ts`. See Q5.
 >
-> *(The previous version of this warning covered Phase 1–2 and is now obsolete — that work is
-> in `630bf1d`.)*
+> Plus this file. Clear this note once they are committed; `git status` is the authority, not
+> this line.
 
-**Next action:** Phase 4.2–4.4 — the remaining standalone click-through on 1.108 via
-`npm start`. That needs the university network for a reachable ABAP backend; without it the
-views load but stay empty. Then Phase 5 (ABAP deploy).
+**Next action:** Phase 5 (ABAP deploy) — 5.1/5.2 need a transportable Z package, since
+`ui5-deploy.yaml:38-39` still targets `$TMP`. Phase 4 is done **except** JobList/JobDetail (4.2)
+and the FCL two-column transition (4.3), which are blocked on a role, not on the migration —
+see below.
+
+**Phase 4 outcome (2026-07-26):** every view **except JobList and JobDetail** is verified on
+1.108 — first unauthenticated with placeholder route ids, then again signed in against real data.
+The Splitter and both responsive breakpoints behave. **Three more defects were found and fixed**
+beyond the three already in 4.6: two icons that do not exist in the 1.108 font, an unknown `width`
+setting on `sap.ui.core.Item`, and a nested aggregation binding missing `templateShareable` —
+items 4, 5 and 6. The last two are `[FUTURE FATAL]`, so they would have become thrown errors on a
+later UI5 rather than staying warnings.
+All three were found by **reading the console on a running 1.108 page**, not by any static check.
+If you add views later, that sweep is the step that catches their equivalents.
+
+⚠️ **Blocked, and it needs a person not a code change: DEV-173 lacks `ScanJob.Execute`.** Signed
+in, the side nav shows no Jobs entry, so JobList/JobDetail and the app's only FCL two-column
+transition cannot be reached. Either get that role granted (or an account that has it) before
+Phase 5, or accept those two views reach the launchpad unexercised.
+
+⚠️ **The backend is reachable — earlier notes in this file said otherwise and were wrong.**
+`s40lp1` answers with **HTTP 401 + `WWW-Authenticate: Basic`**, not a connection error. Local dev
+with data needs the ABAP user typed into the browser's Basic Auth prompt on first load; the proxy
+forwards the challenge on purpose so that prompt appears. Note the prompt does **not** appear in a
+headless/automation browser pane — it renders the "Logon failed" body instead, so sign in with a
+real browser window. See the correction at the end of 4.6.
 
 **Do not** try to finish the local FLP sandbox first. It is abandoned and does not boot — see
 3.0 for the full diagnosis and for what was already ruled out. Phase 3 is verified at 7.1
@@ -41,14 +70,21 @@ npm run lint             # expect: exactly 1 error, Home.controller.ts:133 — P
 npm run ui5lint          # expect: exactly 2 errors, both DELIBERATE — see 2.6
 npm run test-unit        # expect: 78/82, the 4 pre-existing bucketScanTrend failures
 npm start                # opens index-local.html on 1.108.33 — standalone behaviour
-npm run start:flp        # opens the FLP sandbox on 1.108.33 — embedded behaviour (3.0)
 ```
 
-All five of the non-interactive checks above were green as of this update, with Phase 3 applied.
+All four non-interactive checks above were green at `4818ee1`, and the first three were re-run
+green after each of the Phase 4 fixes. The Phase 4 changes are all in `.view.xml` files, which
+the typecheck and ESLint do not read at all — so for those, **the console on a running page is
+the only check that means anything**.
 
-Two console errors on `npm start` are expected and environmental, not regressions:
-`GET …/$metadata` and `CSRF fetch failed (502)`, both because no ABAP backend is reachable
-without the university network.
+`npm run start:flp` also exists but is **not a state check — it does not work.** The server
+starts and every resource serves, but the page hangs in UI5's boot task with an empty console.
+See 3.0 before touching it.
+
+Two console errors on `npm start` are expected while **signed out**, and are not regressions:
+`GET …/$metadata` and `CSRF fetch failed (502)`. They mean *unauthenticated*, not *unreachable* —
+they disappear once the Basic Auth prompt is answered. A third symptom travels with them:
+`Route with name login does not exist` plus a "Your session expired" dialog (deferred finding G).
 
 Operational note: `npm start` and `npm run test-unit` both bind port 8080, and the test runner
 starts its own server. Stop the dev server before running the tests, or the run fails in
@@ -60,11 +96,12 @@ making the suite run under 1.108 (closed off in 2.7). Just don't make it worse t
 
 **Read before touching code:** the "Key consequence" note below, then Phase 2.3 (why
 `webapp/ui5-108-types.d.ts` is shaped the way it is — it looks over-engineered and is not) and
-Phase 4.6 (three non-obvious 1.108 traps already hit, one of which fails completely silently).
+Phase 4.6 (six non-obvious 1.108 traps already hit; three of them fail completely silently).
 
-**Also see "Deferred findings"** near the end: six pre-existing issues in the BTP/deploy setup,
-unrelated to this migration but real. Two of them intersect this plan — **A** must be read before
-doing 3.4, and **B** explains why `git status` keeps showing a modified `.zip`.
+**Also see "Deferred findings"** near the end: seven pre-existing issues, unrelated to this
+migration but real. Three intersect this plan — **A** must be read before doing 3.4, **B**
+explains why `git status` keeps showing a modified `.zip`, and **G** explains the "Your session
+expired" dialog you will see on every signed-out load.
 
 ## Goal
 
@@ -405,14 +442,16 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       - `webapp/test/flpSandbox.html` — boots `sap/ushell/bootstrap/sandbox.js`, then
         `sap.ushell.Container.createRenderer().placeAt("content")`. Uses `createRenderer()`,
         not `createRendererInternal()`, which arrived long after 1.108. Registers the app
-        under the intent `ZGP9Registry-display`, so **the semantic object now appears in a
+        under the intent `ZODataServiceRegistry-manage`, so **the semantic object now appears in a
         fourth place** — keep it in step with 3.2, 6.1 and 6.3.
       - `ui5-flp.yaml` — a serve-only config whose only difference from `ui5.yaml` is that it
         declares `sap.ushell`. **Deliberately not added to `ui5.yaml`:** that would pull
         `sap.ui.comp`, `sap.ui.table`, `sap.ui.mdc`, `sap.suite.ui.commons`, `sap.viz` and a
         dozen more in as declared project dependencies — precisely the mistake avoided in 1.4.
         On the real launchpad the shell supplies `sap.ushell`; the app must never declare it.
-      - `npm run start:flp`. Excluded from the build in both yamls, like `index-local.html`.
+      - `npm run start:flp`, plus a matching `ui5-flp-sandbox` entry in `.claude/launch.json`.
+        Excluded from the build in both yamls, like `index-local.html`. Both now point at a
+        page that does not boot — see the warning at the top of this item.
       - ⚠️ **First run downloads well over a gigabyte** into `~/.ui5` (about 20 packages —
         `sap.ushell` pulls most of the distribution). It is a one-time cache fill, but it is
         far slower than any tooling start-up timeout, so a preview/dev-server wrapper that
@@ -448,8 +487,8 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       keeps `ui5-108-types.d.ts` restricted to the 1.108 downgrade.
       The result is also surfaced once as `ui>/isInLaunchpad` (`webapp/model/models.ts`), so
       views bind a flag instead of doing their own detection.
-- [~] 3.2 `sap.app.crossNavigation.inbounds` in `manifest.json` — **`ZGP9Registry` /
-      `display`** (Q5), with title, subtitle, icon and an empty-parameter signature at
+- [~] 3.2 `sap.app.crossNavigation.inbounds` in `manifest.json` — **`ZODataServiceRegistry` /
+      `manage`** (Q5), with title, subtitle, icon and an empty-parameter signature at
       `additionalParameters: "allowed"`. `sap.ui.icons` filled with
       `sap-icon://business-objects-experience`, matching the Registry side-nav entry.
       Must match the target mapping built in Phase 6.
@@ -515,30 +554,84 @@ failure does not count against this gate locally — it only surfaces on ABAP.
 ## Phase 4 — Local verification on 1.108
 
 1.6 is done, so this is now live: `npm start` runs the app on 1.108.33. This is where control
-drift across ~40 releases shows up, and it has already produced three real fixes (4.6).
+drift across ~40 releases shows up, and it produced **six** real fixes (4.6) — the single
+highest-yield phase of this migration.
 
 - [x] 4.1 Confirmed the running UI5 really is 1.108: `/resources/sap-ui-version.json` reports
       library versions **1.108.30**, which is the OpenUI5 line inside the SAPUI5 1.108.33
       distribution (the two version series differ — do not expect 1.108.33 there).
       Note: `ui5-test-runner` prints its own unrelated "UI5 version used by the local server"
       line, which reported 1.150.0. Ignore it; the served framework is what matters.
-- [ ] 4.2 Click through all **11 reachable** views: Home ✅ (verified rendering), RegistryList,
-      RegistryDetail, VersionDetail, ModelExplorer, VersionCompare, DetailCompare, JobList,
-      JobDetail, Logs — plus MainShell and App, which are the shell and root and so are
-      exercised by all of the above.
+- [~] 4.2 Click through all **11 reachable** views: Home ✅, RegistryList ✅, RegistryDetail ✅,
+      VersionDetail ✅, ModelExplorer ✅, VersionCompare ✅, DetailCompare ✅, Logs ✅ —
+      plus MainShell ✅ and App ✅, which are the shell and root and so are exercised by all of
+      the above. **JobList and JobDetail are the two still unverified** — see the auth note below.
       `Main.view.xml` is **not** in this list: it has no route and no references, so it cannot be
       reached. See deferred finding F.
-- [ ] 4.3 Exercise `sap.f` FlexibleColumnLayout column transitions and `DynamicPage`
-      collapse — these existed in 1.108 with fewer properties than 1.149
-- [ ] 4.4 Exercise the `sap.ui.layout.Splitter` split views and the responsive breakpoints
-      driven by `Component.ts:57-75` (`isPhoneWidth` / `isNarrowWidth`)
+      **Done in two passes, and it is worth keeping them apart.** The first ran *unauthenticated*
+      (see the correction in 4.6), reaching the detail views by typing route hashes with
+      placeholder ids (`#/registries/1/versions/1/model` and so on). That proves only that each
+      view instantiates and renders with no control, aggregation or icon errors — which is exactly
+      the class of bug 1.108 produces, since 4.6 traps 2 and 3 were both instantiation failures,
+      but says nothing about data-driven rendering, formatters or empty-vs-populated states.
+      The second pass ran *signed in against real data* and is what closed those gaps — and what
+      surfaced 4.6 items 5 and 6, neither of which appears on an empty page.
+      Notable: DetailCompare renders **two `sap.m.Tree`s** plus a Splitter, confirming at runtime
+      that the 1.4 `TreeTable` → `Tree` correction was right about which control is actually there.
+      **JobList/JobDetail are still unverified, and a session was not enough.**
+      `MainShell.controller.ts:82` redirects any `job*` route home unless `/canExecuteScanJob`,
+      which `loadGlobalPermissions()` reads from the backend. Signed in as **DEV-173** the side
+      navigation shows only Home / Registry Management / Logs — **no Jobs entry** — so that user
+      does not hold `ScanJob.Execute` and the two job views cannot be reached at all, authenticated
+      or not. Not a bug; a missing role. To close 4.2 and 4.3 someone needs an account that has
+      `ScanJob.Execute` (try DEV-257, or grant it), otherwise both views and the FCL two-column
+      transition reach the launchpad unexercised — the same first-run risk Phase 3 already carries.
+      **Verified with real data 2026-07-26** (signed in, 4 registries): Home end to end including
+      Scan Activity, Attention Required and Recently Changed Registries; the registry, version,
+      model-explorer and comparison chain; Logs. Two `[FUTURE FATAL]` findings came out of that
+      pass — 4.6 items 5 and 6.
+- [~] 4.3 Exercise `sap.f` FlexibleColumnLayout column transitions and `DynamicPage`
+      collapse — these existed in 1.108 with fewer properties than 1.149.
+      FCL itself instantiates and renders on 1.108 (`.sapFFCL` present, `layout: OneColumn`), and
+      `DynamicPage` renders and behaves on RegistryList, Logs, ModelExplorer and DetailCompare
+      with real rows loaded. Note all of them set `toggleHeaderOnTitleClick="false"` and
+      `pinnable="false"`, so the header collapses on **scroll only** — there is nothing to click
+      and no pin button, and their absence is by design rather than a 1.108 regression.
+      ⛔ **The one thing still open in this item: the FCL column transition.** `jobDetail` is the
+      *only* target using `midColumnPages` — every other target is `beginColumnPages` — so the
+      two-column path is reachable solely through the job routes, which need `ScanJob.Execute`
+      (see 4.2). Nothing in the app exercises two columns until someone with that role opens a
+      job. Until then this stays `[~]`.
+- [x] 4.4 Exercise the `sap.ui.layout.Splitter` split views and the responsive breakpoints
+      driven by `Component.ts:57-75` (`isPhoneWidth` / `isNarrowWidth`). **Verified on 1.108**,
+      empty first and then again with real content in ModelExplorer and DetailCompare.
+      On ModelExplorer, crossing 1024px flips the Splitter from `sapUiLoSplitterH` to
+      `sapUiLoSplitterV` and its height from `42rem` to `64rem`, exactly as the expression
+      binding declares; below 600px `isPhoneWidth` flips and `MainShell.onInit` loads with the
+      side nav collapsed (`sideExpanded: false`). Splitter panes and the drag separator render.
+      Not covered, and deliberately not chased: **dragging** a separator to resize a pane. The
+      orientation flip is the version-sensitive part; drag handling is core Splitter behaviour
+      that 1.108 shipped long before.
+      ⚠️ **Testing trap, cost half an hour — do not re-diagnose it as an app bug.** Resizing the
+      viewport through browser *automation* (CDP `setDeviceMetricsOverride`) changes
+      `window.innerWidth` and `matchMedia().matches` but fires **neither** a `resize` event nor a
+      MediaQueryList `change` event. So `ui>/isPhoneWidth` sits stale and disagrees with
+      `matchMedia` — it looks precisely like a broken listener. `window.dispatchEvent(new
+      Event('resize'))` updates it correctly, which is what proves the app logic is fine. A real
+      browser window drag fires the events normally.
 - [x] 4.5 `npm run test-unit` at **78/82** — the baseline, with the same 4 pre-existing
       `Home – bucketScanTrend` failures and nothing new. **Not our scope beyond this:** the
       QUnit suite is owned by another team member. The bar for this migration is "no worse than
       78/82", not "green". Runs on 1.149 by design (2.7).
-- [~] 4.6 Differences found so far. **Three genuine 1.108 runtime incompatibilities, all fixed**
-      — every one of them found locally, each of which would otherwise have cost an ABAP deploy
-      cycle. This is the entire payoff of step 1.6.
+- [~] 4.6 Differences found so far. **Six defects, all fixed** — every one found locally, each of
+      which would otherwise have cost an ABAP deploy cycle to discover. This is the entire payoff
+      of step 1.6.
+      Items 1–3 are hard 1.108 runtime incompatibilities: the app did not render at all. Items 4–6
+      are quieter and were only caught by reading the console on a running 1.108 page — a blank
+      icon, and two `[FUTURE FATAL]` assertions. Worth noting how they divide: **1–3 fail loudly
+      and would have been found by anyone opening the app; 4–6 fail silently and pass every static
+      check.** If more views are added later, the console sweep is the step that catches their
+      equivalents.
 
       1. **Kebab-case bootstrap attributes are silently ignored → blank page.**
          `data-sap-ui-resource-roots`, `data-sap-ui-on-init`, `data-sap-ui-compat-version`,
@@ -570,13 +663,71 @@ drift across ~40 releases shows up, and it has already produced three real fixes
          Fixed by swapping to `sap.tnt.ToolHeader`, which *extends* `OverflowToolbar` and
          implements `IToolHeader` — so every child control behaves identically.
 
-      Still outstanding: 4.2–4.5. The Home view renders correctly end to end (shell, side nav,
-      dashboard tiles, Scan Activity, Quick Actions). Remaining console errors are purely
-      environmental — `GET …/$metadata` and `CSRF fetch failed (502)` — because no ABAP backend
-      is reachable from this machine. Confirm against a real backend before trusting them.
+      4. **Two `sap-icon://` names do not exist in the 1.108 icon font.** Found 2026-07-26 during
+         4.2, from the warning `Icon info for icon 'box' in collection 'undefined' could not be
+         found`. `box` and `lines` were both added to the Fiori icon font after 1.108; on the
+         launchpad they render as **nothing at all** — no glyph, no error, no fallback.
+         Fixed: `sap-icon://box` → `sap-icon://inventory` (`Home.view.xml:78`, the Archived KPI
+         tile) and `sap-icon://lines` → `sap-icon://text-align-justified`
+         (`DetailCompare.view.xml:155`, the "All lines" diff toggle). Both replacements are old
+         icons present in 1.149 too, so BTP is unaffected.
+         **The check is cheap and worth repeating after any view edit** — paste the app's icon
+         names into `IconPool.getIconInfo()` in the console on a 1.108 page and list the misses.
+         All 43 currently used names were swept this way; these two were the only failures.
+         The severity is easy to underrate: unlike traps 1–3 this one does not break the app, so
+         it survives every static check and reaches the launchpad as a silently blank tile icon.
+
+      5. **`sap.ui.core.Item` has no `width` property.**
+         `Assertion failed: [FUTURE FATAL] Element …---versionDetail: encountered unknown setting
+         'width' for class sap.ui.core.Item (value:'100%')`, from `VersionDetail.view.xml:59`.
+         The setting was silently swallowed rather than applied — and the enclosing `Select` on
+         line 55 already carries `width="100%"`, so the attribute was doing nothing on any
+         version. Fixed by deleting it. `[FUTURE FATAL]` means a later UI5 turns this assertion
+         into a thrown error, so it is worth clearing even though 1.108 tolerates it.
+
+      6. **A nested aggregation binding with no `templateShareable` flag.**
+         `[FUTURE FATAL] During a clone operation, a template was found that neither was marked
+         with 'templateShareable:true' nor 'templateShareable:false' … used in aggregation 'items'
+         of object '__list2'`. The culprit is `Home.view.xml:170`, a `List` bound to
+         `home>changeSummary/details` that sits **inside** the `VBox` template on line 148 — so it
+         is cloned once per recently-changed registry, and UI5 cannot tell whether to destroy its
+         template. It was the only nested aggregation binding in the file, which is what
+         identified it. Fixed with `templateShareable: false`, matching lines 100, 148 and 186,
+         which already declare it. Consequence of leaving it: leaked templates and possible
+         duplicate ids as the Home list re-binds on every refresh.
+
+      **Expected dev-only console noise, not a finding:** `Component-preload.js` 404 plus
+      `Refused to execute script … MIME type ('text/html')`. `ui5 serve` does not build a
+      component preload, so UI5 probes for it, gets the server's HTML fallback, and drops back to
+      loading modules individually. It does not occur on ABAP or BTP, where the build emits a real
+      preload.
+
+      Still outstanding: 4.2 (JobList/JobDetail) and 4.3, both blocked on the missing
+      `ScanJob.Execute` role rather than on the session.
+      The Home view renders correctly end to end (shell, side nav, dashboard tiles, Scan
+      Activity, Quick Actions).
+      ⚠️ **Correction (2026-07-26): the claim that "no ABAP backend is reachable from this
+      machine" is wrong, and it was hiding the real state.** `s40lp1` *is* reachable — the
+      proxy's `$metadata` call returns **HTTP 401** with
+      `www-authenticate: Basic realm="SAP NetWeaver Application Server [S40/324]"`, i.e. a real
+      answer from a real server, not a connection failure. Every earlier reading of these two
+      console errors as "environmental, no network" was wrong; they are an **unauthenticated
+      session**. Consequence: local dev with data needs the ABAP user (DEV-173 / DEV-257) entered
+      into the browser's Basic Auth prompt, which `ui5-middleware-sap-proxy` deliberately enables
+      by forwarding the 401 and its `WWW-Authenticate` header verbatim
+      (`lib/sap-proxy.js:215-225`). Until that is done the app runs but every list is empty and
+      every permission is `false`.
+      Side effect worth knowing: the 401 makes `ErrorHandler` fire, which logs
+      `Route with name login does not exist` and puts a "Your session expired" dialog on screen.
+      That is deferred finding **G**, not a migration regression.
 
 **Gate:** all 13 views usable on 1.108 locally. Do not deploy before this passes — a
 server round trip per bug is far slower than finding them here.
+**Status: passed with two named exceptions** (2026-07-26). Every view except **JobList** and
+**JobDetail** is usable on 1.108 with real data. Those two are **not** waived — they are
+unreachable because DEV-173 lacks `ScanJob.Execute`, so they carry into Phase 7 as unexercised
+code alongside the Phase 3 embedding branches. Record the outcome here once someone with that
+role opens them, on 1.108 either locally or in FLP.
 
 ---
 
@@ -601,17 +752,30 @@ server round trip per bug is far slower than finding them here.
 
 Transaction and field names vary slightly by release; adjust to what the system shows.
 
-- [ ] 6.1 Semantic object — `/n/UI2/SEMOBJ`. Must match `crossNavigation.inbounds` (3.2).
+**The name is decided (Q5) and already in the code — do not invent a new one here.** Semantic
+object **`ZODataServiceRegistry`**, action **`manage`**, intent
+**`ZODataServiceRegistry-manage`**. It is written in three places that must agree exactly, of
+which two are already done: `manifest.json` `sap.app.crossNavigation.inbounds` ✅ (3.2),
+`webapp/test/flpSandbox.html` ✅ (3.0, though that page does not boot), and `/n/UI2/SEMOBJ` —
+6.1 below, still to do.
+
+- [ ] 6.1 Semantic object — `/n/UI2/SEMOBJ`. Create **`ZODataServiceRegistry`** exactly as spelled here;
+      it is case-sensitive and must match `crossNavigation.inbounds` (3.2) character for
+      character. Create authorization on `s40lp1` was confirmed 2026-07-26.
+      Expect a transport prompt — see 5.1, which needs one anyway.
 - [ ] 6.2 Catalog — `/UI2/FLPD_CUST` (or `/UI2/FLPCM_CUST` on newer releases)
 - [ ] 6.3 Target mapping:
-      - Semantic object + action from 6.1
+      - Semantic object **`ZODataServiceRegistry`**, action **`manage`**
       - Application Type: **SAPUI5 Fiori App**
       - URL: `/sap/bc/ui5_ui5/sap/zgsu26gp09_fe_1` (no `index.html` — embedding loads the
         Component, not the page)
       - Component ID: `com.zgp9.fe`
       - Device types: desktop, tablet, phone (manifest declares all three)
-- [ ] 6.4 Static app-launcher tile — title, subtitle, icon; navigation target is the
-      **intent** from 6.3, not a raw URL
+- [ ] 6.4 Static app-launcher tile — navigation target is the **intent**
+      `ZODataServiceRegistry-manage` from 6.3, not a raw URL.
+      Title, subtitle and icon should match what `crossNavigation.inbounds` already declares,
+      so the tile and the app agree: title `{{appTitle}}`, subtitle `{{appDescription}}`, icon
+      `sap-icon://business-objects-experience`.
 - [ ] 6.5 Group, so the tile appears on a page
 - [ ] 6.6 PFCG role carrying catalog + group; assign to DEV-173 / DEV-257
 - [ ] 6.7 Open FLP at `/sap/bc/ui2/flp` and launch the tile
@@ -633,7 +797,7 @@ Transaction and field names vary slightly by release; adjust to what the system 
         which is easy to walk past. Confirm `css/style.css` is 200 in the network tab, not just
         that the page "looks fine".
       - **3.6** — open a deep link with a status filter and confirm the filter actually applies.
-        The FLP hash is `#ZGP9Registry-display&/registries?status=Published`.
+        The FLP hash is `#ZODataServiceRegistry-manage&/registries?status=Published`.
       - Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.
 - [ ] 7.2 FLP shell bar present, app header hidden, side nav working (3.3).
       Check **both widths**: on desktop the app header should be gone entirely; below 600px it
@@ -662,8 +826,9 @@ Transaction and field names vary slightly by release; adjust to what the system 
 
 ## Deferred findings — out of scope here, but real
 
-Found while surveying the deploy setup before this migration started. **None is caused by the
-migration** and none blocks it, but they are real and would otherwise be lost. Two of them
+**A–F** were found while surveying the deploy setup before this migration started; **G** surfaced
+during Phase 4 verification but is equally pre-existing (it reproduces on 1.149). **None is caused
+by the migration** and none blocks it, but they are real and would otherwise be lost. Three
 intersect work in this plan, as noted.
 
 - **A. Two `xs-app.json` files that have drifted.** ⚠️ *intersects Phase 3.4.*
@@ -703,6 +868,17 @@ intersect work in this plan, as noted.
 - **F. `Main.view.xml` / `Main.controller.ts` appear to be dead.** Neither is referenced in
   `manifest.json` routing nor by any other view or controller. Confirm, then delete.
 
+- **G. `ErrorHandler` navigates to a route that does not exist.** Found 2026-07-26 during 4.2.
+  `webapp/services/ErrorHandler.ts:32` calls `this.router.navTo("login", …)` on any 401/403, but
+  `manifest.json` declares no `login` route — the router logs `Route with name login does not
+  exist` and nothing happens. The user is left on the current view behind a "Your session
+  expired. Please sign in again." dialog with no way to sign in from the app. Pre-existing and
+  unrelated to the migration (it reproduces identically on 1.149), but it fires on **every**
+  unauthenticated load, so it is easy to mistake for migration breakage.
+  Two smaller things in the same block, worth cleaning up together: line 33 is a ternary whose
+  two branches are the same string, and `handlingAuthError` is only ever reset by the MessageBox
+  `onClose`, so it latches on if the dialog is dismissed some other way.
+
 ## Open questions
 
 - **Q1 — Does the CDN still serve 1.108.33?** ✅ **Answered 2026-07-26: no.**
@@ -721,16 +897,33 @@ intersect work in this plan, as noted.
 - **Q4 — Spaces/pages or classic groups?** If the system has spaces and pages switched on,
   6.5 becomes a page/space assignment instead of a group.
   Answer: _(record here)_
-- **Q5 — What semantic object and action?** ✅ **Answered 2026-07-26.**
-  **Semantic object `ZGP9Registry`, action `display`.** Now written in `manifest.json` under
-  `sap.app.crossNavigation.inbounds` (3.2). It must be created identically at `/n/UI2/SEMOBJ`
-  (6.1) and referenced by the target mapping (6.3) — three places, exact match required.
-  Also hardcoded as the intent key in `webapp/test/flpSandbox.html`, so **four** places if the
-  name ever changes.
+- **Q5 — What semantic object and action?** ✅ **Answered 2026-07-26, revised 2026-07-27.**
+  **Semantic object `ZODataServiceRegistry`, action `manage`**, intent
+  `ZODataServiceRegistry-manage`.
+  ⚠️ **Superseded: the first answer was `ZGP9Registry` / `display`.** If you find that spelling
+  anywhere, it is stale — it was renamed before any of it reached the ABAP system, so there is
+  nothing to clean up there. The new name says what the app is rather than which student team
+  built it, and `manage` is the honest verb: the app creates, updates, publishes and archives
+  registries, so `display` understated it and would have read wrongly in the FLP's own intent
+  lists.
+  Written in `manifest.json` under `sap.app.crossNavigation.inbounds` (3.2) and hardcoded as the
+  intent key in `webapp/test/flpSandbox.html`. It must be created identically at `/n/UI2/SEMOBJ`
+  (6.1) and referenced by the target mapping (6.3). **Four places, exact match required** — plus
+  a doc comment in `RegistryList.controller.ts:63` that quotes the intent in an example hash, so
+  five if you count prose.
   Create authorization on `s40lp1` was confirmed before choosing it. `Z`/`Y` is not actually
   enforced by the system — the customer view already contains entries like `PommApproval` and
   `InventoryManagement1` — but the prefix is kept anyway to stay clear of the ~215 entries other
-  students own on this shared training system.
+  students own on this shared training system. At 21 characters the new name is well inside the
+  30-character limit `/UI2/SEMOBJ` enforces.
+
+- **Q6 — Who can grant `ScanJob.Execute`, and does DEV-257 already have it?** ⚠️ open, raised
+  2026-07-26 by Phase 4. Signed in as DEV-173 the Jobs nav entry is absent, so JobList, JobDetail
+  and the app's only FCL two-column transition cannot be reached (4.2, 4.3). This is a role
+  assignment on `s40lp1`, not a code problem. It does not block Phases 5–6 — but it is the same
+  authorization work as 6.6 (the PFCG role carrying catalog + group), so **ask for both at the
+  same time** rather than making two requests of whoever administers the system.
+  Answer: _(record here)_
 
 ## Rollback
 
@@ -738,9 +931,16 @@ All Phase 1–3 work lives on the `migration` branch. `git checkout dev` restore
 build; nothing in Phases 1–4 touches the ABAP system or BTP. The first irreversible-ish step is
 5.3, and even that only overwrites the existing `ZGSU26GP09_FE_1` BSP application.
 
-Caveat while the work is uncommitted (see RESUME HERE): switching branches right now would
-carry or discard the changes rather than cleanly park them. Commit on `migration` first, then
-`git checkout dev` is a genuine one-command rollback.
+The earlier caveat about uncommitted work no longer applies — Phases 1–3 are committed
+(`630bf1d`, `4818ee1`) and the tree is clean, so `git checkout dev` is a genuine one-command
+rollback. Re-read this if you start new work: switching branches with a dirty tree carries or
+discards changes rather than parking them.
+
+To undo just the Phase 3 launchpad embedding while keeping the 1.108 downgrade, revert
+`4818ee1`. It is a clean seam — `webapp/services/Launchpad.ts` is the only new runtime module,
+and every embedded branch is guarded by `isInLaunchpad()`, so reverting cannot affect the
+standalone BTP or ABAP behaviour. The sandbox files (`ui5-flp.yaml`,
+`webapp/test/flpSandbox.html`, the `start:flp` script) go with it; nothing else depends on them.
 
 To undo just the typings shim and go back to precise generated event types, delete
 `webapp/ui5-108-types.d.ts` and restore `@sapui5/types` in `package.json` + `tsconfig.json`.
@@ -764,5 +964,9 @@ That is the whole revert — no controller edits to unpick, which is why it was 
 | 2026-07-26 | Declare `sap.ushell` in `ui5-flp.yaml` only, never in `ui5.yaml` | Adding it to the build config pulls `sap.ui.comp`, `sap.ui.table`, `sap.ui.mdc`, `sap.viz` and more in as project dependencies — the 1.4 mistake. On the real launchpad the shell supplies `sap.ushell`; the app must never declare it |
 | 2026-07-26 | Delete `MainShell.getCurrentHash()` rather than make it FLP-safe | It was dead code — one grep hit, the declaration. Section highlighting already runs off route parameters and was never broken under FLP. Half of 3.6 was a non-bug |
 | 2026-07-26 | Keep the app header at phone width even when embedded | The menu button is the only way to reopen the side nav below 600px, so hiding the whole header would leave an embedded phone user with no navigation. The plan counted four duplicated controls and missed this fifth, non-duplicated one |
+| 2026-07-27 | Rename the semantic object `ZGP9Registry`/`display` → **`ZODataServiceRegistry`/`manage`** | Names what the app is rather than which student team built it, and `manage` matches what it actually does (create, update, publish, archive) where `display` understated it. Free to change now — nothing had reached `/n/UI2/SEMOBJ` yet, so it is four file edits and no ABAP cleanup (Q5) |
+| 2026-07-26 | Clear both `[FUTURE FATAL]` assertions (`core:Item width`, missing `templateShareable`) now rather than filing them | Both are one-line view edits found by the same console pass, both are on the migration path, and `[FUTURE FATAL]` means a later UI5 throws where 1.108 only warns. The `width` was provably dead — the enclosing `Select` already sets it (4.6 items 5–6) |
+| 2026-07-26 | Proceed to Phase 5 with JobList/JobDetail unverified rather than wait for a role | The blocker is a PFCG role assignment on a shared university system, not a code or migration problem, and nothing in Phases 5–6 depends on those two views. Cost is written down: they reach FLP unexercised, joining the Phase 3 branches already in that state (4.2, Q6) |
+| 2026-07-26 | Replace `sap-icon://box` → `inventory` and `sap-icon://lines` → `text-align-justified` rather than shipping blank icons | Neither name exists in the 1.108 icon font, and a missing icon renders as nothing with only a console warning — it passes every static check and reaches the launchpad silently. Both replacements exist in 1.108 *and* 1.149, so one codebase still serves both targets (4.6 item 4) |
 | 2026-07-26 | Guard the AI chat by **origin**, not by probing `/ai/*` at startup | The routes exist only on the BTP approuter, so the origin already determines availability; a probe would cost a request on every page load to learn what is statically known |
 | 2026-07-26 | **Defer building that guard until after the migration closes** | It is a pre-existing ABAP-only defect, not caused by or blocking the embedding work. Deferring keeps Phase 3 to launchpad-integration changes only. Cost is a known, written-down failure at 5.4 / 7.1 — see 3.7 |

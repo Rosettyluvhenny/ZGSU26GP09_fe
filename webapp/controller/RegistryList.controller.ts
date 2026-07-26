@@ -60,7 +60,7 @@ export default class RegistryList extends BaseController {
 	 * patternMatched event lands.
 	 *
 	 * Reads through HashChanger rather than window.location.hash: embedded in a launchpad the
-	 * browser hash is the whole intent — "#ZGP9Registry-display&/registries?status=Published" —
+	 * browser hash is the whole intent — "#ZODataServiceRegistry-manage&/registries?status=Published" —
 	 * so the first "?" found in the raw hash may belong to the intent's own parameters rather
 	 * than to the app's route, and the filter silently comes out wrong or empty. The shell
 	 * replaces UI5's HashChanger with one that reports only the app-internal part

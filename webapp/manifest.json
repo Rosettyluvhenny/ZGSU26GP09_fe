@@ -24,9 +24,9 @@
 		},
 		"crossNavigation": {
 			"inbounds": {
-				"ZGP9Registry-display": {
-					"semanticObject": "ZGP9Registry",
-					"action": "display",
+				"ZODataServiceRegistry-manage": {
+					"semanticObject": "ZODataServiceRegistry",
+					"action": "manage",
 					"title": "{{appTitle}}",
 					"subTitle": "{{appDescription}}",
 					"icon": "sap-icon://business-objects-experience",
