@@ -80,10 +80,23 @@ With the self-contained build, the bootstrap URL in `index.html` has already bee
 
 ## AI Assistant Configuration
 
-The AI chat calls the providers through the approuter, never directly. The provider
-API keys live in BTP destinations and are attached server-side, so **no key is ever
-shipped to the browser**. Do not reintroduce a key into `webapp/` — anything under
+The AI chat never calls the providers directly. Whatever host serves the app puts a
+component in front of the provider that attaches the API key server-side, so **no key is
+ever shipped to the browser**. Do not reintroduce a key into `webapp/` — anything under
 `webapp/` ends up in `Component-preload.js` and its sourcemaps, readable by any user.
+
+There are three such hosts, and the frontend picks the right base path itself:
+
+| Host | Base path | Key attached by |
+| --- | --- | --- |
+| BTP approuter | `/ai/` | `AI_GROQ` / `AI_OPENROUTER` destinations |
+| Local `npm start` | `/ai/` | `ui5-middleware-sap-proxy`, from `.env` |
+| ABAP — standalone URL **and** FLP | `/sap/bc/zgp9_ai/` | `ZCL_GP9_AI_PROXY`, from its SM59 destination |
+
+The switch is `resolveAiBasePath()` in `webapp/services/AiChatService.ts`. It keys off the
+app's own UI5 resource root (`/sap/bc/ui5_ui5/` is the ABAP BSP runtime path and exists
+nowhere else), not off the hostname — hostnames move, and embedded in a launchpad
+`location` describes the shell rather than this app.
 
 ### Local development
 
@@ -119,6 +132,66 @@ both `$XSAPPNAME.User` and `$XSAPPNAME.AiUser`, so app access and AI access come
 The AI routes still *check* for `$XSAPPNAME.AiUser` (see the `scope` property in
 `xs-app.json`), so access can be split again later by removing that scope from the `User`
 role template and giving it its own role collection — no route changes needed.
+
+### ABAP setup (once per system)
+
+Needed for the AI chat to work on the ABAP standalone URL and inside the Fiori Launchpad.
+Without it those hosts have no `/ai/*` handler at all and every request 404s.
+
+**Prerequisite — outbound HTTPS.** `s40lp1` must be able to reach the providers. Verify in
+`SM59` before anything else: create a type **G** destination, Host `api.groq.com`, Port
+`443`, **Logon & Security → SSL: Active** with `DFAULT SSL Client (Standard)`, then
+**Connection Test**. Any HTTP status back — including **404** — means the connection and
+the TLS handshake succeeded and you are good. A timeout or `NIECONN_REFUSED` means outbound
+is blocked; check `icm/HTTP/proxy_host` in `RZ11` for a system proxy before giving up.
+
+**1. Config table `ZGP9_AI_CFG`** (SE11, delivery class `C`, client-dependent):
+
+| Field | Key | Type | Notes |
+| --- | --- | --- | --- |
+| `MANDT` | ✓ | `MANDT` | |
+| `PROVIDER` | ✓ | `CHAR 20` | `groq` / `openrouter` — lowercase, matches the URL segment |
+| `RFCDEST` | | `RFCDEST` | the SM59 destination name |
+| `API_KEY` | | `CHAR 255` | the provider key |
+
+⚠️ The key sits in plaintext in a table, readable by anyone with `SE16` on it. Assign a
+table **authorization group** (`SE54`) and keep it off broad display roles. This is the
+weakest link in the ABAP path and it is weaker than the BTP one, where the key lives in a
+destination the approuter reads but no user can query.
+
+**2. SM59 destinations**, both type **G**, SSL **Active**:
+
+| Field | `ZGP9_AI_GROQ` | `ZGP9_AI_OPENROUTER` |
+| --- | --- | --- |
+| Host | `api.groq.com` | `openrouter.ai` |
+| Port | `443` | `443` |
+| Path Prefix | `/openai/v1/chat/completions` | `/api/v1/chat/completions` |
+
+The Path Prefix is the **full** endpoint path, not just the version prefix. That is
+deliberate: it pins each destination to `chat/completions` so it cannot be steered at the
+providers' key-management endpoints, which live on the same host — `GET /api/v1/key`
+returns your credit balance. It is the same rule the approuter routes follow, enforced one
+layer lower.
+
+If the connection test returns an SSL error rather than a status code, import the host's CA
+certificate into `STRUST` → **SSL client SSL Client (Standard)**.
+
+**3. ICF node** (`SICF`): create service `zgp9_ai` under `default_host/sap/bc/`, handler
+class **`ZCL_GP9_AI_PROXY`**, logon procedure *Standard* so it inherits the caller's
+authenticated session. Activate it. The path must match `AI_BASE_ABAP` in
+`AiChatService.ts` — change both together.
+
+**4. Rotation** is a table update; no transport, no restart, no redeploy.
+
+Two behaviour differences from BTP, both expected:
+
+- **No progressive streaming.** `cl_http_client` buffers the whole response, so the answer
+  appears at once instead of typing out. The SSE body is relayed unchanged, so the frontend
+  needs no branch — only the perceived latency differs.
+- **If POSTs come back 403 with a CSRF complaint**, the ICF node is enforcing token
+  validation. The app already holds a CSRF token for its OData calls and can send it, but
+  the simpler fix is to leave CSRF off for this node — it carries no state and changes
+  nothing on the server.
 
 > **Note:** SAP KBA [3341287](https://userapps.support.sap.com/sap/support/knowledge/en/3341287)
 > reports `URL.headers.<name>` being ignored by some *standalone* approuter versions. This

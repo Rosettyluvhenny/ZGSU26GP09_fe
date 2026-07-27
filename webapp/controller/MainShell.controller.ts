@@ -3,7 +3,6 @@ import type Control from "sap/ui/core/Control";
 import type { Router$RouteMatchedEvent } from "sap/ui/core/routing/Router";
 
 import BaseController from "./BaseController";
-import { isInLaunchpad, logoutFromLaunchpad } from "../services/Launchpad";
 import ODataClient from "../services/ODataClient";
 import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
@@ -126,13 +125,15 @@ export default class MainShell extends BaseController {
 	}
 
 	/**
-	 * Ends the session the way the current host expects.
+	 * Ends the session the way the standalone host expects.
 	 *
-	 * Embedded in a launchpad, the FLP owns the session: `Container.logout()` runs the
-	 * shell's registered logout handlers and performs its own redirect. Navigating to
-	 * "/logout" instead would skip all of that — and on the ABAP host that path does not
-	 * exist at all, since it is an approuter endpoint, so the ABAP standalone URL has been
-	 * 404ing on logout all along. See FLP_MIGRATION.md 3.4.
+	 * There is deliberately no launchpad branch here. Embedded, the FLP owns the session and
+	 * logout happens through the shell bar's avatar menu; the app's own Logout button — the
+	 * only caller of this method — is hidden when embedded (FLP_MIGRATION.md 3.3), so an
+	 * `isInLaunchpad()` branch was unreachable code and was deleted. See 3.4.
+	 *
+	 * Known gap, unchanged by that deletion: on the **ABAP standalone** URL "/logout" does not
+	 * exist — it is an approuter endpoint — so that host has been 404ing on logout all along.
 	 *
 	 * Standalone on BTP, "/logout" is the approuter's central logout endpoint: it clears the
 	 * approuter session cookie and the XSUAA session, then redirects to the configured
@@ -148,10 +149,6 @@ export default class MainShell extends BaseController {
 	 * Isolated for unit tests so the QUnit page is not navigated under the runner.
 	 */
 	protected redirectToLogout(): void {
-		if (isInLaunchpad()) {
-			logoutFromLaunchpad();
-			return;
-		}
 		window.location.assign("/logout");
 	}
 

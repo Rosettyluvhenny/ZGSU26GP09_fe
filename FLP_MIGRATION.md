@@ -20,16 +20,12 @@ migration; read it before assuming the AI chat is broken by accident.
 
 **Branch:** `migration` — `6493b72` (init) → `630bf1d` (Phase 1–2) → `4818ee1` (Phase 3).
 
-> ⚠️ **UNCOMMITTED work as of this update**, in two unrelated groups:
-> 1. **The Phase 4 fixes** — four one-line view changes: `Home.view.xml` (icon +
->    `templateShareable`), `VersionDetail.view.xml` (`core:Item width`), `DetailCompare.view.xml`
->    (icon). Described in 4.6 items 4–6.
-> 2. **The semantic-object rename** (2026-07-27) — `ZGP9Registry`/`display` →
->    `ZODataServiceRegistry`/`manage` in `manifest.json`, `webapp/test/flpSandbox.html` and a doc
->    comment in `RegistryList.controller.ts`. See Q5.
->
-> Plus this file. Clear this note once they are committed; `git status` is the authority, not
-> this line.
+**Branch history:** `6493b72` (init) → `630bf1d` (Phase 1–2) → `4818ee1` (Phase 3) →
+`162e324` (Phase 4) → `872e39f` (Phase 5 & 6).
+
+> ℹ️ Only **this file** is uncommitted as of this update. The Phase 4 view fixes, the
+> semantic-object rename and `ui5-deploy.yaml` all went in at `872e39f`. If you add work, re-raise
+> an UNCOMMITTED warning here — `git status` is the authority, not this line.
 
 ## 🎉 The migration's central goal is met (2026-07-27)
 
@@ -38,13 +34,26 @@ a tile → intent → target mapping → component, with real data and zero cons
 Phases 0–6 are complete; Phase 7 is regression and close-out. See the Phase 3 status block for the
 evidence, and 3.4 for the one genuine finding first execution turned up.
 
+⚠️ **UNCOMMITTED as of 2026-07-27.** Beyond this file: `webapp/services/Launchpad.ts`,
+`webapp/controller/MainShell.controller.ts`, `webapp/services/AiChatService.ts`, `README.md` —
+and, in the **separate `SAP09_BE` repo**, the new `src/zcl_gp9_ai_proxy.clas.*`. `git status` is
+the authority, not this line.
+
+**Done since the last update:** **3.4** decided and deleted, which closes **7.3**. **3.7**
+reversed from "hide the AI chat on ABAP" to "make it work" — frontend done and verified, ABAP
+handler written, ABAP installation still outstanding.
+
 **Next action:** Phase 7. In priority order:
-1. **7.2** — phone width (<600px) inside FLP. The only unverified half of 3.3, and the one place a
+1. **3.7 ABAP install** — table `ZGP9_AI_CFG`, two SM59 destinations, SICF node `zgp9_ai`, and
+   activate `ZCL_GP9_AI_PROXY`. Runbook in `README.md` → *ABAP setup*. Everything it depends on is
+   confirmed (outbound HTTPS works); this is execution, not investigation.
+2. **7.2** — phone width (<600px) inside FLP. The only unverified half of 3.3, and the one place a
    deliberate, non-obvious decision was made (the menu button survives on phone).
-2. **7.3** — needs rewriting, not testing: see the 3.4 finding. Decide keep-or-delete first.
 3. **7.6** — **the real risk left.** BTP has not been rebuilt or deployed since Phase 1. Everything
    rests on "`minUI5Version` is a floor, not a pin", which is sound but unproven end to end.
-4. **7.4** (back/forward under the FLP hash), **7.5** (theme), **7.7** (README).
+   Now also the one place the `AiChatService` refactor could regress — verify the AI chat there.
+4. **7.4** (back/forward under the FLP hash), **7.5** (theme), **7.7** (remaining README fixes:
+   the ABAP/FLP deploy path, line 57's CDN claim, the stale `$XSAPPNAME.AiUser` scope text).
 
 **Phase 5 is done**: deployed to package `ZGSU26GP09` under transport `S40K919517`, out of `$TMP`,
 loading from the ABAP standalone URL. 5.5 (app index / cache invalidation) is **deferred by
@@ -261,7 +270,11 @@ Every place the version is pinned — 10 sites across 8 files:
         convenience. To align it later, point `index.html` at
         `/sap/public/bc/ui5_ui5/resources/sap-ui-core.js` — but that path is ABAP-only and
         would break BTP, so it needs the `welcomeFile` split first.
-- [~] 1.7 `manifest.json:2` `_version: "2.0.0"` — **deliberately left unchanged.** I could
+- [x] 1.7 ✅ **Closed 2026-07-27 — leaving it unchanged was correct.** FLP resolved and launched the
+      component with `_version: "2.0.0"` intact (6.7), and `/UI2/APP_INDEX_CALCULATE` never had to
+      run. The contingency below is now void: **do not lower `_version`.** The `fiori deploy`
+      warning at 5.3 is advisory. See Q2.
+      `manifest.json:2` `_version: "2.0.0"` — **deliberately left unchanged.** I could
       not establish which descriptor schema versions 1.108 accepts, and guessing a lower
       value risks introducing a problem rather than fixing one. The UI5 runtime warns on an
       unknown `_version` rather than failing, so the real risk surface is the ABAP app index.
@@ -559,7 +572,19 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
       header at all, phone FLP shows a header carrying only the menu button.
       Consequence accepted: on desktop FLP the side nav can no longer be collapsed. It is
       visible and fully usable, just not dismissible — a convenience, not a function.
-- [!] 3.4 ⚠️ **FINDING, 2026-07-27: the embedded branch is unreachable. Needs a decision.**
+- [x] 3.4 ✅ **RESOLVED 2026-07-27 — deleted, per the finding below.** `logoutFromLaunchpad()`
+      and the `UshellContainer` interface that existed only to type it are gone from
+      `webapp/services/Launchpad.ts`; `redirectToLogout()` in `MainShell.controller.ts` no longer
+      branches and its import of `isInLaunchpad` is removed. `isInLaunchpad()` itself stays — 3.1
+      and 3.3 depend on it — and `UshellGlobal.Container` is now typed `object`, since only its
+      *presence* is ever read. Both files carry a comment pointing back here so the next reader
+      does not "restore" the branch.
+      Verified after: `ts-typecheck` clean, `lint` at the 1 pre-existing error, `test-unit` 78/82.
+      Consequence for **7.3**: closed as not applicable — logout in FLP is the shell's job.
+      Note a pre-existing gap this deletion neither caused nor fixed: on the **ABAP standalone**
+      URL `/logout` does not exist (it is an approuter endpoint), so that host 404s on logout.
+      The original finding, kept because the reasoning is the useful part:
+      ⚠️ **FINDING, 2026-07-27: the embedded branch is unreachable.**
       `logoutFromLaunchpad()` can never run as currently wired. `redirectToLogout()` has exactly
       one caller — `onLogout()` (`MainShell.controller.ts:125`) — and `onLogout` is reached only
       from the Logout button at `MainShell.view.xml:49`, which 3.3 binds
@@ -613,25 +638,67 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
         (`registries?status=Published`) instead of the whole intent, so the first `?` found
         belongs to the route rather than to the intent's own parameters. Identical behaviour
         standalone, where the two are the same string.
-- [~] 3.7 AI chat — **approach decided, implementation DEFERRED to after the migration closes
-      (decided 2026-07-26).** `webapp/services/AiChatService.ts:46,55` post to `/ai/*`, which
-      only the BTP approuter serves. There is no host guard, so on ABAP it throws.
-      **Agreed fix, to be built later:** hide the feature whenever the app is not running on the
-      BTP approuter, using an **origin check, not a startup probe** — the `/ai/*` routes exist
-      only on the approuter (confirmed in `approuter/xs-app.json` and the `AI_GROQ` /
-      `AI_OPENROUTER` destinations at `mta.yaml:69-90`), so the origin already answers the
-      question and a probe would spend a request per page load re-asking it.
-      **Consequence of deferring — do not re-diagnose this as a migration regression.** Until it
-      is built, the AI chat is *live but broken* on ABAP. Expect it to fail at **5.4** and
-      **7.1**, in exactly three places: the AI chat button on `VersionDetail`, `ModelExplorer`
-      and `DetailCompare` (all open `webapp/view/fragments/AiChatDialog.fragment.xml`).
-      ✅ **Confirmed at 5.4 on 2026-07-27**, as `AI request failed (404)`. Measured cost: a single
-      click fires **six** POSTs — three to `/ai/groq/chat/completions`, then three to
-      `/ai/openrouter/chat/completions` — because the model fallback chain retries each before
-      giving up. BTP is
-      unaffected, and local `npm start` is unaffected because `ui5-middleware-sap-proxy` serves
-      the same `/ai/*` paths from `.env`.
-      Reopen this item at 7.7, alongside the README fixes.
+- [~] 3.7 AI chat on ABAP — **plan reversed 2026-07-27: make it WORK, not hide it.** Frontend
+      half is **done and verified**; the ABAP half is specified and written but not yet installed.
+      **The original problem.** `webapp/services/AiChatService.ts` posted to hardcoded `/ai/*`
+      paths, which only the BTP approuter and the local proxy serve. On ABAP nothing served them,
+      so it 404'd. ✅ Confirmed at 5.4 as `AI request failed (404)`; a single click fires **six**
+      POSTs — three to `/ai/groq/chat/completions`, then three to `/ai/openrouter/chat/completions`
+      — because the model fallback chain retries each before giving up.
+      ⚠️ **Superseded: the 2026-07-26 decision was to *hide* the feature on ABAP** via an origin
+      check. That is no longer the plan. If you find notes describing a guard that disables the AI
+      chat outside BTP, they are stale — the decision log entry for that date is superseded by the
+      2026-07-27 one.
+      **What replaced it.** The invariant is unchanged and non-negotiable: the provider key must
+      never reach the browser (anything under `webapp/` lands in `Component-preload.js` and its
+      sourcemaps). So the fix is to give the ABAP host the same server-side key-injecting
+      component the other two hosts already have.
+      Options considered, and why the other two lost:
+      - **Cross-origin to the BTP approuter** — zero ABAP work, but its `/ai/*` routes are
+        `authenticationType: xsuaa`, so an unauthenticated cross-origin `fetch` gets a 302 to the
+        IdP that `fetch` cannot follow. Making it work needs CORS, `credentials: 'include'`,
+        `SameSite=None` cookies *and* a pre-existing approuter session, then still breaks silently
+        on session expiry — and it would make the ABAP/FLP deliverable depend on BTP uptime.
+        Setting those routes to `authenticationType: none` to dodge the auth problem would put an
+        open, key-bearing AI proxy on the public internet. Rejected.
+      - **Key in the browser** — rejected outright, see the invariant.
+      ✅ **Gating fact, answered 2026-07-27: `s40lp1` CAN reach the internet outbound.** An SM59
+      type-G destination to `api.groq.com:443` with SSL active returned **HTTP 404 in 284 ms** —
+      a 404 only comes from a real HTTP server, so TCP, TLS *and* certificate validation all
+      succeeded. This was the single fact the whole approach hung on. Note the two false starts
+      worth not repeating: testing `http://s40lp1:443` tests the box against itself over the wrong
+      scheme, and leaving SM59's **Host** field empty while naming the *destination*
+      `api.groq.com` connects to nothing — both produce "connection broken, 127 bytes sent".
+      **Frontend — done, verified locally on 1.108.** `AiChatService.ts` no longer hardcodes a
+      path. `resolveAiBasePath()` returns `/ai/` on BTP and local, `/sap/bc/zgp9_ai/` on ABAP, and
+      providers now carry a relative `path` instead of a full `url`. Detection keys off
+      `sap.ui.require.toUrl('com/zgp9/fe/')` containing `/sap/bc/ui5_ui5/` — the same mechanism
+      3.5 uses, and for the same reason: embedded, `location`/`document.baseURI` describe the
+      *launchpad*, not this app. One check covers both ABAP entry points because the target
+      mapping points at that same BSP path (6.3).
+      Verified on a running 1.108 page, not by reading: the six fetched URLs are byte-identical to
+      the pre-refactor ones, and the predicate returns true only for the BSP root.
+      **ABAP — written, not yet installed.** `ZCL_GP9_AI_PROXY` lives in the *backend* repo at
+      `SAP09_BE/src/zcl_gp9_ai_proxy.clas.abap` — **a different git repo, needing its own commit
+      and abapGit push.** It is a byte-transparent relay: `get_data`/`set_data`, no JSON parsing,
+      so it never becomes a second place that has to know the providers' dialect.
+      Setup runbook is in `README.md` → *ABAP setup*: table `ZGP9_AI_CFG`, two SM59 destinations,
+      one SICF node `zgp9_ai`. Three things in it that are decisions, not detail:
+      - Each SM59 destination pins the **full** path (`/openai/v1/chat/completions`), not just the
+        host, so a destination cannot be steered at the providers' key-management endpoints —
+        `GET /api/v1/key` returns the credit balance. Same rule as the approuter routes, enforced
+        a layer lower.
+      - The provider is chosen from a table row, never from the URL path. The path segment only
+        selects a row.
+      - ⚠️ **The key sits in plaintext in `ZGP9_AI_CFG`**, readable by anyone with `SE16` on it.
+        Needs a table authorization group. This is genuinely weaker than the BTP path and it is
+        the honest cost of this option — say so rather than bury it.
+      **Known behaviour difference, accepted:** no progressive streaming on ABAP.
+      `cl_http_client` buffers the whole response, so the answer appears at once rather than
+      typing out. The SSE body is relayed unchanged, so the frontend needs no branch.
+      **Still to do:** install the ABAP side (table, destinations, ICF node, class), then verify
+      on the standalone URL and inside FLP. Until that is done the ABAP 404 stands — do not
+      re-diagnose it as a migration regression.
 
 **Gate:** app builds and starts with no *new* console errors beyond the two environmental ones
 (`$metadata`, `CSRF 502`) that appear whenever no ABAP backend is reachable. The deferred 3.7
@@ -954,7 +1021,12 @@ which two are already done: `manifest.json` `sap.app.crossNavigation.inbounds` �
       while every `isInLaunchpad()` branch stays false and nothing this migration built is
       actually exercised. If 7.1/7.2 ever show the app with no FLP shell bar, check the tile's
       navigation type before suspecting the code.
-- [ ] 6.5 **Page + space, not a group** — Q4 came back "spaces and pages" (2026-07-27).
+- [~] 6.5 **Route (a) done 2026-07-27, route (b) still open.** The app was added to **My Home** via
+      *Edit Page → App Finder*, where it appeared under the catalog title "OData Service Registry"
+      — which is itself proof that 6.2/6.3/6.6 are wired correctly, since the App Finder reads the
+      catalog through the role. The tile then launched the app in the shell (6.7).
+      **Still to do for the deliverable: a dedicated space and page** — route (b) below.
+      **Page + space, not a group** — Q4 came back "spaces and pages" (2026-07-27).
       **Two routes, and the cheap one is worth doing first as a smoke test:**
       - **(a) `My Home`.** It is enabled on this system. Once the catalog reaches your user via
         6.6, open FLP → *My Home* → **Edit Page** → App Finder → find the app → add it. No space,
@@ -985,7 +1057,11 @@ which two are already done: `manifest.json` `sap.app.crossNavigation.inbounds` �
       the space exists — a third confirmation of Q4.
       Still to ask an admin: **`ScanJob.Execute`** (Q6), needed to close 4.2 and 4.3. That one was
       *not* covered by this role.
-- [ ] 6.7 Open FLP at `/sap/bc/ui2/flp` and launch the tile
+- [x] 6.7 Open FLP at `/sap/bc/ui2/flp` and launch the tile. ✅ **Done 2026-07-27 — worked first
+      attempt.** The tile launched the app inside the launchpad shell, on 1.108.33, with live data.
+      No cache invalidation was required (5.5) and `_version: "2.0.0"` caused no problem (Q2).
+      Practical note: **hard-refresh FLP (Ctrl+Shift+R) after changing the role.** A tab loaded
+      before the role existed serves cached user content and the app appears to be missing.
 
 **Gate:** tile appears in FLP and opens the app inside the launchpad shell. ✅ **PASSED
 2026-07-27.** The tile launched the app inside the shell on the first attempt, with the FLP shell
@@ -997,12 +1073,24 @@ FLP resolved the component without complaint.
 
 ## Phase 7 — Regression and close-out
 
-> ⚠️ **7.1–7.3 now carry the entire verification burden for Phase 3.** The local sandbox that
-> was meant to catch these never booted (3.0), so every `isInLaunchpad()`-true branch reaches
-> the real launchpad completely unexercised. Treat this as first-run code, not as a regression
-> pass: expect to find bugs here, and budget deploy round trips (5.3 + 5.5) to fix them.
+> ✅ **The first-run risk this phase carried is now spent.** Earlier revisions warned that 7.1–7.3
+> bore the entire verification burden for Phase 3, because the local sandbox never booted (3.0) and
+> every `isInLaunchpad()`-true branch would reach the launchpad unexercised. **That happened on
+> 2026-07-27 and four of the five branches were correct first time** — see the Phase 3 status
+> block. No deploy round trip was needed. What remains here really is a regression pass, with two
+> exceptions: **7.3**, which needs rewriting rather than running (the 3.4 finding), and **7.6**,
+> which is the last genuinely unproven claim in the whole plan.
 
-- [ ] 7.1 All 13 views again, this time **inside** FLP — 3.5 and 3.6 bugs only appear here.
+- [~] 7.1 All 13 views again, this time **inside** FLP — 3.5 and 3.6 bugs only appear here.
+      **Partially done 2026-07-27.** Verified inside the launchpad: **Home** end to end (KPI tiles,
+      Scan Activity, Attention Required, Quick Actions) and **Registry Explorer** including the
+      status filter and a reloaded deep link. Both 3.5 and 3.6 — the two bugs this item exists to
+      catch — are confirmed, and no app-side console error appeared on either view.
+      **Still to click through inside FLP:** RegistryDetail, VersionDetail, ModelExplorer,
+      VersionCompare, DetailCompare, Logs. Lower risk than it looks — they all render correctly on
+      1.108 standalone (4.2) and the two FLP-specific mechanisms are already proven — but the
+      DynamicPage/Splitter views are worth a look inside the shell, where the available height
+      differs. JobList/JobDetail remain blocked on `ScanJob.Execute` (Q6).
       Specifically:
       - **3.5** — is the app *styled*? A stylesheet 404 renders it unstyled rather than broken,
         which is easy to walk past. Confirm `css/style.css` is 200 in the network tab, not just
@@ -1020,19 +1108,49 @@ FLP resolved the component without complaint.
         Test it with **Archived** or **Unpublished**, not Published: on this dataset all four
         registries are Published, so a Published filter is indistinguishable from no filter and
         looks broken when it is working.
-      - Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.
-- [ ] 7.2 FLP shell bar present, app header hidden, side nav working (3.3).
+      - ~~Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.~~ Done for 3.1, 3.2, 3.5 and 3.6.
+        3.3 stays `[~]` pending 7.2's phone check; 3.4 is `[!]` — a finding, not a pass.
+- [~] 7.2 FLP shell bar present, app header hidden, side nav working (3.3).
+      **Desktop confirmed 2026-07-27:** shell bar present with the app title, app header entirely
+      absent, side navigation present and working. **The phone-width half is the open one** — and
+      it is the more interesting one, since that behaviour was a deliberate departure from the
+      original plan.
       Check **both widths**: on desktop the app header should be gone entirely; below 600px it
       should reappear carrying only the menu button, which is the sole way to reopen the side
       nav. Also confirm the desktop side nav is still usable while no longer collapsible — that
       trade-off was accepted deliberately, see 3.3.
-- [ ] 7.3 Logout from inside FLP ends the session properly (3.4).
-      This is the branch most likely to be wrong: `sap.ushell.Container.logout()` has never run.
-      If it fails, check first whether `logout` exists on the container at all in 1.108 — the
-      shipped typings generate it as `logout: undefined`, which is why Launchpad.ts declares
-      its own minimal interface rather than trusting them.
+- [x] 7.3 ✅ **CLOSED as not applicable, 2026-07-27.** 3.4 was decided by deletion, so there is no
+      app-side logout to test inside FLP: logout is the shell's responsibility, exercised through
+      the launchpad's avatar menu. Nothing to run. The original reasoning follows.
+      ⚠️ **Cannot be tested as written — needs rewriting, not running. See the 3.4 finding.**
+      The item assumed the app performs the logout when embedded. It does not and cannot: the
+      Logout button is hidden when embedded (3.3), and it is the only path to
+      `logoutFromLaunchpad()`. So `sap.ushell.Container.logout()` is unreachable and this test has
+      no trigger to pull.
+      **What to do instead, once 3.4 is decided:**
+      - If 3.4 is **deleted**: close this item as not applicable. Logout is the shell's
+        responsibility, exercised by the FLP avatar menu, and the app has no part in it.
+      - If 3.4 is **kept** as a seam: rewrite this to test whatever ends up calling
+        `redirectToLogout()` — most plausibly session-expiry handling, which today does something
+        else entirely (deferred finding **G**).
+      Either way, do **not** go looking for a bug inside `Launchpad.ts`. The original note here —
+      that 1.108's typings generate `logout: undefined`, which is why `Launchpad.ts` declares its
+      own minimal interface — is still accurate and still the reason that file looks the way it
+      does. It just has no caller.
 - [ ] 7.4 Back/forward browser navigation across app routes under the FLP hash
-- [ ] 7.5 FLP theme switch does not fight the app
+- [~] 7.5 FLP theme switch does not fight the app.
+      **Partial pass 2026-07-27:** the app rendered in FLP's **dark** theme without fighting it
+      (`quartz.css` / `text_styles_quartz.css` served by the shell), so the shell's theme reaches
+      the app and the app does not override it on load.
+      ⚠️ **The mechanism to probe is `Component.applyStoredTheme()`.** It runs on every init and
+      calls `Core.applyTheme(storedTheme)` when a preference exists in session storage — which
+      would override the launchpad's theme. The app's own theme toggle is hidden when embedded
+      (3.3), so a preference can only have been set while running standalone, and then carried
+      into FLP. Not observed (FLP and app are both dark here), which may only mean they happen to
+      agree.
+      **Test:** run the app standalone, toggle it to **light**, then open it from the FLP tile
+      while FLP is **dark**. If the app comes up light inside a dark shell, that is a real defect
+      and the fix is to skip `applyStoredTheme()` when `isInLaunchpad()`.
 - [ ] 7.6 **BTP still works** — the coupling check. `mbt build -p=cf`,
       `cf deploy mta_archives/com.zgp9.fe.mta_1.0.0.mtar`, then verify the app *and* the AI
       chat on the approuter URL. Per the note at the top this should pass unchanged; 7.6 is
@@ -1109,8 +1227,8 @@ intersect work in this plan, as noted.
   and a root-relative `/resources/sap-ui-core.js` bootstrap), not a version manifest.
   1.6 took the fallback, which turned out to be preferable — the UI5 tooling resolves
   `framework.version` through SAP's artifact registry, so the CDN is not needed at all.
-- **Q2 — Does 1.108 accept `manifest.json` `_version: "2.0.0"`?** ⚠️ still open, but with
-  evidence as of the 5.3 deploy. See 1.7 for why it was left alone.
+- **Q2 — Does 1.108 accept `manifest.json` `_version: "2.0.0"`?** ✅ **Answered 2026-07-27: yes.**
+  See 1.7, now closed.
   `fiori deploy` warned before uploading: *"minUI5Version (1.108.33) is below the minimum
   (unknown) required by the app descriptor schema version 2.0.0"* — and the **`(unknown)`** is the
   informative part: the tooling has no mapping for schema version `2.0.0` either, which is exactly
@@ -1121,10 +1239,13 @@ intersect work in this plan, as noted.
   no app-index or cache intervention. The deploy-time warning is advisory only. `_version` stays
   as it is; **do not lower it** — 1.7's contingency is no longer needed, and changing it now would
   be a speculative edit against working behaviour.
-- **Q3 — Does `s40lp1` have `sap.tnt` installed?** Standard in `SAP_UI`, but confirm before
-  assuming; Phase 6 fails obscurely if a declared library is missing.
+- **Q3 — Does `s40lp1` have `sap.tnt` installed?** ✅ **Answered 2026-07-27: yes**, by observation
+  rather than by checking a version table. The app's entire shell *is* `sap.tnt` — `ToolPage`,
+  `ToolHeader`, `SideNavigation`, `NavigationList` — and it rendered inside the launchpad on
+  1.108.33 with the side navigation working (3.3, 6.7). A missing library could not have produced
+  that. Same reasoning covers `sap.f` (FlexibleColumnLayout, DynamicPage) and `sap.ui.layout`
+  (Splitter), both of which also rendered.
   Note: `sap.ui.table` is **no longer relevant** — see 1.4, it is not a runtime dependency.
-  Answer: _(record here)_
 - **Q4 — Spaces/pages or classic groups?** ✅ **Answered 2026-07-27: spaces and pages.**
   Confirmed two independent ways. `/sap/bc/ui2/flp` renders a **row of space tabs** across the top
   (`My Home`, `Controlling`, `Financial Accounting`, `Fiori Configuration`, …) rather than one
@@ -1203,9 +1324,16 @@ That is the whole revert — no controller edits to unpick, which is why it was 
 | 2026-07-26 | Declare `sap.ushell` in `ui5-flp.yaml` only, never in `ui5.yaml` | Adding it to the build config pulls `sap.ui.comp`, `sap.ui.table`, `sap.ui.mdc`, `sap.viz` and more in as project dependencies — the 1.4 mistake. On the real launchpad the shell supplies `sap.ushell`; the app must never declare it |
 | 2026-07-26 | Delete `MainShell.getCurrentHash()` rather than make it FLP-safe | It was dead code — one grep hit, the declaration. Section highlighting already runs off route parameters and was never broken under FLP. Half of 3.6 was a non-bug |
 | 2026-07-26 | Keep the app header at phone width even when embedded | The menu button is the only way to reopen the side nav below 600px, so hiding the whole header would leave an embedded phone user with no navigation. The plan counted four duplicated controls and missed this fifth, non-duplicated one |
+| 2026-07-27 | Verify Phase 3 in the real launchpad rather than rebuild the sandbox — **outcome recorded** | The 2026-07-26 bet (option (b)) paid off. Five embedded branches executed for the first time in production; **four were correct**, no deploy round trip was needed, and the fifth (3.4) is a contradiction *between* 3.3 and 3.4 that a working sandbox would not have caught either |
+| 2026-07-27 | Use `My Home` + App Finder for 6.5 before building a space and page | Proves the catalog → target mapping → role → intent chain in minutes and isolates any failure to 6.1–6.4. The dedicated space (route b) is presentation, not function, and is still open |
 | 2026-07-27 | Rename the semantic object `ZGP9Registry`/`display` → **`ZODataServiceRegistry`/`manage`** | Names what the app is rather than which student team built it, and `manage` matches what it actually does (create, update, publish, archive) where `display` understated it. Free to change now — nothing had reached `/n/UI2/SEMOBJ` yet, so it is four file edits and no ABAP cleanup (Q5) |
 | 2026-07-26 | Clear both `[FUTURE FATAL]` assertions (`core:Item width`, missing `templateShareable`) now rather than filing them | Both are one-line view edits found by the same console pass, both are on the migration path, and `[FUTURE FATAL]` means a later UI5 throws where 1.108 only warns. The `width` was provably dead — the enclosing `Select` already sets it (4.6 items 5–6) |
 | 2026-07-26 | Proceed to Phase 5 with JobList/JobDetail unverified rather than wait for a role | The blocker is a PFCG role assignment on a shared university system, not a code or migration problem, and nothing in Phases 5–6 depends on those two views. Cost is written down: they reach FLP unexercised, joining the Phase 3 branches already in that state (4.2, Q6) |
 | 2026-07-26 | Replace `sap-icon://box` → `inventory` and `sap-icon://lines` → `text-align-justified` rather than shipping blank icons | Neither name exists in the 1.108 icon font, and a missing icon renders as nothing with only a console warning — it passes every static check and reaches the launchpad silently. Both replacements exist in 1.108 *and* 1.149, so one codebase still serves both targets (4.6 item 4) |
-| 2026-07-26 | Guard the AI chat by **origin**, not by probing `/ai/*` at startup | The routes exist only on the BTP approuter, so the origin already determines availability; a probe would cost a request on every page load to learn what is statically known |
-| 2026-07-26 | **Defer building that guard until after the migration closes** | It is a pre-existing ABAP-only defect, not caused by or blocking the embedding work. Deferring keeps Phase 3 to launchpad-integration changes only. Cost is a known, written-down failure at 5.4 / 7.1 — see 3.7 |
+| 2026-07-26 | ~~Guard the AI chat by **origin**, not by probing `/ai/*` at startup~~ | **Superseded 2026-07-27** — the decision to hide the feature was reversed in favour of making it work. The origin-check reasoning survives, but as the mechanism that picks a *base path* rather than one that disables a button |
+| 2026-07-26 | ~~**Defer building that guard until after the migration closes**~~ | **Superseded 2026-07-27**, see below |
+| 2026-07-27 | **Make the AI chat work on ABAP rather than hide it**, via an ICF handler (`ZCL_GP9_AI_PROXY`) + SM59 destinations | Hiding it removed a working feature from two of the three hosts to avoid an error message. The invariant that forces the design is that the key must never reach the browser, and the only way to honour that from the ABAP origin is a server-side component there. Unblocked by confirming s40lp1 has outbound HTTPS — SM59 to `api.groq.com:443` returned HTTP 404 in 284 ms (3.7) |
+| 2026-07-27 | Keep the AI call **same-origin** on every host rather than calling the BTP approuter cross-origin from ABAP | The approuter's `/ai/*` routes are `authenticationType: xsuaa`, so a cross-origin fetch gets a login redirect it cannot follow; making it work needs CORS + `SameSite=None` + a second live session, and still fails silently on expiry. It would also make the ABAP/FLP deliverable depend on BTP uptime (3.7) |
+| 2026-07-27 | Pin each SM59 destination to the **full** `chat/completions` path, not the host | A destination then cannot be steered at the providers' key-management endpoints on the same host (`GET /api/v1/key` returns the credit balance). Same rule the approuter routes already follow, enforced one layer lower so it holds even if the handler misroutes |
+| 2026-07-27 | Accept plaintext keys in `ZGP9_AI_CFG` with a table authorization group | Genuinely weaker than BTP, where the key lives in a destination no user can query. Recorded as the honest cost of the ABAP path rather than presented as equivalent (README → ABAP setup) |
+| 2026-07-27 | **Delete** the unreachable launchpad logout branch (3.4) rather than keep it as a seam | It was dead code: the only control that could trigger it is hidden exactly when it would fire. Same call already made for `MainShell.getCurrentHash()` in 3.6. Logout in FLP is the shell's responsibility, so there is nothing for the app to do — which also closes 7.3 as not applicable |

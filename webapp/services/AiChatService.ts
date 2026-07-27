@@ -12,8 +12,11 @@ interface AiModelRef {
 
 interface AiProvider {
 	name: string;
-	/** Approuter route, not the provider's own URL — see the comment on PROVIDERS. */
-	url: string;
+	/**
+	 * Path *below* the host's AI base — not the provider's own URL, and not a complete
+	 * path. See resolveAiBasePath and the comment on PROVIDERS.
+	 */
+	path: string;
 	models: AiModelRef[];
 }
 
@@ -32,18 +35,45 @@ export const AI_MODEL_AUTO = 'auto';
 const MODEL_STORAGE_KEY = 'com.zgp9.fe.aiChat.selectedModel';
 const CHAT_STORAGE_PREFIX = 'com.zgp9.fe.aiChat.';
 
-// These are approuter routes, not provider URLs. The approuter forwards each to a
-// BTP destination (AI_GROQ / AI_OPENROUTER) that attaches the provider's API key
-// server-side, so no key is ever shipped to or held by the browser. Locally the same
-// paths are served by ui5-middleware-sap-proxy.js reading keys from .env.
-//
+/**
+ * Base path for the AI routes on the host currently serving the app.
+ *
+ * These are never the provider's own URL. Whichever host serves the app puts a component
+ * in front of the provider that attaches the API key server-side, so no key is ever
+ * shipped to or held by the browser:
+ *
+ * | Host                        | Base                  | Key injected by                        |
+ * | --------------------------- | --------------------- | -------------------------------------- |
+ * | BTP approuter               | `/ai/`                | AI_GROQ / AI_OPENROUTER destinations    |
+ * | local `npm start`           | `/ai/`                | ui5-middleware-sap-proxy, from `.env`   |
+ * | ABAP — standalone *and* FLP | `/sap/bc/zgp9_ai/`    | the Z ICF handler, from its SM59 dest.  |
+ *
+ * Keyed off the app's own resource root rather than the hostname, for the same reason
+ * Component.applyStylesheet uses toUrl (FLP_MIGRATION.md 3.5): embedded in a launchpad the
+ * document is the *launchpad's* page, so anything derived from `location` or
+ * `document.baseURI` describes the shell rather than this app. Hostnames are the worse
+ * signal anyway — deferred finding D is a live example of a pinned URL breaking when a
+ * route moves.
+ *
+ * `/sap/bc/ui5_ui5/` is the BSP runtime path and exists only on an ABAP host. The FLP case
+ * lands here too, because the target mapping points at that same BSP path (6.3) — which is
+ * what makes one check cover both ABAP entry points.
+ */
+const AI_BASE_APPROUTER = '/ai/';
+/** Must match the SICF node created for the handler. Change both together. */
+const AI_BASE_ABAP = '/sap/bc/zgp9_ai/';
+
+const isAbapHost = (): boolean => sap.ui.require.toUrl('com/zgp9/fe/').includes('/sap/bc/ui5_ui5/');
+
+export const resolveAiBasePath = (): string => (isAbapHost() ? AI_BASE_ABAP : AI_BASE_APPROUTER);
+
 // Providers are tried in order; within a provider, models are tried in order. When one
 // is rate-limited/unavailable the next is used, so exhausting one provider's daily
 // quota rolls over to the next. All are OpenAI-compatible.
 const PROVIDERS: AiProvider[] = [
 	{
 		name: 'Groq',
-		url: '/ai/groq/chat/completions',
+		path: 'groq/chat/completions',
 		models: [
 			{ id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
 			{ id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
@@ -52,7 +82,7 @@ const PROVIDERS: AiProvider[] = [
 	},
 	{
 		name: 'OpenRouter',
-		url: '/ai/openrouter/chat/completions',
+		path: 'openrouter/chat/completions',
 		models: [
 			{ id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra' },
 			{ id: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3' },
@@ -195,13 +225,16 @@ export default class AiChatService {
 	}
 
 	private async callModelStream(provider: AiProvider, model: string, messages: AiChatMessage[], onDelta: (fullText: string) => void): Promise<string> {
-		const response = await fetch(provider.url, {
+		const response = await fetch(resolveAiBasePath() + provider.path, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			// Same-origin call to the approuter; the session cookie is what authenticates
-			// it, and the approuter attaches the provider key on the way out.
+			// Same-origin on every host — the approuter on BTP, the ICF handler on ABAP. The
+			// session cookie is what authenticates the call, and the server side attaches the
+			// provider key on the way out. Staying same-origin is deliberate: calling the BTP
+			// approuter cross-origin from ABAP would need CORS plus a second session, and its
+			// xsuaa routes answer an unauthenticated fetch with a login redirect it cannot follow.
 			credentials: 'same-origin',
 			body: JSON.stringify({
 				model,

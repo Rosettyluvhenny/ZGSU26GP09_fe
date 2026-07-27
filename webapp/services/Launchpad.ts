@@ -13,19 +13,19 @@
  *
  * On typing: `@sapui5/ts-types-esm@1.108.33` ships `sap.ushell.d.ts`, but it declares the
  * `sap.ushell.services.Container` *class* and never declares the global singleton
- * `sap.ushell.Container` as a value — and that class's own member is generated as
- * `logout: undefined`, so it is unusable even once reached. Declaring the one member this
- * app actually calls is both more accurate and far smaller than fighting the generated
- * types, and it keeps ui5-108-types.d.ts free of anything unrelated to the 1.108 downgrade.
+ * `sap.ushell.Container` as a value. Declaring only what this app actually reads is both
+ * more accurate and far smaller than fighting the generated types, and it keeps
+ * ui5-108-types.d.ts free of anything unrelated to the 1.108 downgrade.
+ *
+ * Nothing here calls into the container — only its *presence* is read. The app deliberately
+ * has no launchpad logout: the FLP shell bar owns the session, and the app's own Logout
+ * button is hidden when embedded (FLP_MIGRATION.md 3.3). A `logoutFromLaunchpad()` wrapper
+ * around `Container.logout()` used to live here and was deleted as unreachable — see 3.4
+ * before adding one back.
  */
 
-interface UshellContainer {
-	/** Ends the launchpad session, running the shell's registered logout handlers first. */
-	logout: () => void;
-}
-
 interface UshellGlobal {
-	Container?: UshellContainer;
+	Container?: object;
 }
 
 /**
@@ -45,14 +45,3 @@ const getUshell = (): UshellGlobal | undefined => (window as unknown as { sap?: 
  * embedded paths are reachable without an ABAP deploy.
  */
 export const isInLaunchpad = (): boolean => getUshell()?.Container !== undefined;
-
-/**
- * Ends the session through the launchpad shell.
- *
- * No-ops when not embedded — callers branch on {@link isInLaunchpad} first, and this guard
- * only keeps a missing container from throwing. The shell handles the redirect itself, so
- * unlike the standalone path there is no location assignment here.
- */
-export const logoutFromLaunchpad = (): void => {
-	getUshell()?.Container?.logout();
-};
