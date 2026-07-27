@@ -31,10 +31,34 @@ migration; read it before assuming the AI chat is broken by accident.
 > Plus this file. Clear this note once they are committed; `git status` is the authority, not
 > this line.
 
-**Next action:** Phase 5 (ABAP deploy) — 5.1/5.2 need a transportable Z package, since
-`ui5-deploy.yaml:38-39` still targets `$TMP`. Phase 4 is done **except** JobList/JobDetail (4.2)
-and the FCL two-column transition (4.3), which are blocked on a role, not on the migration —
-see below.
+## 🎉 The migration's central goal is met (2026-07-27)
+
+**`com.zgp9.fe` runs embedded in the Fiori Launchpad on `s40lp1`, on UI5 1.108.33, reached through
+a tile → intent → target mapping → component, with real data and zero console errors of its own.**
+Phases 0–6 are complete; Phase 7 is regression and close-out. See the Phase 3 status block for the
+evidence, and 3.4 for the one genuine finding first execution turned up.
+
+**Next action:** Phase 7. In priority order:
+1. **7.2** — phone width (<600px) inside FLP. The only unverified half of 3.3, and the one place a
+   deliberate, non-obvious decision was made (the menu button survives on phone).
+2. **7.3** — needs rewriting, not testing: see the 3.4 finding. Decide keep-or-delete first.
+3. **7.6** — **the real risk left.** BTP has not been rebuilt or deployed since Phase 1. Everything
+   rests on "`minUI5Version` is a floor, not a pin", which is sound but unproven end to end.
+4. **7.4** (back/forward under the FLP hash), **7.5** (theme), **7.7** (README).
+
+**Phase 5 is done**: deployed to package `ZGSU26GP09` under transport `S40K919517`, out of `$TMP`,
+loading from the ABAP standalone URL. 5.5 (app index / cache invalidation) is **deferred by
+decision, not outstanding** — read 5.5 before running either report on this shared system.
+Notably, 5.5 was never needed: the tile resolved first time without any cache invalidation.
+
+**Phase 6 is done**: semantic object `ZODataServiceRegistry` (6.1), catalog `ZGSU26GP09_FE_CAT`
+(6.2), target mapping (6.3), tile (6.4), role `ZGSU26GP09_FE_ROLE` for DEV-173/174/257 (6.6).
+6.5 used route (a), `My Home` via the App Finder; the dedicated space and page — route (b), the
+version worth writing up — is still open.
+
+Phase 4 is done **except** JobList/JobDetail (4.2) and the FCL two-column transition (4.3), which
+are blocked on the `ScanJob.Execute` role — a person, not the migration. Bundle that ask with the
+PFCG role 6.6 needs anyway (Q6).
 
 **Phase 4 outcome (2026-07-26):** every view **except JobList and JobDetail** is verified on
 1.108 — first unauthenticated with placeholder route ids, then again signed in against real data.
@@ -396,19 +420,41 @@ to compile:
 
 The app must work both embedded (FLP) and standalone (BTP, ABAP direct URL).
 
-**Status: 3.1–3.6 are code-complete and pass every static check** (`ts-typecheck` clean, `lint`
-back to the 1 pre-existing error, `ui5lint` at its 2 deliberate ones, `test-unit` at the 78/82
-baseline). They stay `[~]` rather than `[x]` because the legend reserves `[x]` for *verified*.
+## ✅ Status: VERIFIED IN THE REAL LAUNCHPAD, 2026-07-27
 
-⚠️ **None of the embedded branches has ever executed.** The local sandbox that was supposed to
-exercise them does not boot (3.0), so `isInLaunchpad()` has only ever returned `false` in any
-code that has actually run. Every `isInLaunchpad()`-true path — the hidden header, the ushell
-logout, the FLP-shaped hash — is **written but unexercised**. `sap.ui.require.toUrl` (3.5) is
-the one exception: it runs on both branches and is exercised by ordinary `npm start`.
+**The app runs embedded in the FLP on `s40lp1`, on UI5 1.108.33, with zero console errors of its
+own.** 3.1, 3.2, 3.3, 3.5 and 3.6 are all confirmed against the live launchpad — see each item.
+**3.4 is the exception and it is a real finding, not a pass:** its embedded branch turns out to be
+unreachable. Read 3.4.
 
-By decision (option (b), 2026-07-26) these are verified **inside the real launchpad at 7.1**.
-Flip them to `[x]` there, not before. The accepted cost is that an embedding bug now surfaces
-after an ABAP deploy rather than locally — budget a round trip or two in Phases 5–7.
+The history matters, because the plan very nearly failed here. The local sandbox built to exercise
+these paths never booted (3.0), so every `isInLaunchpad()`-true branch — hidden header, ushell
+logout, FLP-shaped hash — reached the launchpad **completely unexercised**, and by decision
+(option (b), 2026-07-26) was verified for the first time in production. That bet paid off: of the
+five branches that finally executed, **four were correct on the first run** and the fifth was
+wrong in a way no amount of local sandbox testing would have caught either — it is a wiring
+problem between two items, not a bug inside one.
+
+What was confirmed on first execution:
+
+| Item | Evidence from the live launchpad |
+| --- | --- |
+| 3.1 | `isInLaunchpad()` returned **true** for the first time in any running code |
+| 3.2 | The intent resolved: URL hash `#ZODataServiceRegistry-manage`. All four spellings agree |
+| 3.3 | No app header at all on desktop — no title, user, theme toggle or Logout. Side nav intact |
+| 3.5 | **`css/style.css` → 200**, initiator `Component.ts:103`. The `toUrl` fix works |
+| 3.6 | Reload on `…&/registries?status=A` came back filtered to ARCHIVE, 0 items |
+| — | Data loads on the FLP session with no separate login: 4 registries, 24 scans |
+
+Console on first run contained **7 errors, none from `com.zgp9.fe`**: four from
+`sap.suite.ui.commons.collaboration.flpplugins.msplugin` (the Teams collaboration plugin, broken
+on this system — "No descriptor was found" plus a 404 on its `Component-preload.js`), one
+`sessionTimeoutReminderInMinutes` shell misconfiguration, `favicon.ico`, and `ushell/resources`
+404s. All belong to the launchpad, in the same category as the `SAP_TC_SCM_MPE_COMMON` catalog
+error at 6.2. Do not spend time on them.
+
+Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-existing error,
+`ui5lint` at its 2 deliberate ones, `test-unit` at 78/82.
 
 - [!] 3.0 **Local FLP sandbox — ABANDONED, does not boot. Do not restart this without reading
       the whole item.** The infrastructure works; the boot handshake does not.
@@ -476,7 +522,8 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       - Scope limit, do not overclaim it: the sandbox gives a real `Container`, an
         intent-shaped hash and a shell bar. It does **not** reproduce s40lp1's catalog, target
         mapping, roles or theme defaults. Phase 7.1 inside the real FLP is still required.
-- [~] 3.1 One `isInLaunchpad()` helper — `webapp/services/Launchpad.ts`. Exports
+- [x] 3.1 ✅ **Verified in FLP 2026-07-27** — returned true, proven by 3.3's header disappearing.
+      One `isInLaunchpad()` helper — `webapp/services/Launchpad.ts`. Exports
       `isInLaunchpad()` and `logoutFromLaunchpad()`; every `sap.ushell` access in the app is
       confined to that file.
       Typing note: `@sapui5/ts-types-esm@1.108.33` ships `sap.ushell.d.ts`, but it declares the
@@ -487,12 +534,19 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       keeps `ui5-108-types.d.ts` restricted to the 1.108 downgrade.
       The result is also surfaced once as `ui>/isInLaunchpad` (`webapp/model/models.ts`), so
       views bind a flag instead of doing their own detection.
-- [~] 3.2 `sap.app.crossNavigation.inbounds` in `manifest.json` — **`ZODataServiceRegistry` /
+- [x] 3.2 ✅ **Verified in FLP 2026-07-27** — the tile resolved the intent and the hash read
+      `#ZODataServiceRegistry-manage`, so manifest, `/n/UI2/SEMOBJ`, target mapping and tile all
+      match character for character.
+      `sap.app.crossNavigation.inbounds` in `manifest.json` — **`ZODataServiceRegistry` /
       `manage`** (Q5), with title, subtitle, icon and an empty-parameter signature at
       `additionalParameters: "allowed"`. `sap.ui.icons` filled with
       `sap-icon://business-objects-experience`, matching the Registry side-nav entry.
       Must match the target mapping built in Phase 6.
-- [~] 3.3 Hide the `tnt:ToolPage` header when embedded, keep `SideNavigation`.
+- [~] 3.3 ✅ **Desktop verified in FLP 2026-07-27** — the app header is entirely absent and the
+      side navigation (Home / Registry Management / Logs) works. **Phone width below 600px is
+      still unverified in FLP** — that is 7.2, and it is the half of this item where the
+      non-obvious decision lives, so leave it `[~]` until checked.
+      Hide the `tnt:ToolPage` header when embedded, keep `SideNavigation`.
       Conditional bind, not a deletion: the standalone URL keeps the full header.
       **Correction to the plan — it counted four duplicated controls and there are five.**
       The title, username, theme toggle and Logout button are all duplicated by the FLP shell
@@ -505,8 +559,30 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       header at all, phone FLP shows a header carrying only the menu button.
       Consequence accepted: on desktop FLP the side nav can no longer be collapsed. It is
       visible and fully usable, just not dismissible — a convenience, not a function.
-- [~] 3.4 Logout — `webapp/controller/MainShell.controller.ts`. `logoutFromLaunchpad()` when
-      embedded, `window.location.assign("/logout")` on BTP. The `redirectToLogout()` seam is
+- [!] 3.4 ⚠️ **FINDING, 2026-07-27: the embedded branch is unreachable. Needs a decision.**
+      `logoutFromLaunchpad()` can never run as currently wired. `redirectToLogout()` has exactly
+      one caller — `onLogout()` (`MainShell.controller.ts:125`) — and `onLogout` is reached only
+      from the Logout button at `MainShell.view.xml:49`, which 3.3 binds
+      `visible="{= !${ui>/isInLaunchpad} }"`. **The only control that triggers the embedded branch
+      is hidden precisely when that branch would be taken.** 3.3 and 3.4 are individually correct
+      and jointly contradictory — which is why no amount of local sandbox testing would have found
+      it; it needed someone to read the two items together.
+      **Not user-facing.** Logout in FLP works through the shell bar's avatar menu, which is the
+      launchpad's own logout and is what should happen — the app has no business ending an FLP
+      session. So the defect is dead code plus a mis-specified test item, not broken behaviour.
+      **Consequence for 7.3:** as written it cannot be tested. There is no app-side logout to test
+      inside FLP. Rewrite or close it; do not go hunting for a bug in `Launchpad.ts`.
+      **Options, unresolved:**
+      - **Keep** the branch as a deliberate seam for a future programmatic logout (session expiry
+        is the obvious candidate — see deferred finding **G**, where `ErrorHandler` currently does
+        a `navTo("login")` to a route that does not exist). Document it as intentionally
+        unreachable so the next reader does not "fix" it.
+      - **Delete** the branch, `logoutFromLaunchpad()`, and the hand-written `sap.ushell` interface
+        in `Launchpad.ts` that exists only to type it — the same call already made for
+        `MainShell.getCurrentHash()` in 3.6, where dead code was deleted rather than made
+        FLP-safe. `isInLaunchpad()` itself stays; 3.1 and 3.3 depend on it.
+      Original design: `logoutFromLaunchpad()` when embedded,
+      `window.location.assign("/logout")` on BTP. The `redirectToLogout()` seam is
       kept; `MainShell.qunit.ts:58` stubs it, so the branch never runs under the test runner.
       The stale comment was rewritten: per deferred finding **A** the live config is
       `approuter/xs-app.json` with `logoutPage: "/logout.html"`, not the root `xs-app.json`'s
@@ -514,10 +590,18 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       so the root file, though bundled into the app zip by `ui5-task-zipper`, is not what
       serves. Deduplicating the two files is still open; it touches the BTP bundle and was
       deliberately left out of this branch.
-- [~] 3.5 Stylesheet path — `webapp/Component.ts` now uses
+- [x] 3.5 ✅ **Verified in FLP 2026-07-27** — `css/style.css` returned **200** with initiator
+      `Component.ts:103` in the network tab. Checked as a status code, not by eye: a 404 here
+      renders the app *unstyled* rather than broken, so "it looks fine" is not the test.
+      Stylesheet path — `webapp/Component.ts` now uses
       `sap.ui.require.toUrl("com/zgp9/fe/css/style.css")` instead of resolving against
       `document.baseURI`, which under FLP is the launchpad's document rather than the app root.
-- [~] 3.6 Direct hash reads. **Only half of this item was a real bug.**
+- [x] 3.6 ✅ **Verified in FLP 2026-07-27.** Clicked the Home *Archived* tile → hash became
+      `#ZODataServiceRegistry-manage&/registries?status=A` → **full page reload (F5)** on that hash
+      → the Status filter came back as ARCHIVE with 0 items. So `HashChanger.getInstance()`
+      correctly reported only the app-internal part of a two-part FLP hash, which is the entire
+      point of the fix. See the testing traps recorded at 7.1 before re-running this.
+      Direct hash reads. **Only half of this item was a real bug.**
       - `MainShell.controller.ts` `getCurrentHash()` was **dead code** — declared and never
         called anywhere in `webapp/` (one grep hit, the declaration itself). Section
         highlighting has always run off `onGlobalRouteMatched` and route parameters, which is
@@ -540,7 +624,11 @@ after an ABAP deploy rather than locally — budget a round trip or two in Phase
       **Consequence of deferring — do not re-diagnose this as a migration regression.** Until it
       is built, the AI chat is *live but broken* on ABAP. Expect it to fail at **5.4** and
       **7.1**, in exactly three places: the AI chat button on `VersionDetail`, `ModelExplorer`
-      and `DetailCompare` (all open `webapp/view/fragments/AiChatDialog.fragment.xml`). BTP is
+      and `DetailCompare` (all open `webapp/view/fragments/AiChatDialog.fragment.xml`).
+      ✅ **Confirmed at 5.4 on 2026-07-27**, as `AI request failed (404)`. Measured cost: a single
+      click fires **six** POSTs — three to `/ai/groq/chat/completions`, then three to
+      `/ai/openrouter/chat/completions` — because the model fallback chain retries each before
+      giving up. BTP is
       unaffected, and local `npm start` is unaffected because `ui5-middleware-sap-proxy` serves
       the same `/ai/*` paths from `.env`.
       Reopen this item at 7.7, alongside the README fixes.
@@ -733,18 +821,85 @@ role opens them, on 1.108 either locally or in FLP.
 
 ## Phase 5 — ABAP deploy
 
-- [ ] 5.1 Create a transportable Z package and a transport request (SE80/SE21).
-      `ui5-deploy.yaml:38-39` currently targets `$TMP` with an empty transport, which is
-      not transportable.
-- [ ] 5.2 Update `ui5-deploy.yaml` `app.package` and `app.transport`
-- [ ] 5.3 `npm run deploy` — credentials are the on-prem ABAP user (DEV-173 / DEV-257),
-      **not** a BTP login
-- [ ] 5.4 Verify the standalone URL: `/sap/bc/ui5_ui5/sap/zgsu26gp09_fe_1/index.html`
-- [ ] 5.5 Run `/UI2/APP_INDEX_CALCULATE` and `/UI2/INVALIDATE_GLOBAL_CACHES`.
-      Required after every deploy, or FLP keeps serving a stale descriptor. Suspect this
-      first whenever a manifest change appears to have no effect.
+**The app was already deployed once, into `$TMP`.** `TADIR` (`R3TR` / `WAPA` /
+`ZGSU26GP09_FE_1`) showed `DEVCLASS = $TMP`, author `ZGP9_LEAD2` — so a teammate deployed it
+before this migration. That matters more than it looks: **in ABAP the package is a property of
+the existing object, not of the deploy config**, so editing `ui5-deploy.yaml` alone does not move
+it. The object has to be reassigned in SE03 as well (5.1b), or the deploy keeps it local or fails
+on the mismatch.
 
-**Gate:** app loads from the ABAP standalone URL.
+- [x] 5.1 Transportable package and transport request. **Done 2026-07-27**, including the
+      reassignment out of `$TMP`.
+      - **Package `ZGSU26GP09` — already existed**, created by DEV-257 on 04.06.2026 for the
+        team's ABAP work ("Document and Metadata file manangement"). Reused rather than creating a
+        frontend-specific one, so the whole project travels in one transport. It is transportable:
+        **Record Object Changes in Transport Requests** is ticked, software component `HOME`.
+        Its transport layer is **`SAP`**, which is technically the layer for SAP standard objects
+        rather than a customer layer — unusual but harmless here, and *not* worth "fixing" on a
+        shared training system.
+      - **Request `S40K919517`** (workbench, modifiable), task `S40K919518`. Target is **`DMY`**,
+        a virtual consolidation system — there is no QA system to import into, which is expected
+        on this box. The request exists to get the object out of `$TMP`, not to move it anywhere.
+      - **5.1b — reassignment, done.** `SE03` → Object Directory → Change Object Directory
+        Entries → tick a free row, `WAPA` / `ZGSU26GP09_FE_1` → Object Directory Entry → package
+        `$TMP` → `ZGSU26GP09`, recorded in `S40K919517`. Verified in the result tree: the object
+        now hangs under `ZGSU26GP09`.
+        Two snags worth writing down, since this screen is used rarely and both cost a round trip:
+        the **Package** field under *Further Restrictions* filters on the package an object is
+        **already in**, so entering the *target* package finds nothing — leave it empty or use
+        `$TMP`; and on the free object rows the PGMID column is display-only, so the object type
+        (`WAPA`) goes in the **second** field and the row implicitly means `R3TR`.
+        The object's author is `ZGP9_LEAD2`, not the user who moved it, and no authorization or
+        lock error appeared. Worth telling that teammate anyway: the app is transport-managed from
+        now on, and a stale local `ui5-deploy.yaml` still pointing at `$TMP` will fight this.
+- [x] 5.2 `ui5-deploy.yaml` — `package: "ZGSU26GP09"`, `transport: "S40K919517"`. Note it takes
+      the **request**, not the task. Do not release the request before 5.3 runs.
+- [x] 5.3 `npm run deploy` — **succeeded 2026-07-27 as DEV-173.** Credentials are the on-prem
+      ABAP user, **not** a BTP login. **Run it from a real terminal:** it prompts for the password
+      on stdin, so it cannot be driven from a non-interactive shell.
+      Confirmed in the log: `ABAP Package: ZGSU26GP09`, `Transportauftrag "S40K919517"`,
+      `found on target system: true` — so it updated the existing repository in delta + safe mode
+      rather than creating a new one, and the 5.1b reassignment held. 165 files.
+      Note the two `No credential found` warnings and the first `401` are **normal**: the tooling
+      probes its credential store, finds nothing, and only then prompts. Not an auth failure.
+      ⚠️ **The upload shipped `com.zgp9.fe.zip` — the app packaged inside itself.** `npm run
+      deploy` runs `npm run build`, which uses `ui5.yaml`, whose `ui5-task-zipper` writes that
+      archive into `dist/` for the **BTP** html5-apps-repo path; `fiori deploy` then uploads
+      everything in `dist/`. Dead weight in the BSP repository, and a second stale copy of the app
+      to confuse anyone browsing it. Fixed by adding `"\\.zip$"` to `ui5-deploy.yaml` `exclude`,
+      which takes effect on the next deploy. Related to deferred finding **B**.
+- [x] 5.4 Verify the standalone URL: `/sap/bc/ui5_ui5/sap/zgsu26gp09_fe_1/index.html`.
+      **Passed 2026-07-27** as DEV-173: shell, side navigation, Registry Management, Version
+      Details and the XML viewer all render from the ABAP repository.
+      **Two expected failures, neither a regression:** the AI chat is dead on ABAP (3.7, deferred
+      by decision), and this URL boots **CDN 1.149**, not 1.108, because `index.html` was
+      deliberately left on the CDN bootstrap (1.6). So 5.4 proves the deploy, *not* the migration.
+      1.108 is what FLP loads, and that is Phase 7.
+      The 3.7 failure was observed exactly as written — `AI request failed (404)` on VersionDetail.
+      New detail for whoever builds the guard: one click produced **six** failed POSTs, three to
+      `/ai/groq/chat/completions` then three to `/ai/openrouter/chat/completions`, because the
+      model fallback chain retries each. That is six round trips per click, which strengthens the
+      case for the origin check over a probe (see 3.7).
+- [~] 5.5 `/UI2/APP_INDEX_CALCULATE` and `/UI2/INVALIDATE_GLOBAL_CACHES`. **Deliberately deferred
+      to the first symptom, 2026-07-27 — not skipped through oversight.** Reasoning, so it is not
+      re-litigated:
+      - The 5.3 upload already reported `* Anwendungsindex wird aktualisiert *`, so this app is
+        indexed. Nothing in Phases 6–7 is waiting on a re-run.
+      - `INVALIDATE_GLOBAL_CACHES` exists to flush *stale* FLP data, and FLP has never served this
+        app — there is no target mapping yet, so nothing stale exists to clear. It is also
+        genuinely system-wide: it clears the shared UI2 caches for every user in client 324.
+        Nothing is lost and no configuration changes, but everyone's next FLP load rebuilds its
+        cache. On a shared university system that is worth having a reason for.
+      - ⚠️ **`/UI2/APP_INDEX_CALCULATE` does not exist as a program on `s40lp1`** — SE38 reports
+        it missing. The name comes from SAP's standard documentation but SAP_UI releases differ.
+        If it is ever needed, find the real one with `/UI2/APP*` + F4 in SE38, or SE84 →
+        Programs. Do not assume the documented name.
+      **Run them when, and only when, one of these appears:** a manifest change with no visible
+      effect, a tile that will not resolve despite a correct target mapping, or FLP serving an old
+      descriptor. That is also the moment Q2 becomes testable.
+
+**Gate:** app loads from the ABAP standalone URL. ✅ **Passed 2026-07-27** — see 5.4. Phase 5 is
+complete apart from 5.5, which is deferred by decision rather than outstanding.
 
 ---
 
@@ -759,28 +914,84 @@ which two are already done: `manifest.json` `sap.app.crossNavigation.inbounds` �
 `webapp/test/flpSandbox.html` ✅ (3.0, though that page does not boot), and `/n/UI2/SEMOBJ` —
 6.1 below, still to do.
 
-- [ ] 6.1 Semantic object — `/n/UI2/SEMOBJ`. Create **`ZODataServiceRegistry`** exactly as spelled here;
-      it is case-sensitive and must match `crossNavigation.inbounds` (3.2) character for
-      character. Create authorization on `s40lp1` was confirmed 2026-07-26.
-      Expect a transport prompt — see 5.1, which needs one anyway.
-- [ ] 6.2 Catalog — `/UI2/FLPD_CUST` (or `/UI2/FLPCM_CUST` on newer releases)
-- [ ] 6.3 Target mapping:
+- [x] 6.1 Semantic object — `/n/UI2/SEMOBJ`. **Created 2026-07-27** as
+      **`ZODataServiceRegistry`** / name `ZODataServiceRegistry` / description
+      `OData Service Registry`. It is case-sensitive and matches `crossNavigation.inbounds` (3.2)
+      character for character — the field does **not** force uppercase, which is what makes the
+      mixed-case name viable.
+- [x] 6.2 Catalog — **`/UI2/FLPD_CUST`**, the classic Launchpad Designer, which this release still
+      has. **Created 2026-07-27:** title `OData Service Registry`, ID **`ZGSU26GP09_FE_CAT`**,
+      type **Standard** (not Remote, which is deprecated and for cross-system tile sources).
+      Full internal ID: `X-SAP-UI2-CATALOGPAGE:ZGSU26GP09_FE_CAT`.
+      Two things seen here, neither a problem:
+      - **No transport prompt.** Designer content in `scope=CUST` is client-specific *customizing*,
+        not a workbench object like the BSP app, and this client does not auto-record customizing
+        changes. So the FLP configuration lives only in client 324 and is **not** in
+        `S40K919517`. Irrelevant while the transport target is `DMY`, but worth knowing before
+        anyone asks why the tile is missing from the transport.
+      - **An error dialog on open:** *"Object Component Configuration 0C67C…EFC does not exist"*
+        for `SAP_TC_SCM_MPE_COMMON`, an **SAP-delivered** catalog that happened to be selected.
+        Pre-existing damage on this shared system, flagged with a red triangle in the catalog
+        list. Not ours; do not chase it.
+      - SAP's banner says the designer is superseded by the App Manager / Content Manager
+        (note 3170196). It still does catalogs, target mappings and tiles correctly — the
+        successor tools matter at 6.5, where spaces and pages live.
+- [x] 6.3 Target mapping — **created 2026-07-27**, verified in the list as
+      `ZODataServiceRegistry` / `manage` / SAPUI5 Fiori App / Desktop ✓ Tablet ✓ Phone ✓:
       - Semantic object **`ZODataServiceRegistry`**, action **`manage`**
       - Application Type: **SAPUI5 Fiori App**
       - URL: `/sap/bc/ui5_ui5/sap/zgsu26gp09_fe_1` (no `index.html` — embedding loads the
         Component, not the page)
       - Component ID: `com.zgp9.fe`
       - Device types: desktop, tablet, phone (manifest declares all three)
-- [ ] 6.4 Static app-launcher tile — navigation target is the **intent**
-      `ZODataServiceRegistry-manage` from 6.3, not a raw URL.
-      Title, subtitle and icon should match what `crossNavigation.inbounds` already declares,
-      so the tile and the app agree: title `{{appTitle}}`, subtitle `{{appDescription}}`, icon
-      `sap-icon://business-objects-experience`.
-- [ ] 6.5 Group, so the tile appears on a page
-- [ ] 6.6 PFCG role carrying catalog + group; assign to DEV-173 / DEV-257
+- [x] 6.4 Static app-launcher tile — **created 2026-07-27.** Title `Registry Control Center`
+      (the resolved `appTitle` from `webapp/i18n/i18n.properties`, so tile and app header agree),
+      subtitle from `appDescription`, icon `sap-icon://business-objects-experience`.
+      Navigation is by **intent** — "Use semantic object navigation" ticked,
+      `ZODataServiceRegistry` / `manage` — **not** a raw URL.
+      ⚠️ **Why that distinction is the whole point:** a URL tile launches the app standalone in a
+      bare tab, bypassing the target mapping. It looks like success — the app loads and works —
+      while every `isInLaunchpad()` branch stays false and nothing this migration built is
+      actually exercised. If 7.1/7.2 ever show the app with no FLP shell bar, check the tile's
+      navigation type before suspecting the code.
+- [ ] 6.5 **Page + space, not a group** — Q4 came back "spaces and pages" (2026-07-27).
+      **Two routes, and the cheap one is worth doing first as a smoke test:**
+      - **(a) `My Home`.** It is enabled on this system. Once the catalog reaches your user via
+        6.6, open FLP → *My Home* → **Edit Page** → App Finder → find the app → add it. No space,
+        no page, no extra admin. This proves the target mapping and the app launch in minutes, and
+        isolates any failure to 6.1–6.4 rather than to page assignment.
+      - **(b) A dedicated space and page** — the complete answer, and the one to write up.
+        `/UI2/FLPCM_CUST` (FLP Content Manager, client-specific) creates the space and page and
+        assigns the catalog; `/UI2/FLPAM` is the App Manager alternative. Create the **page**
+        first, put the tile on it, then create the **space** and assign the page to it.
+      Do (a) to prove it works, then (b) for the deliverable.
+- [x] 6.6 PFCG role — **created 2026-07-27 as `ZGSU26GP09_FE_ROLE`** ("OData Service Registry -
+      FLP access"), carrying the catalog. **No admin help was needed**; DEV-173 could create roles.
+      Assigned to **DEV-173, DEV-174, DEV-257**, valid to 31.12.9999, all four tabs green.
+      The steps, since PFCG's wording differs from most guides:
+      - Menu tab → the **`Transaction` button's ▾ dropdown** (there is no menu item called "Insert
+        Node") → **SAP Fiori Launchpad → Launchpad Catalog** → Catalog ID `ZGSU26GP09_FE_CAT`,
+        provider "Fiori Launchpad Catalogs", **Local** Front-End Server (s40lp1 is both frontend
+        and backend here), **Include Applications** ticked — which is what adds the *Applications*
+        tab and feeds the authorization defaults.
+      - Authorizations → Change Authorization Data → accept the auto-generated profile name
+        (`T-*`, capped at 12 chars and collision-free — do not hand-write one) → **Generate**.
+      - User tab → enter the user IDs, **press Enter to resolve the names** (a blank User Name
+        means the ID does not exist) → **User Comparison → Full Comparison**.
+      ⚠️ **User Comparison is the step that is silently fatal to skip.** Without it the assignment
+      sits in the role but never reaches the user buffer, and the app is simply absent from the App
+      Finder with no error anywhere to explain it.
+      The same dropdown offers **Launchpad Space**, which is what 6.5 route (b) will add here once
+      the space exists — a third confirmation of Q4.
+      Still to ask an admin: **`ScanJob.Execute`** (Q6), needed to close 4.2 and 4.3. That one was
+      *not* covered by this role.
 - [ ] 6.7 Open FLP at `/sap/bc/ui2/flp` and launch the tile
 
-**Gate:** tile appears in FLP and opens the app inside the launchpad shell.
+**Gate:** tile appears in FLP and opens the app inside the launchpad shell. ✅ **PASSED
+2026-07-27.** The tile launched the app inside the shell on the first attempt, with the FLP shell
+bar present, the app's own header correctly absent, and live data. No cache invalidation was
+needed to make the tile resolve (see 5.5), and Q2's `_version: "2.0.0"` warning proved harmless —
+FLP resolved the component without complaint.
 
 ---
 
@@ -797,7 +1008,18 @@ which two are already done: `manifest.json` `sap.app.crossNavigation.inbounds` �
         which is easy to walk past. Confirm `css/style.css` is 200 in the network tab, not just
         that the page "looks fine".
       - **3.6** — open a deep link with a status filter and confirm the filter actually applies.
-        The FLP hash is `#ZODataServiceRegistry-manage&/registries?status=Published`.
+        The FLP hash is `#ZODataServiceRegistry-manage&/registries?status=A`.
+        ⚠️ **Two traps in testing this, both hit on 2026-07-27.** First, the **status dropdown on
+        RegistryList does not write the hash** — it filters in place. Only the Home KPI tiles
+        produce the query parameter, via `Home.controller.ts:182`
+        `navTo('registryList', { query: { status } })`. So the deep link has to be reached by
+        clicking a Home tile, not by using the filter control.
+        Second, the values are the **single letters** `P` / `U` / `A` from `CustomData` in
+        `Home.view.xml`, not words — an earlier revision of this file said `?status=Published`,
+        which does not exist.
+        Test it with **Archived** or **Unpublished**, not Published: on this dataset all four
+        registries are Published, so a Published filter is indistinguishable from no filter and
+        looks broken when it is working.
       - Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.
 - [ ] 7.2 FLP shell bar present, app header hidden, side nav working (3.3).
       Check **both widths**: on desktop the app header should be gone entirely; below 600px it
@@ -887,16 +1109,33 @@ intersect work in this plan, as noted.
   and a root-relative `/resources/sap-ui-core.js` bootstrap), not a version manifest.
   1.6 took the fallback, which turned out to be preferable — the UI5 tooling resolves
   `framework.version` through SAP's artifact registry, so the CDN is not needed at all.
-- **Q2 — Does 1.108 accept `manifest.json` `_version: "2.0.0"`?** ⚠️ open, deferred by
-  design. See 1.7 for why it was left alone and what symptom to watch for at Phase 5.5.
-  Answer: _(record here)_
+- **Q2 — Does 1.108 accept `manifest.json` `_version: "2.0.0"`?** ⚠️ still open, but with
+  evidence as of the 5.3 deploy. See 1.7 for why it was left alone.
+  `fiori deploy` warned before uploading: *"minUI5Version (1.108.33) is below the minimum
+  (unknown) required by the app descriptor schema version 2.0.0"* — and the **`(unknown)`** is the
+  informative part: the tooling has no mapping for schema version `2.0.0` either, which is exactly
+  why 1.7 could not establish one. It warned and continued, and the ABAP app index updated with
+  no error, so nothing rejects the descriptor outright.
+  ✅ **Settled 2026-07-27 at 6.7: yes, in practice.** FLP resolved and launched the component from
+  the target mapping with `_version: "2.0.0"` unchanged, on 1.108.33, with no descriptor error and
+  no app-index or cache intervention. The deploy-time warning is advisory only. `_version` stays
+  as it is; **do not lower it** — 1.7's contingency is no longer needed, and changing it now would
+  be a speculative edit against working behaviour.
 - **Q3 — Does `s40lp1` have `sap.tnt` installed?** Standard in `SAP_UI`, but confirm before
   assuming; Phase 6 fails obscurely if a declared library is missing.
   Note: `sap.ui.table` is **no longer relevant** — see 1.4, it is not a runtime dependency.
   Answer: _(record here)_
-- **Q4 — Spaces/pages or classic groups?** If the system has spaces and pages switched on,
-  6.5 becomes a page/space assignment instead of a group.
-  Answer: _(record here)_
+- **Q4 — Spaces/pages or classic groups?** ✅ **Answered 2026-07-27: spaces and pages.**
+  Confirmed two independent ways. `/sap/bc/ui2/flp` renders a **row of space tabs** across the top
+  (`My Home`, `Controlling`, `Financial Accounting`, `Fiori Configuration`, …) rather than one
+  scrolling home page of labelled group sections. And `SE93` → `/UI2/FLP*` lists `/UI2/FLPAM`
+  (App Manager, only present with spaces) and `/UI2/FLP_GTP` ("Create Pages From Groups"), a
+  transaction that exists solely to migrate groups into pages.
+  Consequence: **6.5 becomes a page + space assignment**, and 6.6's PFCG role carries the space
+  rather than a group. 6.2–6.4 are unaffected.
+  Also available on this system, from the same list: `/UI2/FLPCM_CUST` / `/UI2/FLPCM_CONF` (FLP
+  Content Manager), `/UI2/FLPCAT` (technical catalogs), `/UI2/FLPD_CONF` (designer, cross-client).
+  **`My Home` is enabled** and offers *Edit Page* — see 6.5 for why that matters.
 - **Q5 — What semantic object and action?** ✅ **Answered 2026-07-26, revised 2026-07-27.**
   **Semantic object `ZODataServiceRegistry`, action `manage`**, intent
   `ZODataServiceRegistry-manage`.
