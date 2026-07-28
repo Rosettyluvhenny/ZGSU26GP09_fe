@@ -7,56 +7,95 @@ truth for where the migration stands and what order the remaining work happens i
 
 ## ▶ RESUME HERE
 
-**Last updated:** 2026-07-27
+**Last updated:** 2026-07-28
 
-**Where things stand:** Phases 0–3 are **committed**; Phase 1–2 is `630bf1d`, Phase 3 is
-`4818ee1`. Phase 4 is complete apart from two role-blocked views. The app runs on UI5 1.108.33
-locally and has now been driven end to end against real data.
+**Where things stand:** **the migration is done.** Phases 0–6 are complete and verified inside the
+real launchpad; Phase 7 is closed apart from 7.4, half of 7.5, and the 7.7 README tidy-up. 7.6 was
+**dropped** — BTP is not going to be used. Phase 4's two role-blocked views are unblocked and
+exercised.
 
-**Phase 3 (3.1–3.6) is code-complete and passes every static check, but is NOT runtime-verified
-on the embedded path** — the local sandbox meant to prove it never booted (3.0), so it is
-verified inside the real launchpad at 7.1 instead. 3.7 is deliberately deferred to after the
-migration; read it before assuming the AI chat is broken by accident.
-
-**Branch:** `migration` — `6493b72` (init) → `630bf1d` (Phase 1–2) → `4818ee1` (Phase 3).
+> ⚠️ Three statements that stood here through earlier revisions are now **false** and have been
+> removed, in case you remember them: that Phase 3 was "not runtime-verified on the embedded path"
+> (it is — 7.1), that 3.7 was "deferred to after the migration" (it is closed and the AI chat works
+> on every host), and that JobList/JobDetail were blocked on `ScanJob.Execute` (granted; see Q6).
 
 **Branch history:** `6493b72` (init) → `630bf1d` (Phase 1–2) → `4818ee1` (Phase 3) →
-`162e324` (Phase 4) → `872e39f` (Phase 5 & 6).
+`162e324` (Phase 4) → `872e39f` (Phase 5 & 6) → `bc5828c` (Init AI) → `da3504c` (AI Completion).
 
-> ℹ️ Only **this file** is uncommitted as of this update. The Phase 4 view fixes, the
-> semantic-object rename and `ui5-deploy.yaml` all went in at `872e39f`. If you add work, re-raise
-> an UNCOMMITTED warning here — `git status` is the authority, not this line.
+> ⚠️ **Seven files are uncommitted** as of this update — this file, `manifest.json`,
+> `AiChatService.ts`, `BaseController.ts`, `css/style.css`, `VersionCompare.view.xml`,
+> `AiChatDialog.fragment.xml`. They carry **four defect fixes verified on the launchpad** (findings
+> **H**, **I**, **J** and the 3.7 fragment bug) plus the OpenRouter model swap. The earlier
+> UNCOMMITTED warning naming `Launchpad.ts` / `MainShell.controller.ts` / `README.md` is stale —
+> that work landed in `bc5828c` / `da3504c`. `git status` is the authority, not this line.
 
-## 🎉 The migration's central goal is met (2026-07-27)
+## 🎉 The migration's central goal is met (2026-07-27), and close-out finished (2026-07-28)
 
 **`com.zgp9.fe` runs embedded in the Fiori Launchpad on `s40lp1`, on UI5 1.108.33, reached through
 a tile → intent → target mapping → component, with real data and zero console errors of its own.**
-Phases 0–6 are complete; Phase 7 is regression and close-out. See the Phase 3 status block for the
-evidence, and 3.4 for the one genuine finding first execution turned up.
-
-⚠️ **UNCOMMITTED as of 2026-07-27.** Beyond this file: `webapp/services/Launchpad.ts`,
-`webapp/controller/MainShell.controller.ts`, `webapp/services/AiChatService.ts`, `README.md` —
-and, in the **separate `SAP09_BE` repo**, the new `src/zcl_gp9_ai_proxy.clas.*`. `git status` is
-the authority, not this line.
+As of 2026-07-28 it also runs **full width**, is **legible in the shell's dark theme**, navigates
+end to end including DetailCompare, and its **AI assistant works on both providers** — all
+confirmed by clicking through the real launchpad rather than by reasoning. See the Phase 3 status
+block for the embedding evidence, and findings **H**, **I** and **J** for what live testing caught
+that no static check could.
 
 **Done since the last update:** **3.4** decided and deleted, which closes **7.3**. **3.7**
 reversed from "hide the AI chat on ABAP" to "make it work" — **the AI chat now works on the ABAP
 standalone URL**, verified end to end on 2026-07-28 (200, real answer, clean console). The BE team
 installed `ZCL_GP9_AI_PROXY`, the table, both destinations and the ICF node.
 
+✅ **AI chat confirmed working inside FLP, 2026-07-28** — dialog opens, real answer, readable.
+**3.7 is closed.** ✅ **Finding H confirmed fixed on the live launchpad**, across Home,
+VersionDetail and VersionCompare: **8 elements, all AA PASS, 6.24–15.37:1** — including the diff
+rows that measured 1.04 before. That also closes the Quartz half of **7.5**; see finding H for why
+`.xmlTokTag` = 6.24 is the proof. ✅ **JobDetail opens with data (4.2).**
+No app-side console errors — everything in the FLP console is shell noise (`msplugin`
+`Component-preload.js` 404, "Unified Shell Intent" single-valued-parameter warnings,
+`sessionTimeoutReminderInMinutes`).
+
+🐞 **User testing then found two bugs that no static check or local run could see — findings I and
+J, and they share a root cause.** The launchpad **letterboxes** embedded apps into a ~1280px
+centred column (**J** — the app was never opting out with `sap.ui/fullWidth`). Subtract the app's
+own side navigation and only ~1040px of content is left, which is less than VersionCompare's 69rem
+of fixed column widths — so its Action column was clipped away, taking the *View Detail* button and
+**the only route to DetailCompare** with it (**I**). Both fixed and both confirmed on the
+launchpad: the app now spans the window, and the compare row navigates.
+
+🐞 **The "3.7 last mile" 30-second check found a real bug — 2026-07-28.** Clicking *Ask AI*
+**inside FLP** did nothing: `AiChatDialog.fragment.xml` used the `Dialog` **`footer` aggregation,
+which does not exist in 1.108** (added ~1.110). The XML processor then reads `<footer>` as a
+control name and 404s on `sap/m/footer.js`, rejecting `Fragment.load` so the dialog never opens.
+**Fixed and verified on a running 1.108 page** (see 3.7) — but the fix is **local only, it needs
+`npm run deploy` before the FLP check can be repeated.** Note *why* this survived to production:
+the ABAP **standalone** URL where 3.7 was verified loads **CDN 1.149**, where the aggregation
+exists (1.6), so only the FLP path — the one running 1.108 — could ever have shown it.
+
+✅ **JobList is no longer blocked.** *Scan Job Management* renders **inside FLP** with real job
+data, so the `ScanJob.Execute` grant of Q6 has evidently happened. JobDetail and the FCL
+two-column transition still need an actual row click — see 7.1 and Q6.
+
 **Next action:** Phase 7. In priority order:
-1. **3.7 last mile** — click the AI chat once **inside FLP**. It is the only host/entry-point
-   combination never observed, and it is a 30-second check.
-2. **OpenRouter model list** — two of three slugs are dead, on BTP as well as ABAP. See the
-   finding in 3.7; test with the curl harness in `SAP09_BE/AI_PROXY_SETUP.md` before editing.
-3. **7.2** — phone width (<600px) inside FLP. The only unverified half of 3.3, and the one place a
-   deliberate, non-obvious decision was made (the menu button survives on phone).
-4. **7.6** — **the real risk left.** BTP has not been rebuilt or deployed since Phase 1. Everything
-   rests on "`minUI5Version` is a floor, not a pin", which is sound but unproven end to end.
-   Now also the one place the `AiChatService` refactor could regress — verify the AI chat there.
-5. **7.4** (back/forward under the FLP hash), **7.5** (theme), **7.7** (remaining README fixes:
-   line 57's CDN claim, the stale `$XSAPPNAME.AiUser` scope text — the ABAP/FLP path is now
-   documented).
+**The launchpad work is done.** Phases 0–6 complete; 3.7, 4.2, 7.1, 7.2, 7.3, 7.6 (dropped) and
+findings **H**, **I** and **J** are all verified inside the real FLP. The app runs embedded, full
+width, legible in the shell's dark theme, with working navigation and a working AI assistant on
+both providers. What is left is small and none of it is embedding:
+
+⚠️ **UNCOMMITTED as of this update** — seven files: `FLP_MIGRATION.md`, `manifest.json`,
+`AiChatService.ts`, `BaseController.ts`, `css/style.css`, `VersionCompare.view.xml`,
+`AiChatDialog.fragment.xml`. That is four real defects (H, I, J and the 3.7 fragment bug) plus the
+model swap, all verified on the launchpad and **none of them committed**. `git status` is the
+authority, not this line.
+
+1. **Commit the above.** Everything in it is deployed and confirmed working; the tree is the only
+   place the work is at risk.
+2. **7.4** — back/forward under the FLP hash. The last untouched Phase 7 item.
+3. **7.5 remainder** — only the `applyStoredTheme()` question is left; the finding-H half is
+   closed. Run standalone, toggle to light, then open from the FLP tile while the shell is dark.
+4. **7.7** — README: the ABAP/FLP deploy path, line 57's CDN claim, the stale
+   `$XSAPPNAME.AiUser` scope text.
+5. **Housekeeping** — the `ZCL_GP9_AI_PROXY` divergence (below), and deferred finding **B**
+   (`archive.zip` and `resources/com.zgp9.fe.zip` are tracked build artifacts that dirty the tree
+   on every build; `archive.zip` had to be restored **three times** on 2026-07-28 alone).
 
 ⚠️ **The running ABAP class has diverged from the repo copy in four places** — the BE team edited
 it during install and never abapGit-pushed, so `SAP09_BE/src/zcl_gp9_ai_proxy.clas.abap` is now
@@ -138,10 +177,11 @@ making the suite run under 1.108 (closed off in 2.7). Just don't make it worse t
 `webapp/ui5-108-types.d.ts` is shaped the way it is — it looks over-engineered and is not) and
 Phase 4.6 (six non-obvious 1.108 traps already hit; three of them fail completely silently).
 
-**Also see "Deferred findings"** near the end: seven pre-existing issues, unrelated to this
-migration but real. Three intersect this plan — **A** must be read before doing 3.4, **B**
-explains why `git status` keeps showing a modified `.zip`, and **G** explains the "Your session
-expired" dialog you will see on every signed-out load.
+**Also see "Deferred findings"** near the end: eight issues, mostly pre-existing and unrelated to
+this migration but real. Four intersect this plan — **A** must be read before doing 3.4, **B**
+explains why `git status` keeps showing a modified `.zip`, **G** explains the "Your session
+expired" dialog you will see on every signed-out load, and **H** (now **fixed**) is the two
+theming traps in `css/style.css`; read it before putting any colour in that file.
 
 ## Goal
 
@@ -562,9 +602,12 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
       `additionalParameters: "allowed"`. `sap.ui.icons` filled with
       `sap-icon://business-objects-experience`, matching the Registry side-nav entry.
       Must match the target mapping built in Phase 6.
-- [~] 3.3 ✅ **Desktop verified in FLP 2026-07-27** — the app header is entirely absent and the
-      side navigation (Home / Registry Management / Logs) works. **Phone width below 600px is
-      still unverified in FLP** — that is 7.2, and it is the half of this item where the
+- [x] 3.3 ✅ **COMPLETE — both widths verified in FLP.** Desktop 2026-07-27 (app header entirely
+      absent, side navigation working); **phone at 400px on 2026-07-28** (header reappears with
+      only the menu button, side nav collapsed, tiles stacked). See 7.2. Original text follows.
+      ✅ **Desktop verified in FLP 2026-07-27** — the app header is entirely absent and the
+      side navigation (Home / Registry Management / Logs) works. ~~**Phone width below 600px is
+      still unverified in FLP**~~ — that is 7.2, and it is the half of this item where the
       non-obvious decision lives, so leave it `[~]` until checked.
       Hide the `tnt:ToolPage` header when embedded, keep `SideNavigation`.
       Conditional bind, not a deletion: the standalone URL keeps the full header.
@@ -645,7 +688,12 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
         (`registries?status=Published`) instead of the whole intent, so the first `?` found
         belongs to the route rather than to the intent's own parameters. Identical behaviour
         standalone, where the two are the same string.
-- [~] 3.7 AI chat on ABAP — **plan reversed 2026-07-27: make it WORK, not hide it.**
+- [x] 3.7 ✅ **CLOSED 2026-07-28 — the AI chat works on every host, including embedded in FLP,
+      on both providers.** Standalone ABAP verified 2026-07-28; FLP-embedded verified the same day
+      after the fragment fix below; Groq and OpenRouter both exercised explicitly. Full history
+      follows — it is worth reading, because two of the three defects in it were invisible to every
+      static check.
+      AI chat on ABAP — **plan reversed 2026-07-27: make it WORK, not hide it.**
       ✅ **WORKING on the ABAP standalone URL, verified end to end 2026-07-28.** One POST to
       `/sap/bc/zgp9_ai/groq/chat/completions` → **200**, 353 kB, 3.91 s, a real answer rendered
       from live `/IWBEP/COMMON` metadata, and no AI error in the console. The six-failure
@@ -725,7 +773,52 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
       throughout, and both local dev *and* BTP legitimately resolve to `/ai/` — so only the
       **deployed ABAP host** could ever have exposed it. Same class as the 4.6 traps, one layer
       further out.
-      **Still to do:** verify the AI chat inside FLP (the only unobserved case), and fix the
+      🐞 **The FLP check ran on 2026-07-28 and failed — a seventh 1.108 trap, same class as the
+      six in 4.6.** *Ask AI* inside FLP did nothing at all: no dialog, no request, no visible
+      error. Console showed
+      `ModuleError: failed to load 'sap/m/footer.js' … 404`, raised from `BaseController.ts:180`.
+      **Cause:** `AiChatDialog.fragment.xml` put the input row in a `<footer>` aggregation on
+      `sap.m.Dialog`. **1.108's `Dialog` has no `footer` aggregation** — it was added ~1.110.
+      Confirmed three ways, not inferred: absent from the 1.108 typings (`Dialog` there has only
+      `content`, `subHeader`, `customHeader`, `beginButton`, `endButton`, `buttons`), absent from
+      the runtime metadata in `@openui5/sap.m@1.108.30/src/sap/m/Dialog.js`, and
+      `Dialog.getMetadata().getAllAggregations().footer` → `undefined` in a live 1.108 browser.
+      When the aggregation is missing, `XMLTemplateProcessor` falls back to treating the
+      lowercase element as a **control name** in the default `xmlns="sap.m"`, so it requires
+      `sap/m/footer.js` and 404s. That rejects `Fragment.load`, so the dialog is never created.
+      **Fix:** the Toolbar moved to the end of `<content>`, with a `.aiChatFooter` class supplying
+      the separator the real footer would have drawn. One fragment still serves both targets —
+      same principle as the 4.6 icon swaps. **Do not move it back into a `footer` aggregation.**
+      Second, smaller fix in `BaseController.onOpenAiChat`: the rejected `Fragment.load` promise
+      was **cached and its rejection swallowed** (`void promise.then(...)` with no reject handler),
+      so every later click was a silent no-op too — which is most of why this presented as "the
+      button does nothing" rather than as an error. It now clears the cached promise and shows a
+      MessageToast.
+      **Verified on 1.108 (`npm start`), not by reading:** the fragment loads (`ok: true`), the
+      input row renders full-width at the bottom below the message area with the 1px separator,
+      `aiChatInput` still resolves for `focusAiChatInput()`, and **no `sap/m/footer` request is
+      made at all**. `ts-typecheck`, `lint` and `ui5lint` all stayed at their documented baselines
+      throughout — as with 4.6, **none of them reads a `.fragment.xml`**, so the console on a
+      running 1.108 page was again the only check that could have caught this.
+      ⚠️ **Why it reached production:** 3.7 was verified on the ABAP **standalone** URL, which
+      loads **CDN 1.149** (1.6, deliberate), where `Dialog.footer` exists. The AI chat dialog was
+      apparently never opened on a 1.108 page — 3.7's "verified locally on 1.108" covered the
+      `resolveAiBasePath()` predicate, not the fragment. **Every host that runs 1.108 is FLP, and
+      only FLP.** If you add UI in a fragment or view, open it on `npm start` before shipping.
+      🐞 **Second FLP defect, found the moment the dialog opened: the answer was unreadable.**
+      Near-white text on near-white bubbles inside FLP's dark shell — **measured contrast
+      1.04–1.08:1** where WCAG AA wants 4.5. **The cause is much bigger than the AI chat and is
+      recorded as deferred finding H: UI5 1.108 does not publish the `--sap*` CSS custom
+      properties at all.** Every `var(--sapX, <light fallback>)` in `css/style.css` therefore
+      takes its *light* fallback, on every theme, including FLP's dark one.
+      Fixed for the AI chat by dropping `var(--sap*)` from those rules entirely: the bubbles now
+      use translucent grey/blue/red tints layered over whatever the theme already painted, and
+      **set no `color` at all** so the text colour is inherited from the theme. That tracks any
+      theme on any UI5 version without naming one. Re-measured on a live 1.108 page:
+      **dark 9.08–13.37:1, light 9.96–14.03:1, all AA pass**, with the three roles still visually
+      distinct. **Do not reintroduce `var(--sap*)` into these rules.**
+      **Still to do:** `npm run deploy`, then click *Ask AI* inside FLP to confirm end to end (the
+      fixes above are verified locally but have **not** been on the ABAP system yet), and fix the
       OpenRouter model list — see the finding below.
       ⚠️ **Separate pre-existing bug found while testing this, NOT caused by the migration and
       NOT ABAP-specific: two of the three OpenRouter model ids are dead.** Proven live for
@@ -736,6 +829,20 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
       and works, so the OpenRouter branch is reached exactly when Groq is rate-limited, i.e. the
       worst moment to discover it. Test candidates with the curl harness in
       `SAP09_BE/AI_PROXY_SETUP.md` and prune `PROVIDERS` in `AiChatService.ts` from evidence.
+      ✅ **Replaced 2026-07-28** on the owner's instruction: the three rotted slugs are gone and
+      OpenRouter now carries **`openai/gpt-oss-20b:free`** and **`inclusionai/ling-3.0-flash:free`**.
+      Verified on a running 1.108 page that the dropdown builds correctly — Auto + 3 Groq + these 2
+      — and that `getPreferredModel()` already discards a stored key that no longer exists, so
+      anyone who had *DeepSeek V3* selected falls back to Auto with no migration needed.
+      ✅ **Both new slugs confirmed working on the launchpad 2026-07-28**, selected explicitly in
+      the dropdown so the OpenRouter path actually ran rather than being shadowed by Groq.
+      *Ling 3.0 Flash* was observed end to end — a full structured answer over live
+      `/IWBEP/COMMON` metadata, through the ABAP proxy. **The OpenRouter fallback is now covered by
+      observation for the first time**; before today it had only ever been reached by accident,
+      when Groq was rate-limited.
+      ⚠️ **This coverage decays.** Free-tier slugs churn, and this path is invisible in normal use
+      because Groq is tried first and succeeds. If the AI chat ever fails only under load, re-check
+      these two before anything else — that is exactly how the previous three rotted unnoticed.
 
 **Gate:** app builds and starts with no *new* console errors beyond the two environmental ones
 (`$metadata`, `CSRF 502`) that appear whenever no ABAP backend is reachable. The deferred 3.7
@@ -754,7 +861,11 @@ highest-yield phase of this migration.
       distribution (the two version series differ — do not expect 1.108.33 there).
       Note: `ui5-test-runner` prints its own unrelated "UI5 version used by the local server"
       line, which reported 1.150.0. Ignore it; the served framework is what matters.
-- [~] 4.2 Click through all **11 reachable** views: Home ✅, RegistryList ✅, RegistryDetail ✅,
+- [x] 4.2 ✅ **COMPLETE 2026-07-28.** The two views this item was blocked on — JobList and
+      JobDetail — are reachable now that `ScanJob.Execute` has been granted (Q6), and both were
+      exercised inside FLP with real job data. All 13 views have now been opened. Original text
+      follows.
+      Click through all **11 reachable** views: Home ✅, RegistryList ✅, RegistryDetail ✅,
       VersionDetail ✅, ModelExplorer ✅, VersionCompare ✅, DetailCompare ✅, Logs ✅ —
       plus MainShell ✅ and App ✅, which are the shell and root and so are exercised by all of
       the above. **JobList and JobDetail are the two still unverified** — see the auth note below.
@@ -1118,7 +1229,12 @@ FLP resolved the component without complaint.
 > exceptions: **7.3**, which needs rewriting rather than running (the 3.4 finding), and **7.6**,
 > which is the last genuinely unproven claim in the whole plan.
 
-- [~] 7.1 All 13 views again, this time **inside** FLP — 3.5 and 3.6 bugs only appear here.
+- [x] 7.1 ✅ **COMPLETE 2026-07-28.** Every view has now been opened inside the launchpad, on
+      1.108, against real data. The sweep earned its place: it is what found findings **H**, **I**
+      and **J**, none of which any static check or local run could have surfaced. Notably
+      **DetailCompare was the last view ever reached**, because the bug that hid its entry point
+      (finding I) was itself only visible at launchpad width. Original text follows.
+      All 13 views again, this time **inside** FLP — 3.5 and 3.6 bugs only appear here.
       **Partially done 2026-07-27.** Verified inside the launchpad: **Home** end to end (KPI tiles,
       Scan Activity, Attention Required, Quick Actions) and **Registry Explorer** including the
       status filter and a reloaded deep link. Both 3.5 and 3.6 — the two bugs this item exists to
@@ -1127,7 +1243,14 @@ FLP resolved the component without complaint.
       VersionCompare, DetailCompare, Logs. Lower risk than it looks — they all render correctly on
       1.108 standalone (4.2) and the two FLP-specific mechanisms are already proven — but the
       DynamicPage/Splitter views are worth a look inside the shell, where the available height
-      differs. JobList/JobDetail remain blocked on `ScanJob.Execute` (Q6).
+      differs.
+      ✅ **JobList unblocked 2026-07-28** — *Scan Job Management* renders inside FLP with real job
+      rows (mixed AUTO/MANUALLY, `DEV-257` / `ZGP9_LEAD2`), so `ScanJob.Execute` has been granted
+      (Q6). **JobDetail and the FCL two-column transition are still unclicked** — that is one row
+      click away and is the app's only two-column transition, so it is worth doing deliberately.
+      ⚠️ **Three of these views carry the *Ask AI* button** — ModelExplorer, VersionDetail and
+      DetailCompare. Do not treat them as "rendered fine, done": the 3.7 defect was invisible
+      until that button was pressed, and it lives in a fragment that only loads on press.
       Specifically:
       - **3.5** — is the app *styled*? A stylesheet 404 renders it unstyled rather than broken,
         which is easy to walk past. Confirm `css/style.css` is 200 in the network tab, not just
@@ -1147,11 +1270,13 @@ FLP resolved the component without complaint.
         looks broken when it is working.
       - ~~Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.~~ Done for 3.1, 3.2, 3.5 and 3.6.
         3.3 stays `[~]` pending 7.2's phone check; 3.4 is `[!]` — a finding, not a pass.
-- [~] 7.2 FLP shell bar present, app header hidden, side nav working (3.3).
-      **Desktop confirmed 2026-07-27:** shell bar present with the app title, app header entirely
-      absent, side navigation present and working. **The phone-width half is the open one** — and
-      it is the more interesting one, since that behaviour was a deliberate departure from the
-      original plan.
+- [x] 7.2 ✅ **CLOSED 2026-07-28.** Desktop confirmed 2026-07-27 (shell bar with the app title,
+      app header entirely absent, side navigation working). **Phone width confirmed 2026-07-28 at
+      400px inside FLP:** the app header reappears carrying **only the menu button**, the side nav
+      is collapsed, and the KPI tiles stack — exactly the deliberate departure recorded in 3.3.
+      That decision is now verified rather than merely argued: without the header an embedded phone
+      user would have had no way to reopen the navigation.
+      Original wording follows.
       Check **both widths**: on desktop the app header should be gone entirely; below 600px it
       should reappear carrying only the menu button, which is the sole way to reopen the side
       nav. Also confirm the desktop side nav is still usable while no longer collapsible — that
@@ -1176,6 +1301,13 @@ FLP resolved the component without complaint.
       does. It just has no caller.
 - [ ] 7.4 Back/forward browser navigation across app routes under the FLP hash
 - [~] 7.5 FLP theme switch does not fight the app.
+      ✅ **The finding-H half is closed, 2026-07-28.** The app renders legibly under the shell's own
+      dark theme on every page sampled — Home, VersionDetail, VersionCompare — at 6.24–15.37:1
+      across 8 elements. `.xmlTokTag` = 6.24 specifically proves the `html[class*="_dark"]`
+      selector matches the launchpad's theme, which is what could not be tested locally
+      (`ui5.yaml` declares only `themelib_sap_horizon`, so Quartz 404s in dev).
+      **Still open here is the original item**: whether a *stored* app theme preference overrides
+      the shell's. See the `applyStoredTheme()` test below — that is now the only part left.
       **Partial pass 2026-07-27:** the app rendered in FLP's **dark** theme without fighting it
       (`quartz.css` / `text_styles_quartz.css` served by the shell), so the shell's theme reaches
       the app and the app does not override it on load.
@@ -1188,10 +1320,20 @@ FLP resolved the component without complaint.
       **Test:** run the app standalone, toggle it to **light**, then open it from the FLP tile
       while FLP is **dark**. If the app comes up light inside a dark shell, that is a real defect
       and the fix is to skip `applyStoredTheme()` when `isInLaunchpad()`.
-- [ ] 7.6 **BTP still works** — the coupling check. `mbt build -p=cf`,
-      `cf deploy mta_archives/com.zgp9.fe.mta_1.0.0.mtar`, then verify the app *and* the AI
-      chat on the approuter URL. Per the note at the top this should pass unchanged; 7.6 is
-      how you find out it didn't.
+- [x] 7.6 ⛔ **DROPPED from the plan, 2026-07-28 — BTP is not going to be used.** Owner's call.
+      This item was previously flagged here as "the real risk left", so the removal is deliberate
+      rather than an oversight: nothing verifies the BTP deployment any more, and the claim that
+      `minUI5Version` is a floor rather than a pin is now **permanently unproven end to end**. That
+      costs nothing while FLP is the only target, and the source is constrained to the 1.108 API
+      surface regardless, because the launchpad requires it.
+      **Nothing was deleted.** `mta.yaml`, `xs-app.json`, `xs-security.json`, the `approuter/`
+      module and the `/ai/` base-path branch all remain in the tree and still build. The `/ai/`
+      branch in `resolveAiBasePath()` must stay in any case — **local `npm start` uses it too**, so
+      it is not BTP-only code.
+      Consequence for the deferred findings: **C** (`zgp9-ias` dead weight), **D** (hardcoded trial
+      URL in `xs-security.json`) and **E** (unscripted BTP deploy) are now moot unless BTP comes
+      back. **A** (the two drifted `xs-app.json` files) is only half moot — the root copy is still
+      bundled into the app zip by `ui5-task-zipper`.
 - [ ] 7.7 Update `README.md`:
       - Add the ABAP/FLP deploy path — currently undocumented
       - Fix line 57, which claims `index.html` loads UI5 from a relative `resources/...`
@@ -1256,6 +1398,130 @@ intersect work in this plan, as noted.
   two branches are the same string, and `handlingAuthError` is only ever reset by the MessageBox
   `onClose`, so it latches on if the dialog is dismissed some other way.
 
+- **J. The app was letterboxed by the launchpad — rendered in a ~1280px column with dead space on
+  both sides.** ✅ **FIXED AND CONFIRMED ON THE LAUNCHPAD 2026-07-28** — the app now spans the full
+  window, side navigation flush left, no dead margin either side.
+  FLP letterboxes embedded apps by default, constraining them to a fixed-width centred column
+  rather than the full window. The app never opted out: `manifest.json` had no
+  `"sap.ui": { "fullWidth": true }`. Added.
+  **This is the same root cause as finding I** and the two fixes are complementary, not redundant:
+  letterboxing is what reduced the content area to ~1040px and clipped VersionCompare's Action
+  column in the first place. Full width gives roughly 1680px instead, but the narrowed columns stay
+  — they are the margin that keeps the table safe on a small screen, on a phone, or if
+  letterboxing is ever re-enabled.
+  Note for anyone hitting this again: it could not be verified locally — letterboxing is applied by
+  the shell and the local sandbox has never booted (3.0) — so it went out on the descriptor flag
+  alone and was confirmed after deploying. **The descriptor was enough; the target mapping did not
+  need touching.** Had it still letterboxed, the next place to look would have been the target
+  mapping's own letterboxing setting in the FLP designer / Content Manager, which can override the
+  descriptor.
+  Note the app is a good candidate for full width regardless: it carries its own `sap.tnt.ToolPage`
+  side navigation, so a letterboxed column spends a large share of its width on the app's own nav.
+
+- **I. `sap.m.Table` columns wider than the launchpad clip silently — VersionCompare lost its only
+  route to DetailCompare.** ✅ **FIXED 2026-07-28**, found by user testing inside FLP.
+  The *Changed* and *Different* tabs declared `18+16+16+10+9 = 69rem` of fixed column widths. The
+  content area inside FLP is only ~65rem once the shell bar and side nav are taken out, and
+  `sap.m.Table` renders with **`table-layout: fixed`, which will not shrink below the sum of the
+  declared widths** — so the table overflowed and was **clipped with no horizontal scrollbar**.
+  The casualty was the last column, *Action*, and with it the **View Detail** button that is the
+  only entry point to `DetailCompare`. Reproduced on 1.108: container 992px, inner table 1112px.
+  Nothing was broken in the controller — `onViewDetail`, `getCompareEntryFromEvent` and the
+  `detailCompare` route were all correct and unreachable.
+  **Fixed two ways, deliberately belt-and-braces:** widths cut to `14+14+14+8+8 = 58rem` so the
+  Action column fits, **and** the rows made `type="Navigation"` with the same press handler, so
+  navigation survives any future narrowing. A `ColumnListItem` carries the same binding context the
+  button did, so the handlers were not touched. This also matches JobList, which already navigates
+  by chevron. Verified at 1040px: no overflow, Action column and button fully visible, chevron
+  rendered, row press returns the right entry.
+  **Audit of every other table in `webapp/view/`:** VersionCompare was the only one over the line.
+  Next widest is `RegistryList` at **61rem**, which fits today but has almost no margin — if a
+  column is ever added there, this is the failure mode it will hit. `Logs` 59rem, `JobList` 54rem,
+  `RegistryDetail` 48rem.
+  ⚠️ **This is invisible to every static check and to local dev**, where the browser window is
+  wider than the launchpad's content area. It needs a real FLP viewport, which is how it was found.
+
+- **H. `css/style.css` was light-theme-only on 1.108 — the whole file, not one rule.**
+  ✅ **FIXED 2026-07-28**, all of it, in the same pass as 3.7. Two independent causes; the second
+  was only found because the first was being fixed. Keep reading before adding any colour to that
+  file — the rules it now follows are written at the top of `style.css` itself.
+
+  **Cause 1 — the `--sap*` variables do not exist on 1.108** (detailed below).
+  **Cause 2 — the dark overrides were keyed to the wrong theme.** Three blocks used
+  `html.sapUiTheme-sap_horizon_dark`, but the launchpad picks the theme and `s40lp1` serves the
+  **Quartz (`sap_fiori_3`) family** — 7.5 already recorded `quartz.css` / `text_styles_quartz.css`
+  coming from the shell. So that selector **never matched inside FLP**, and the diff colours,
+  scan-bar colours and the dark half of the brand accent were dead exactly where they were needed:
+  FLP got the light `:root` values under the shell's light text. This one passes every check and
+  looks correct in local dev, because local dev *does* run Horizon.
+
+  **What was done.** Two patterns, both theme-name-free:
+  - Backgrounds/borders → translucent `rgba()` tints over whatever the theme already painted, with
+    **no `color` set** so text is inherited. Needed for diff rows, status rows, chart axis, AI
+    bubbles. This also let the `--appDiff*` light/dark pair collapse into one set of values.
+  - Foreground hues → `--app*` tokens in `:root` with a dark variant under
+    `html[class*="_dark"], html[class*="_hcb"]`, which matches Horizon Dark, Quartz Dark and the
+    high-contrast blacks alike. Needed only where a real hue is required (XML syntax
+    highlighting), because **no single colour clears 4.5:1 on both white and near-black**.
+  - `.scanActivityTotal` / `.scanActivityPeak` simply lost their `color` — `--sapTextColor` is the
+    inherited colour anyway, so not setting one is both correct and shorter.
+
+  **Verified on a live 1.108 page, 19 styled elements, both themes: zero AA failures —
+  min 6.0:1 in dark (was 1.04), min 5.11:1 in light.** `ts-typecheck` clean, `ui5lint` still at
+  its 2-error baseline.
+
+  ✅ **Fully confirmed on the live launchpad, 2026-07-28**, by the in-page audit run across Home,
+  VersionDetail and VersionCompare: **8 sampled elements, every one AA PASS, 6.24–15.37:1.**
+  The two that matter most: `[data-diffstatus]` and `[data-linetype]` came back at **12.62**, and
+  those are the rows that measured **1.04** before — the ones that were literally invisible.
+  **The Quartz question below is answered by `.xmlTokTag` = 6.24.** That token is the only sampled
+  value still riding on the `html[class*="_dark"]` selector; had the selector missed the shell's
+  theme, the light `#0064d9` would have landed on a dark surface at ~3.3 and failed. It passed, so
+  **the substring selector does match the launchpad's real theme.** The caveat below is retained
+  only as the reason the selector is written that way.
+
+  ⚠️ **Quartz could not be tested locally and this is worth knowing.** `applyTheme('sap_fiori_3_dark')`
+  sets the `sapUiTheme-sap_fiori_3_dark` class but every Quartz stylesheet **404s** in local dev,
+  because `ui5.yaml` declares only `themelib_sap_horizon` — the page then renders unthemed white
+  and any contrast measurement taken in that state is meaningless (it produced six false failures
+  before this was spotted). What *was* proven under the Quartz class is the part that matters: the
+  new selector matches it and the dark token resolved to its dark value. The contrast numbers come
+  from Horizon Dark, whose surface (`#1d232a`) is close enough to Quartz Dark to stand in.
+  **The one thing still unconfirmed by observation is the app rendering under Quartz Dark inside
+  FLP** — fold that into the 7.5 check after the next deploy.
+
+  ⚠️ **The "Brand accent" section is inert on 1.108 and was left that way, deliberately.** It works
+  by overriding `--sap*` variables, and 1.108's compiled theme CSS uses literal colours, so nothing
+  consumes them: the app is un-branded inside FLP and branded on BTP/1.149. Retinting 1.108 means
+  overriding UI5's own class selectors — a cosmetic project, not a readability one, and nothing
+  there affects legibility. Noted in the file so it is not mistaken for a bug.
+
+  The original finding, kept because the evidence is the reason for the rules above:
+  **UI5 1.108's Horizon theme does not publish the `--sap*` CSS custom properties.** They were
+  opt-in (`sap-ui-xx-cssVariables`) until ~1.120. Verified on a live 1.108 page: every one of
+  `--sapTextColor`, `--sapList_Background`, `--sapErrorBackground`, `--sapContent_LabelColor`,
+  `--sapNeutralBackground`, `--sapGroup_ContentBackground` … resolves to **undefined** on `<html>`,
+  `<body>`, and on control DOM. A stylesheet scan found the only rules mentioning `--sapTextColor`
+  anywhere are *our own consumers* — the theme never defines it.
+  Consequence: **all 22 `var(--sap…)` uses in `css/style.css` silently take their hardcoded
+  light-theme fallbacks**, so any FLP user on a dark theme gets light-theme colours painted behind
+  the shell's light text. Measured in `sap_horizon_dark` on 1.108, all failing AA:
+
+  | Rule | Contrast | Effect |
+  | --- | --- | --- |
+  | `tr[data-diffstatus="Error"]` (also `Warning`, `Success`) | **1.04–1.07** | diff rows effectively invisible — DetailCompare / VersionCompare |
+  | `.scanActivityTotal`, `.scanActivityPeak` | **1.43** | Home Scan Activity figures invisible |
+  | `.scanActivityCaption`, `.xmlTokPunct` | 3.27 | washed out |
+  | `.xmlTokTag` / `Attr` / `Val` / `Cmt` | 2.93–3.53 | XML highlighting washed out |
+
+  Note the comment at `style.css:71` — *"semantic theme variables keep it readable in dark mode"* —
+  is **false on 1.108**; it was true when written against 1.149. `style.css:321` also paints a
+  hardcoded `#ffffff` panel, and `style.css:62` (`var(--sapContent_LabelColor)`, no fallback)
+  computes to nothing so the colour is simply inherited.
+  This is pre-existing in the sense that the rules predate the migration, but the migration is
+  what made it *visible*: on 1.149 (BTP, ABAP standalone) the variables resolve and everything
+  works. **Only 1.108 hosts are affected, and every 1.108 host is FLP.**
+
 ## Open questions
 
 - **Q1 — Does the CDN still serve 1.108.33?** ✅ **Answered 2026-07-26: no.**
@@ -1314,7 +1580,13 @@ intersect work in this plan, as noted.
   students own on this shared training system. At 21 characters the new name is well inside the
   30-character limit `/UI2/SEMOBJ` enforces.
 
-- **Q6 — Who can grant `ScanJob.Execute`, and does DEV-257 already have it?** ⚠️ open, raised
+- **Q6 — Who can grant `ScanJob.Execute`, and does DEV-257 already have it?** ✅ **Effectively
+  answered 2026-07-28: the grant happened.** *Scan Job Management* now renders inside FLP with
+  real job history, so the Jobs nav entry and JobList are reachable. Recorded by observation —
+  *who* granted it and to which user was never written down, so if the same wall appears on
+  another account, that is still unknown. **JobDetail and the FCL two-column transition remain
+  unclicked**, so 4.2/4.3 are unblocked but not yet closed. Original entry follows.
+  ⚠️ open, raised
   2026-07-26 by Phase 4. Signed in as DEV-173 the Jobs nav entry is absent, so JobList, JobDetail
   and the app's only FCL two-column transition cannot be reached (4.2, 4.3). This is a role
   assignment on `s40lp1`, not a code problem. It does not block Phases 5–6 — but it is the same
@@ -1373,4 +1645,14 @@ That is the whole revert — no controller edits to unpick, which is why it was 
 | 2026-07-27 | Keep the AI call **same-origin** on every host rather than calling the BTP approuter cross-origin from ABAP | The approuter's `/ai/*` routes are `authenticationType: xsuaa`, so a cross-origin fetch gets a login redirect it cannot follow; making it work needs CORS + `SameSite=None` + a second live session, and still fails silently on expiry. It would also make the ABAP/FLP deliverable depend on BTP uptime (3.7) |
 | 2026-07-27 | Pin each SM59 destination to the **full** `chat/completions` path, not the host | A destination then cannot be steered at the providers' key-management endpoints on the same host (`GET /api/v1/key` returns the credit balance). Same rule the approuter routes already follow, enforced one layer lower so it holds even if the handler misroutes |
 | 2026-07-27 | Accept plaintext keys in `ZGP9_AI_CFG` with a table authorization group | Genuinely weaker than BTP, where the key lives in a destination no user can query. Recorded as the honest cost of the ABAP path rather than presented as equivalent (README → ABAP setup) |
+| 2026-07-28 | Move the AI chat input row out of `Dialog`'s `footer` aggregation into `content` rather than branching on UI5 version | 1.108 has no `Dialog.footer` (added ~1.110), and a missing aggregation makes the XML processor load the element as a control — a 404 that rejects `Fragment.load` and produces a dead button with no visible error. A Toolbar in `content` plus one CSS rule renders the same on 1.108 and 1.149, so one fragment still serves both targets. Same reasoning as the 4.6 icon swaps (3.7) |
+| 2026-07-28 | Style the AI chat with translucent tints and no explicit `color`, instead of `var(--sap*)` theme variables | 1.108 does not publish the `--sap*` custom properties at all, so every `var(--sapX, <light fallback>)` painted light-theme colours behind the dark shell's light text — measured 1.04–1.08:1. A translucent tint over the theme's own background with inherited text colour is correct on any theme and any UI5 version, and needs no theme-name detection (3.7, finding H) |
+| 2026-07-28 | ~~Fix only the AI chat rules and file the rest as finding **H**~~ | **Superseded the same day** — the sweep was requested and done; H is closed |
+| 2026-07-28 | Opt out of FLP letterboxing with `sap.ui/fullWidth`, and **keep** the narrowed VersionCompare columns anyway | Letterboxing is what produced finding I — a ~1280px column leaves ~1040px of content once the app's own side nav is subtracted. Full width fixes the wasted space and gives the tables room, but the narrower columns stay as the margin that protects small screens, phones, and any future re-enabling of letterboxing. Fixing only one of the two would leave the other failure live (findings I and J) |
+| 2026-07-28 | **Drop BTP from the plan entirely** (7.6) | Owner's decision — the target is the launchpad and BTP is not going to be used. Accepted cost, recorded rather than argued: the "`minUI5Version` is a floor, not a pin" claim stays permanently unproven end to end, and nothing verifies the approuter deployment. Costs nothing while FLP is the only host, and the 1.108 source constraint is imposed by the launchpad anyway. No BTP config was deleted — `mta.yaml`, `approuter/` and the `/ai/` base path all remain, the last of which local dev needs regardless |
+| 2026-07-28 | Replace the OpenRouter model list with `openai/gpt-oss-20b:free` and `inclusionai/ling-3.0-flash:free` | Two of the previous three slugs were provably dead and the third unverified; free-tier slugs churn. Reached only when Groq is rate-limited, so a rotted entry is invisible until the worst possible moment — which argues for keeping this list short and re-checking it whenever the AI chat fails only under load |
+| 2026-07-28 | Fix VersionCompare's unreachable DetailCompare link by **both** narrowing the columns and making the row navigable | Narrowing alone restores the button but leaves the same trap one added column away; a navigable row alone leaves a table that still overflows. The row also matches JobList's existing chevron pattern and reuses the handler unchanged, since a `ColumnListItem` carries the binding context the button did (finding I) |
+| 2026-07-28 | Match dark themes by substring (`html[class*="_dark"]`) rather than by theme id | The launchpad picks the theme and serves the Quartz (`sap_fiori_3`) family, so `html.sapUiTheme-sap_horizon_dark` matched nothing there — three blocks were dead in FLP while looking correct in local dev, which runs Horizon. A substring match covers Horizon Dark, Quartz Dark and the high-contrast blacks without the app having to know which one it got (finding H) |
+| 2026-07-28 | Leave the "Brand accent" block inert on 1.108 rather than reimplement it | It retints by overriding `--sap*` variables, which 1.108's compiled theme CSS never reads. Making it work there means overriding UI5's own class selectors — a cosmetic project with no legibility consequence, and the app is still branded on 1.149. Written into the file so it is not mistaken for a bug (finding H) |
+| 2026-07-28 | Surface `Fragment.load` failures instead of caching the rejected promise | The cached rejection made every click after the first a silent no-op, which disguised a hard 404 as an unresponsive button and cost the whole diagnosis. Clearing the cache also makes the action retryable (3.7) |
 | 2026-07-27 | **Delete** the unreachable launchpad logout branch (3.4) rather than keep it as a seam | It was dead code: the only control that could trigger it is hidden exactly when it would fire. Same call already made for `MainShell.getCurrentHash()` in 3.6. Logout in FLP is the shell's responsibility, so there is nothing for the app to do — which also closes 7.3 as not applicable |

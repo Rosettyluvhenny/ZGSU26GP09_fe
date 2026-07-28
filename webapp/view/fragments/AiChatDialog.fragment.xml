@@ -60,25 +60,29 @@
 					</VBox>
 				</ScrollContainer>
 
+				<!-- The input row belongs in a Dialog `footer` aggregation, but 1.108 has no
+					 such aggregation (added ~1.110). The XML processor then treats <footer> as a
+					 control name and 404s on sap/m/footer.js, which rejects Fragment.load and the
+					 dialog never opens. Kept in `content` so one fragment serves 1.108 and 1.149;
+					 .aiChatFooter restores the footer's separator. Do not move it back. -->
+				<Toolbar class="aiChatFooter">
+					<Input
+						id="aiChatInput"
+						value="{aiChat>/input}"
+						placeholder="Ask about this XML..."
+						width="100%"
+						enabled="{= !${aiChat>/busy} }"
+						submit=".onAiChatSend" />
+					<Button
+						icon="sap-icon://paper-plane"
+						type="Emphasized"
+						tooltip="Send"
+						press=".onAiChatSend"
+						enabled="{= !${aiChat>/busy} }" />
+				</Toolbar>
+
 			</VBox>
 		</content>
-		<footer>
-			<Toolbar>
-				<Input
-					id="aiChatInput"
-					value="{aiChat>/input}"
-					placeholder="Ask about this XML..."
-					width="100%"
-					enabled="{= !${aiChat>/busy} }"
-					submit=".onAiChatSend" />
-				<Button
-					icon="sap-icon://paper-plane"
-					type="Emphasized"
-					tooltip="Send"
-					press=".onAiChatSend"
-					enabled="{= !${aiChat>/busy} }" />
-			</Toolbar>
-		</footer>
 	</Dialog>
 
 </core:FragmentDefinition>

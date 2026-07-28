@@ -94,10 +94,15 @@ const PROVIDERS: AiProvider[] = [
 	{
 		name: 'OpenRouter',
 		path: 'openrouter/chat/completions',
+		// Replaced 2026-07-28. The previous three slugs had rotted: OpenRouter answered
+		// "This model is unavailable for free" for meta-llama/llama-3.3-70b-instruct:free,
+		// and deepseek-chat-v3-0324:free had left the catalogue. Free-tier slugs churn, and
+		// this list is only reached when Groq is rate-limited — so a dead entry here stays
+		// invisible until the exact moment the fallback is needed. If the AI chat ever fails
+		// only under load, re-check these first.
 		models: [
-			{ id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra' },
-			{ id: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3' },
-			{ id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B' }
+			{ id: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B' },
+			{ id: 'inclusionai/ling-3.0-flash:free', label: 'Ling 3.0 Flash' }
 		]
 	}
 ];

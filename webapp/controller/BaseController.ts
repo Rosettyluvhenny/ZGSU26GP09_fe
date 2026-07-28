@@ -8,6 +8,7 @@ import ResourceBundle from 'sap/base/i18n/ResourceBundle';
 import Router from 'sap/ui/core/routing/Router';
 import History from 'sap/ui/core/routing/History';
 import Fragment from 'sap/ui/core/Fragment';
+import MessageToast from 'sap/m/MessageToast';
 import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
@@ -177,13 +178,23 @@ export default abstract class BaseController extends Controller {
 			}) as Promise<Dialog>;
 		}
 
-		void this.aiChatDialogPromise.then((dialog) => {
-			this.aiChatDialog = dialog;
-			if (!dialog.getParent()) {
-				this.getView().addDependent(dialog);
+		void this.aiChatDialogPromise.then(
+			(dialog) => {
+				this.aiChatDialog = dialog;
+				if (!dialog.getParent()) {
+					this.getView().addDependent(dialog);
+				}
+				dialog.open();
+			},
+			(error: unknown) => {
+				// Without this the rejected promise stays cached, so every later click is a
+				// no-op too and the button just looks dead — which is how a 1.108-only
+				// fragment error went unnoticed until it reached the launchpad.
+				this.aiChatDialogPromise = null;
+				MessageToast.show('The AI assistant could not be opened.');
+				throw error;
 			}
-			dialog.open();
-		});
+		);
 	}
 
 	public onAiChatClose(): void {
