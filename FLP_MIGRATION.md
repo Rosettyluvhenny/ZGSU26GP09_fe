@@ -40,20 +40,27 @@ and, in the **separate `SAP09_BE` repo**, the new `src/zcl_gp9_ai_proxy.clas.*`.
 the authority, not this line.
 
 **Done since the last update:** **3.4** decided and deleted, which closes **7.3**. **3.7**
-reversed from "hide the AI chat on ABAP" to "make it work" — frontend done and verified, ABAP
-handler written, ABAP installation still outstanding.
+reversed from "hide the AI chat on ABAP" to "make it work" — **the AI chat now works on the ABAP
+standalone URL**, verified end to end on 2026-07-28 (200, real answer, clean console). The BE team
+installed `ZCL_GP9_AI_PROXY`, the table, both destinations and the ICF node.
 
 **Next action:** Phase 7. In priority order:
-1. **3.7 ABAP install** — table `ZGP9_AI_CFG`, two SM59 destinations, SICF node `zgp9_ai`, and
-   activate `ZCL_GP9_AI_PROXY`. Runbook in `README.md` → *ABAP setup*. Everything it depends on is
-   confirmed (outbound HTTPS works); this is execution, not investigation.
-2. **7.2** — phone width (<600px) inside FLP. The only unverified half of 3.3, and the one place a
+1. **3.7 last mile** — click the AI chat once **inside FLP**. It is the only host/entry-point
+   combination never observed, and it is a 30-second check.
+2. **OpenRouter model list** — two of three slugs are dead, on BTP as well as ABAP. See the
+   finding in 3.7; test with the curl harness in `SAP09_BE/AI_PROXY_SETUP.md` before editing.
+3. **7.2** — phone width (<600px) inside FLP. The only unverified half of 3.3, and the one place a
    deliberate, non-obvious decision was made (the menu button survives on phone).
-3. **7.6** — **the real risk left.** BTP has not been rebuilt or deployed since Phase 1. Everything
+4. **7.6** — **the real risk left.** BTP has not been rebuilt or deployed since Phase 1. Everything
    rests on "`minUI5Version` is a floor, not a pin", which is sound but unproven end to end.
    Now also the one place the `AiChatService` refactor could regress — verify the AI chat there.
-4. **7.4** (back/forward under the FLP hash), **7.5** (theme), **7.7** (remaining README fixes:
-   the ABAP/FLP deploy path, line 57's CDN claim, the stale `$XSAPPNAME.AiUser` scope text).
+5. **7.4** (back/forward under the FLP hash), **7.5** (theme), **7.7** (remaining README fixes:
+   line 57's CDN claim, the stale `$XSAPPNAME.AiUser` scope text — the ABAP/FLP path is now
+   documented).
+
+⚠️ **The running ABAP class has diverged from the repo copy in four places** — the BE team edited
+it during install and never abapGit-pushed, so `SAP09_BE/src/zcl_gp9_ai_proxy.clas.abap` is now
+fiction. Checklist for their push is at the end of `SAP09_BE/AI_PROXY_SETUP.md`.
 
 **Phase 5 is done**: deployed to package `ZGSU26GP09` under transport `S40K919517`, out of `$TMP`,
 loading from the ABAP standalone URL. 5.5 (app index / cache invalidation) is **deferred by
@@ -638,8 +645,13 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
         (`registries?status=Published`) instead of the whole intent, so the first `?` found
         belongs to the route rather than to the intent's own parameters. Identical behaviour
         standalone, where the two are the same string.
-- [~] 3.7 AI chat on ABAP — **plan reversed 2026-07-27: make it WORK, not hide it.** Frontend
-      half is **done and verified**; the ABAP half is specified and written but not yet installed.
+- [~] 3.7 AI chat on ABAP — **plan reversed 2026-07-27: make it WORK, not hide it.**
+      ✅ **WORKING on the ABAP standalone URL, verified end to end 2026-07-28.** One POST to
+      `/sap/bc/zgp9_ai/groq/chat/completions` → **200**, 353 kB, 3.91 s, a real answer rendered
+      from live `/IWBEP/COMMON` metadata, and no AI error in the console. The six-failure
+      fallback cascade recorded at 5.4 is gone.
+      **Only FLP-embedded remains unverified** — low risk (the host check has a backstop clause
+      specifically for it, see below) but not yet observed, so this stays `[~]`.
       **The original problem.** `webapp/services/AiChatService.ts` posted to hardcoded `/ai/*`
       paths, which only the BTP approuter and the local proxy serve. On ABAP nothing served them,
       so it 404'd. ✅ Confirmed at 5.4 as `AI request failed (404)`; a single click fires **six**
@@ -696,9 +708,34 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
       **Known behaviour difference, accepted:** no progressive streaming on ABAP.
       `cl_http_client` buffers the whole response, so the answer appears at once rather than
       typing out. The SSE body is relayed unchanged, so the frontend needs no branch.
-      **Still to do:** install the ABAP side (table, destinations, ICF node, class), then verify
-      on the standalone URL and inside FLP. Until that is done the ABAP 404 stands — do not
-      re-diagnose it as a migration regression.
+      ⚠️ **Trap that cost a deploy cycle — `sap.ui.require.toUrl()` is not necessarily
+      absolute.** The first version of `isAbapHost()` tested `toUrl('com/zgp9/fe/')` directly for
+      `/sap/bc/ui5_ui5/`. It returns whatever the resource root was *registered* as, and
+      `index.html` registers `resourceroots` as `"./"` — so on the ABAP standalone URL it returns
+      the relative `./`, with no path in it to match, and the ABAP branch was never taken. The
+      local check that was supposed to confirm the predicate *printed* `toUrl: "./"` and it was
+      read as incidental; the value that disproved it was in the output used to confirm it.
+      Fixed by resolving first: `new URL(toUrl(…), document.baseURI).pathname`, which leaves an
+      absolute root alone and resolves a relative one against the page.
+      A second clause — `location.pathname.startsWith('/sap/bc/')` — is the backstop for the
+      **embedded** case, where the FLP page is `/sap/bc/ui2/flp` and therefore the same ABAP host
+      by definition. **The two clauses are not redundant; do not simplify to one.** Verified
+      against all five host/URL combinations, including an FLP variant with a relative root.
+      Note what caught this and what did not: `ts-typecheck`, `lint` and `ui5lint` were all green
+      throughout, and both local dev *and* BTP legitimately resolve to `/ai/` — so only the
+      **deployed ABAP host** could ever have exposed it. Same class as the 4.6 traps, one layer
+      further out.
+      **Still to do:** verify the AI chat inside FLP (the only unobserved case), and fix the
+      OpenRouter model list — see the finding below.
+      ⚠️ **Separate pre-existing bug found while testing this, NOT caused by the migration and
+      NOT ABAP-specific: two of the three OpenRouter model ids are dead.** Proven live for
+      `meta-llama/llama-3.3-70b-instruct:free` (OpenRouter answered *"This model is unavailable
+      for free"*); `deepseek/deepseek-chat-v3-0324:free` is absent from the current model list but
+      unconfirmed; `nvidia/nemotron-3-ultra-550b-a55b:free` is still listed. The slugs simply
+      rotted. **This affects BTP identically** — it is invisible only because Groq is tried first
+      and works, so the OpenRouter branch is reached exactly when Groq is rate-limited, i.e. the
+      worst moment to discover it. Test candidates with the curl harness in
+      `SAP09_BE/AI_PROXY_SETUP.md` and prune `PROVIDERS` in `AiChatService.ts` from evidence.
 
 **Gate:** app builds and starts with no *new* console errors beyond the two environmental ones
 (`$metadata`, `CSRF 502`) that appear whenever no ABAP backend is reachable. The deferred 3.7
@@ -938,15 +975,15 @@ on the mismatch.
 - [x] 5.4 Verify the standalone URL: `/sap/bc/ui5_ui5/sap/zgsu26gp09_fe_1/index.html`.
       **Passed 2026-07-27** as DEV-173: shell, side navigation, Registry Management, Version
       Details and the XML viewer all render from the ABAP repository.
-      **Two expected failures, neither a regression:** the AI chat is dead on ABAP (3.7, deferred
-      by decision), and this URL boots **CDN 1.149**, not 1.108, because `index.html` was
-      deliberately left on the CDN bootstrap (1.6). So 5.4 proves the deploy, *not* the migration.
-      1.108 is what FLP loads, and that is Phase 7.
-      The 3.7 failure was observed exactly as written — `AI request failed (404)` on VersionDetail.
-      New detail for whoever builds the guard: one click produced **six** failed POSTs, three to
-      `/ai/groq/chat/completions` then three to `/ai/openrouter/chat/completions`, because the
-      model fallback chain retries each. That is six round trips per click, which strengthens the
-      case for the origin check over a probe (see 3.7).
+      **One expected failure, not a regression:** this URL boots **CDN 1.149**, not 1.108, because
+      `index.html` was deliberately left on the CDN bootstrap (1.6). So 5.4 proves the deploy,
+      *not* the migration. 1.108 is what FLP loads, and that is Phase 7.
+      ⚠️ **The AI-chat failure recorded here is FIXED as of 2026-07-28 — this paragraph is
+      history, not current state.** As observed at the time: `AI request failed (404)` on
+      VersionDetail, one click producing **six** failed POSTs (three to `/ai/groq/chat/completions`
+      then three to `/ai/openrouter/chat/completions`) because the model fallback chain retries
+      each. That measurement is what made the six-round-trips-per-click cost concrete. It now
+      makes a single successful POST to `/sap/bc/zgp9_ai/groq/chat/completions` — see 3.7.
 - [~] 5.5 `/UI2/APP_INDEX_CALCULATE` and `/UI2/INVALIDATE_GLOBAL_CACHES`. **Deliberately deferred
       to the first symptom, 2026-07-27 — not skipped through oversight.** Reasoning, so it is not
       re-litigated:

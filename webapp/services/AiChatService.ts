@@ -48,22 +48,33 @@ const CHAT_STORAGE_PREFIX = 'com.zgp9.fe.aiChat.';
  * | local `npm start`           | `/ai/`                | ui5-middleware-sap-proxy, from `.env`   |
  * | ABAP — standalone *and* FLP | `/sap/bc/zgp9_ai/`    | the Z ICF handler, from its SM59 dest.  |
  *
- * Keyed off the app's own resource root rather than the hostname, for the same reason
- * Component.applyStylesheet uses toUrl (FLP_MIGRATION.md 3.5): embedded in a launchpad the
- * document is the *launchpad's* page, so anything derived from `location` or
- * `document.baseURI` describes the shell rather than this app. Hostnames are the worse
- * signal anyway — deferred finding D is a live example of a pinned URL breaking when a
- * route moves.
+ * Keyed off paths rather than the hostname: hostnames move, and deferred finding D is a
+ * live example of a pinned URL breaking when a route changes. `/sap/bc/` is the ICF runtime
+ * path and exists only on an ABAP host.
  *
- * `/sap/bc/ui5_ui5/` is the BSP runtime path and exists only on an ABAP host. The FLP case
- * lands here too, because the target mapping points at that same BSP path (6.3) — which is
- * what makes one check cover both ABAP entry points.
+ * ⚠️ **`toUrl` must be resolved before it is tested, and the two clauses below are not
+ * redundant.** Both facts cost a deploy cycle to learn; do not simplify this to one check.
+ *
+ *  - `toUrl('com/zgp9/fe/')` returns whatever the resource root was *registered* as, which
+ *    is not always absolute. `index.html` registers `resourceroots` as `"./"`, so on the
+ *    ABAP standalone URL and on BTP alike it returns the relative `./` — with no path in it
+ *    to match. An earlier version tested that string directly and therefore never took the
+ *    ABAP branch on the standalone URL. Resolving against `document.baseURI` fixes it:
+ *    a relative root resolves against the page, an absolute one is left alone.
+ *  - Under FLP the resource root *is* absolute (the shell registers it from the app index,
+ *    since the launchpad page and the app live at different paths), so the first clause
+ *    normally catches the embedded case. The `location` clause is the backstop for it —
+ *    the FLP page itself is `/sap/bc/ui2/flp`, which is the same ABAP host by definition.
+ *    Neither clause alone covers both entry points reliably.
  */
 const AI_BASE_APPROUTER = '/ai/';
 /** Must match the SICF node created for the handler. Change both together. */
 const AI_BASE_ABAP = '/sap/bc/zgp9_ai/';
 
-const isAbapHost = (): boolean => sap.ui.require.toUrl('com/zgp9/fe/').includes('/sap/bc/ui5_ui5/');
+const isAbapHost = (): boolean => {
+	const resourceRoot = new URL(sap.ui.require.toUrl('com/zgp9/fe/'), document.baseURI).pathname;
+	return resourceRoot.includes('/sap/bc/ui5_ui5/') || window.location.pathname.startsWith('/sap/bc/');
+};
 
 export const resolveAiBasePath = (): string => (isAbapHost() ? AI_BASE_ABAP : AI_BASE_APPROUTER);
 
