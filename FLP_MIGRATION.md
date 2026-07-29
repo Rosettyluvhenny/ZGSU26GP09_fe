@@ -10,9 +10,9 @@ truth for where the migration stands and what order the remaining work happens i
 **Last updated:** 2026-07-28
 
 **Where things stand:** **the migration is done.** Phases 0–6 are complete and verified inside the
-real launchpad; Phase 7 is closed apart from 7.4, half of 7.5, and the 7.7 README tidy-up. 7.6 was
-**dropped** — BTP is not going to be used. Phase 4's two role-blocked views are unblocked and
-exercised.
+real launchpad; Phase 7 is closed apart from **7.4 and half of 7.5**. 7.6 was **dropped** — BTP is
+not going to be used, and 7.7 (README) was completed 2026-07-29. Phase 4's two role-blocked views
+are unblocked and exercised.
 
 > ⚠️ Three statements that stood here through earlier revisions are now **false** and have been
 > removed, in case you remember them: that Phase 3 was "not runtime-verified on the embedded path"
@@ -20,14 +20,15 @@ exercised.
 > on every host), and that JobList/JobDetail were blocked on `ScanJob.Execute` (granted; see Q6).
 
 **Branch history:** `6493b72` (init) → `630bf1d` (Phase 1–2) → `4818ee1` (Phase 3) →
-`162e324` (Phase 4) → `872e39f` (Phase 5 & 6) → `bc5828c` (Init AI) → `da3504c` (AI Completion).
+`162e324` (Phase 4) → `872e39f` (Phase 5 & 6) → `bc5828c` (Init AI) → `da3504c` (AI Completion) →
+`072cb15` (Completion Overhaul phase 1 — findings H/I/J + the 3.7 fragment fix).
 
-> ⚠️ **Seven files are uncommitted** as of this update — this file, `manifest.json`,
-> `AiChatService.ts`, `BaseController.ts`, `css/style.css`, `VersionCompare.view.xml`,
-> `AiChatDialog.fragment.xml`. They carry **four defect fixes verified on the launchpad** (findings
-> **H**, **I**, **J** and the 3.7 fragment bug) plus the OpenRouter model swap. The earlier
-> UNCOMMITTED warning naming `Launchpad.ts` / `MainShell.controller.ts` / `README.md` is stale —
-> that work landed in `bc5828c` / `da3504c`. `git status` is the authority, not this line.
+> ✅ **The old "seven files are uncommitted" warning is resolved.** Those seven — this file,
+> `manifest.json`, `AiChatService.ts`, `BaseController.ts`, `css/style.css`,
+> `VersionCompare.view.xml`, `AiChatDialog.fragment.xml` — landed in `072cb15`, carrying the
+> findings **H**, **I**, **J** and 3.7 fragment fixes plus the OpenRouter model swap.
+> **Uncommitted now (2026-07-29):** the app-title change to *Metadata Manage Center* and the repo
+> cleanup (findings B and F, sandbox deletion). `git status` is the authority, not this line.
 
 ## 🎉 The migration's central goal is met (2026-07-27), and close-out finished (2026-07-28)
 
@@ -80,22 +81,23 @@ findings **H**, **I** and **J** are all verified inside the real FLP. The app ru
 width, legible in the shell's dark theme, with working navigation and a working AI assistant on
 both providers. What is left is small and none of it is embedding:
 
-⚠️ **UNCOMMITTED as of this update** — seven files: `FLP_MIGRATION.md`, `manifest.json`,
-`AiChatService.ts`, `BaseController.ts`, `css/style.css`, `VersionCompare.view.xml`,
-`AiChatDialog.fragment.xml`. That is four real defects (H, I, J and the 3.7 fragment bug) plus the
-model swap, all verified on the launchpad and **none of them committed**. `git status` is the
-authority, not this line.
+⚠️ **UNCOMMITTED as of 2026-07-29** — the app-title rename (`i18n.properties`, `i18n_en.properties`,
+`MainShell.view.xml`) and the repo cleanup (deleted: `archive.zip`, `resources/`, `metadata.xml`,
+`Main.view.xml`, `Main.controller.ts`, `ui5-flp.yaml`, `webapp/test/flpSandbox.html`; edited:
+`.gitignore`, `package.json`, `ui5.yaml`, `.claude/launch.json`, `Launchpad.ts`, this file).
+**The title change is not deployed yet** — it needs `npm run deploy` plus the tile edit in
+`/UI2/FLPD_CUST`. `git status` is the authority, not this line.
 
-1. **Commit the above.** Everything in it is deployed and confirmed working; the tree is the only
-   place the work is at risk.
+1. **Deploy the title change and update the tile**, then commit. The i18n rename covers the browser
+   tab and the FLP shell bar; the tile title is Designer content and must be changed separately.
 2. **7.4** — back/forward under the FLP hash. The last untouched Phase 7 item.
 3. **7.5 remainder** — only the `applyStoredTheme()` question is left; the finding-H half is
    closed. Run standalone, toggle to light, then open from the FLP tile while the shell is dark.
-4. **7.7** — README: the ABAP/FLP deploy path, line 57's CDN claim, the stale
-   `$XSAPPNAME.AiUser` scope text.
-5. **Housekeeping** — the `ZCL_GP9_AI_PROXY` divergence (below), and deferred finding **B**
-   (`archive.zip` and `resources/com.zgp9.fe.zip` are tracked build artifacts that dirty the tree
-   on every build; `archive.zip` had to be restored **three times** on 2026-07-28 alone).
+4. ~~**7.7** — README.~~ ✅ Done 2026-07-29.
+5. **Housekeeping** — the `ZCL_GP9_AI_PROXY` divergence (below). Deferred findings **B** and **F**
+   are ✅ **closed 2026-07-29** by the repo cleanup: `archive.zip`, `resources/com.zgp9.fe.zip`,
+   `metadata.xml`, `Main.view.xml`/`Main.controller.ts` and the whole FLP sandbox are deleted, and
+   `.gitignore` now covers the zips.
 
 ⚠️ **The running ABAP class has diverged from the repo copy in four places** — the BE team edited
 it during install and never abapGit-pushed, so `SAP09_BE/src/zcl_gp9_ai_proxy.clas.abap` is now
@@ -537,9 +539,14 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
       **Cost/benefit, recorded honestly:** this was a timeboxed bet on catching 3.3/3.5/3.6
       bugs locally, as 1.6 did for 4.6. It overran its box and did not pay off. Phase 3 is
       verified inside the real launchpad at 7.1 instead — option (b).
-      Files are kept, not deleted, because the sound half is reusable: `sap.ushell@1.108.33`
-      resolves and installs from the artifact registry, and the whole library serves. Only the
-      handshake is unsolved. `ui5-flp.yaml` and `flpSandbox.html` both carry the warning inline.
+      ⛔ **DELETED 2026-07-29.** The 2026-07-26 decision to keep the files was reversed once the
+      migration closed — see the decision log. Removed: `ui5-flp.yaml`, `webapp/test/flpSandbox.html`,
+      the `start:flp` npm script, the `ui5-flp-sandbox` entry in `.claude/launch.json`, and the
+      `test/flpSandbox.html` build exclude in `ui5.yaml`.
+      **What was lost, stated plainly:** the sound half really was reusable — `sap.ushell@1.108.33`
+      resolves and installs from the artifact registry, and the whole library serves. Anyone
+      rebuilding this starts from the diagnosis above rather than from working files. That is the
+      accepted cost; the diagnosis is the expensive part and it is preserved here.
 
       Original design notes follow, still accurate for everything except that it boots:
       Without a `sap.ushell.Container` the 3.3/3.5/3.6 paths are simply unreachable locally,
@@ -1124,10 +1131,9 @@ Transaction and field names vary slightly by release; adjust to what the system 
 
 **The name is decided (Q5) and already in the code — do not invent a new one here.** Semantic
 object **`ZODataServiceRegistry`**, action **`manage`**, intent
-**`ZODataServiceRegistry-manage`**. It is written in three places that must agree exactly, of
-which two are already done: `manifest.json` `sap.app.crossNavigation.inbounds` ✅ (3.2),
-`webapp/test/flpSandbox.html` ✅ (3.0, though that page does not boot), and `/n/UI2/SEMOBJ` —
-6.1 below, still to do.
+**`ZODataServiceRegistry-manage`**. It is written in two places that must agree exactly:
+`manifest.json` `sap.app.crossNavigation.inbounds` ✅ (3.2) and `/n/UI2/SEMOBJ` ✅ (6.1).
+(A third copy in `webapp/test/flpSandbox.html` is gone — that file was deleted 2026-07-29, see 3.0.)
 
 - [x] 6.1 Semantic object — `/n/UI2/SEMOBJ`. **Created 2026-07-27** as
       **`ZODataServiceRegistry`** / name `ZODataServiceRegistry` / description
@@ -1334,12 +1340,24 @@ FLP resolved the component without complaint.
       URL in `xs-security.json`) and **E** (unscripted BTP deploy) are now moot unless BTP comes
       back. **A** (the two drifted `xs-app.json` files) is only half moot — the root copy is still
       bundled into the app zip by `ui5-task-zipper`.
-- [ ] 7.7 Update `README.md`:
-      - Add the ABAP/FLP deploy path — currently undocumented
-      - Fix line 57, which claims `index.html` loads UI5 from a relative `resources/...`
-        path. It hardcodes the CDN.
-      - Fix lines 116-121, which claim the AI routes check `$XSAPPNAME.AiUser` via a `scope`
-        property in `xs-app.json`. After `123d5ab` no such scope or property exists.
+- [x] 7.7 ✅ **DONE 2026-07-29.** `README.md` rewritten from the generator template into a real
+      project README. All three items closed, each verified against the source rather than taken
+      from this file:
+      - **ABAP/FLP deploy path added** — `npm run deploy`, the package/transport/BSP table, the
+        SE03 caveat, the Phase 6 launchpad configuration, the two-layer access model
+        (catalog role + `Z_REGISTRY` authorization object), the User Comparison warning, and how
+        to change the app title.
+      - **The `index.html` CDN claim fixed.** Confirmed at `webapp/index.html:14`:
+        `https://ui5.sap.com/1.149.1/resources/sap-ui-core.js`, hardcoded. Replaced with a table
+        of all three entry points and which UI5 each loads, plus the point that FLP uses none of
+        them — it loads `Component.js` directly.
+      - **The `$XSAPPNAME.AiUser` scope claim fixed.** Confirmed absent: neither `xs-app.json` has
+        a `scope` property on any route, and the AI routes are guarded only by
+        `authenticationType: xsuaa`. The README now says so, and says what adding the split would
+        actually require.
+      Also added, since they are the things a newcomer most needs: the 1.108 constraint and why
+      static checks cannot see most of its failures, the documented check baselines, the port-8080
+      collision, the Basic Auth prompt, and the model-rot warning.
 
 ---
 
@@ -1362,12 +1380,15 @@ intersect work in this plan, as noted.
   Decide which file is authoritative and stop hand-maintaining the other. Do this **with** 3.4,
   since that item rewrites the logout path anyway.
 
-- **B. Build artifacts are committed to git.** ⚠️ *will keep biting at Phase 7.6.*
-  `resources/com.zgp9.fe.zip` is tracked and regenerated by every `mbt build`, so it dirties the
-  tree on every BTP build — commit `6493b72` re-committed it. `archive.zip` (~1.5 MB at the repo
-  root) is tracked, contains a stale `dist` snapshot plus a nested copy of the app zip, and is
-  referenced by **nothing** in `mta.yaml` or `ui5.yaml`. `.gitignore` covers `dist/`,
-  `mta_archives/` and `*.mtar` but not these two.
+- **B. Build artifacts are committed to git.** ✅ **FIXED 2026-07-29.** Both files deleted and
+  `.gitignore` extended with `archive.zip` and `resources/*.zip`; the now-empty `resources/`
+  directory went with them.
+  The original finding: `resources/com.zgp9.fe.zip` was tracked and regenerated by every
+  `mbt build`, so it dirtied the tree on every BTP build — commit `6493b72` re-committed it.
+  `archive.zip` (702 KB at the repo root) was tracked, contained a stale `dist` snapshot plus a
+  nested copy of the app zip, and was referenced by **nothing** in `mta.yaml` or `ui5.yaml`.
+  `.gitignore` covered `dist/`, `mta_archives/` and `*.mtar` but not these two, which is why
+  `archive.zip` had to be restored three times on 2026-07-28 alone.
 
 - **C. `zgp9-ias` may be dead weight — and a logout-loop suspect.**
   `mta.yaml:99` provisions an identity service and the approuter requires it, but every route in
@@ -1384,8 +1405,13 @@ intersect work in this plan, as noted.
   `cf deploy mta_archives/com.zgp9.fe.mta_1.0.0.mtar` are typed by hand; `mbt` is not a
   devDependency and there is no npm script. Phase 7.6 assumes whoever runs it knows this.
 
-- **F. `Main.view.xml` / `Main.controller.ts` appear to be dead.** Neither is referenced in
-  `manifest.json` routing nor by any other view or controller. Confirm, then delete.
+- **F. `Main.view.xml` / `Main.controller.ts` appear to be dead.** ✅ **CONFIRMED AND DELETED
+  2026-07-29.** Verified before removing: `Main.controller.ts` was generator scaffolding whose
+  entire body was a `MessageBox.show("Hello World!")`, `Main.view.xml` was its only reference,
+  nothing referenced `Main.view`, and neither appeared in `manifest.json` routing. `ts-typecheck`,
+  `lint` and `ui5lint` all stayed at their documented baselines afterwards.
+  A sweep of the rest of `webapp/` at the same time found **no other dead files** — all 7
+  fragments and all services are referenced at least once.
 
 - **G. `ErrorHandler` navigates to a route that does not exist.** Found 2026-07-26 during 4.2.
   `webapp/services/ErrorHandler.ts:32` calls `this.router.navTo("login", …)` on any 401/403, but
@@ -1569,11 +1595,11 @@ intersect work in this plan, as noted.
   built it, and `manage` is the honest verb: the app creates, updates, publishes and archives
   registries, so `display` understated it and would have read wrongly in the FLP's own intent
   lists.
-  Written in `manifest.json` under `sap.app.crossNavigation.inbounds` (3.2) and hardcoded as the
-  intent key in `webapp/test/flpSandbox.html`. It must be created identically at `/n/UI2/SEMOBJ`
-  (6.1) and referenced by the target mapping (6.3). **Four places, exact match required** — plus
-  a doc comment in `RegistryList.controller.ts:63` that quotes the intent in an example hash, so
-  five if you count prose.
+  Written in `manifest.json` under `sap.app.crossNavigation.inbounds` (3.2). It must match
+  `/n/UI2/SEMOBJ` (6.1) and the target mapping (6.3). **Three places, exact match required** —
+  plus a doc comment in `RegistryList.controller.ts:63` that quotes the intent in an example hash,
+  so four if you count prose. (Was five; the `flpSandbox.html` copy went with the sandbox on
+  2026-07-29, see 3.0.)
   Create authorization on `s40lp1` was confirmed before choosing it. `Z`/`Y` is not actually
   enforced by the system — the customer view already contains entries like `PommApproval` and
   `InventoryManagement1` — but the prefix is kept anyway to stay clear of the ~215 entries other
@@ -1608,8 +1634,9 @@ discards changes rather than parking them.
 To undo just the Phase 3 launchpad embedding while keeping the 1.108 downgrade, revert
 `4818ee1`. It is a clean seam — `webapp/services/Launchpad.ts` is the only new runtime module,
 and every embedded branch is guarded by `isInLaunchpad()`, so reverting cannot affect the
-standalone BTP or ABAP behaviour. The sandbox files (`ui5-flp.yaml`,
-`webapp/test/flpSandbox.html`, the `start:flp` script) go with it; nothing else depends on them.
+standalone BTP or ABAP behaviour. Note the sandbox files that `4818ee1` added
+(`ui5-flp.yaml`, `webapp/test/flpSandbox.html`, the `start:flp` script) were **deleted on
+2026-07-29** (3.0), so a revert of that commit will try to reinstate them — drop those hunks.
 
 To undo just the typings shim and go back to precise generated event types, delete
 `webapp/ui5-108-types.d.ts` and restore `@sapui5/types` in `package.json` + `tsconfig.json`.
@@ -1629,7 +1656,8 @@ That is the whole revert — no controller edits to unpick, which is why it was 
 | 2026-07-26 | Leave `index.html` / `index-cdn.html` on kebab-case attributes | They run on CDN 1.149 where kebab-case works; editing BTP's entry file mid-migration is risk without present benefit. Recorded as a prerequisite in 4.6 |
 | 2026-07-26 | Build a local FLP sandbox (`ui5-flp.yaml` + `flpSandbox.html`) before writing Phase 3 | The 3.3/3.5/3.6 paths are unreachable without a `sap.ushell.Container`, so each bug would otherwise cost an ABAP deploy cycle. Same bet as 1.6, which paid off three times in 4.6 |
 | 2026-07-26 | **Abandon that sandbox** and verify Phase 3 in the real FLP at 7.1 instead (option (b)) | It never booted: `sandbox.js` blocks Core on an `xx-bootTask` whose `sap/ushell/Container` require never settles, with an empty console and nothing to grep for. The bet was timeboxed and overran it. Accepted cost: embedding bugs now cost an ABAP deploy round trip to find (3.0) |
-| 2026-07-26 | Keep the broken sandbox files rather than delete them | The sound half is real and reusable — `sap.ushell@1.108.33` resolves from the artifact registry and the whole library serves. Only the boot handshake is unsolved, and the diagnosis plus everything already ruled out is written into both files |
+| 2026-07-26 | ~~Keep the broken sandbox files rather than delete them~~ | **Superseded 2026-07-29** — see below. The reasoning at the time: the sound half is real and reusable, and only the boot handshake is unsolved |
+| 2026-07-29 | **Delete the sandbox** (`ui5-flp.yaml`, `flpSandbox.html`, `start:flp`, the launch.json entry, the `ui5.yaml` exclude) | The 2026-07-26 decision to keep it was made while Phase 3 still needed verifying. Phase 3 is now verified in the real launchpad (7.1), so the files serve no future purpose — they are a page that has never booted, plus config that exists only to serve it, sitting in a repo being handed in. The diagnosis is the part worth keeping and it lives in 3.0, not in the files. Also removes the fourth place the semantic object had to be spelled identically (Q5) |
 | 2026-07-26 | Declare `sap.ushell` in `ui5-flp.yaml` only, never in `ui5.yaml` | Adding it to the build config pulls `sap.ui.comp`, `sap.ui.table`, `sap.ui.mdc`, `sap.viz` and more in as project dependencies — the 1.4 mistake. On the real launchpad the shell supplies `sap.ushell`; the app must never declare it |
 | 2026-07-26 | Delete `MainShell.getCurrentHash()` rather than make it FLP-safe | It was dead code — one grep hit, the declaration. Section highlighting already runs off route parameters and was never broken under FLP. Half of 3.6 was a non-bug |
 | 2026-07-26 | Keep the app header at phone width even when embedded | The menu button is the only way to reopen the side nav below 600px, so hiding the whole header would leave an embedded phone user with no navigation. The plan counted four duplicated controls and missed this fifth, non-duplicated one |

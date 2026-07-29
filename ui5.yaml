@@ -19,10 +19,6 @@ builder:
       # Dev-only bootstrap: loads UI5 from the tooling-served /resources so local dev
       # runs the same 1.108.33 the launchpad does. Would 404 if deployed.
       - "index-local.html"
-      # Dev-only too: runs the app inside a local sap.ushell shell to exercise the Phase 3
-      # embedding paths. Needs sap.ushell, which only ui5-flp.yaml declares, so it cannot
-      # even be served by this config — let alone deployed.
-      - "test/flpSandbox.html"
   customTasks:
     - name: ui5-tooling-transpile-task
       afterTask: replaceVersion

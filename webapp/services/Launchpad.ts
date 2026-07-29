@@ -6,10 +6,11 @@
  * without `sap.ushell.Container` checks scattered across controllers, and each such site
  * would need its own copy of the typing workaround described below.
  *
- * The app must never *depend* on sap.ushell. Embedded, the launchpad shell supplies it and
- * the app must not declare it (see the comment in ui5-flp.yaml); standalone — BTP and the
- * ABAP direct URL — it is simply absent. Absence is therefore a supported state, not an
- * error, which is why everything here is optional-chained rather than asserted.
+ * The app must never *depend* on sap.ushell, and `ui5.yaml` deliberately does not declare it:
+ * doing so would pull sap.ui.comp, sap.ui.table, sap.ui.mdc, sap.viz and more in as project
+ * dependencies. Embedded, the launchpad shell supplies it; standalone — the ABAP direct URL —
+ * it is simply absent. Absence is therefore a supported state, not an error, which is why
+ * everything here is optional-chained rather than asserted.
  *
  * On typing: `@sapui5/ts-types-esm@1.108.33` ships `sap.ushell.d.ts`, but it declares the
  * `sap.ushell.services.Container` *class* and never declares the global singleton
@@ -40,8 +41,8 @@ const getUshell = (): UshellGlobal | undefined => (window as unknown as { sap?: 
  * True when the app is running inside a Fiori Launchpad shell.
  *
  * Tests for `sap.ushell.Container` rather than for a hostname or an FLP-shaped hash: the
- * container is what actually differs between the two environments, and it is present in
- * both the real launchpad and the local sandbox (webapp/test/flpSandbox.html), so the
- * embedded paths are reachable without an ABAP deploy.
+ * container is what actually differs between the two environments. Note there is no local
+ * way to make this return true — the embedded paths are only exercised by deploying and
+ * opening the app from a real launchpad tile (FLP_MIGRATION.md 3.0, 7.1).
  */
 export const isInLaunchpad = (): boolean => getUshell()?.Container !== undefined;
