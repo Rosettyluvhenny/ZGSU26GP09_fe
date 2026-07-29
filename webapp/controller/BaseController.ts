@@ -8,6 +8,7 @@ import ResourceBundle from 'sap/base/i18n/ResourceBundle';
 import Router from 'sap/ui/core/routing/Router';
 import History from 'sap/ui/core/routing/History';
 import Fragment from 'sap/ui/core/Fragment';
+import MessageToast from 'sap/m/MessageToast';
 import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
@@ -147,8 +148,6 @@ export default abstract class BaseController extends Controller {
 				input: '',
 				busy: false,
 				thinking: false,
-				hasKey: this.aiChatService.hasApiKey(),
-				apiKeyInput: '',
 				contextLabel: '',
 				suggestions: [] as { text: string }[],
 				models: [] as AiModelOption[],
@@ -156,7 +155,6 @@ export default abstract class BaseController extends Controller {
 			});
 			this.setModel(model, 'aiChat');
 		}
-		model.setProperty('/hasKey', this.aiChatService.hasApiKey());
 		model.setProperty('/models', this.aiChatService.getModelOptions());
 		model.setProperty('/selectedModel', this.aiChatService.getPreferredModel());
 		model.setProperty('/contextLabel', context?.label ?? '');
@@ -180,13 +178,23 @@ export default abstract class BaseController extends Controller {
 			}) as Promise<Dialog>;
 		}
 
-		void this.aiChatDialogPromise.then((dialog) => {
-			this.aiChatDialog = dialog;
-			if (!dialog.getParent()) {
-				this.getView().addDependent(dialog);
+		void this.aiChatDialogPromise.then(
+			(dialog) => {
+				this.aiChatDialog = dialog;
+				if (!dialog.getParent()) {
+					this.getView().addDependent(dialog);
+				}
+				dialog.open();
+			},
+			(error: unknown) => {
+				// Without this the rejected promise stays cached, so every later click is a
+				// no-op too and the button just looks dead — which is how a 1.108-only
+				// fragment error went unnoticed until it reached the launchpad.
+				this.aiChatDialogPromise = null;
+				MessageToast.show('The AI assistant could not be opened.');
+				throw error;
 			}
-			dialog.open();
-		});
+		);
 	}
 
 	public onAiChatClose(): void {
@@ -220,17 +228,6 @@ export default abstract class BaseController extends Controller {
 		const model = this.getModel('aiChat') as JSONModel;
 		const selected = (model.getProperty('/selectedModel') as string) || AI_MODEL_AUTO;
 		this.aiChatService.setPreferredModel(selected);
-	}
-
-	public onAiChatSaveKey(): void {
-		const model = this.getModel('aiChat') as JSONModel;
-		const key = ((model.getProperty('/apiKeyInput') as string) ?? '').trim();
-		if (!key) {
-			return;
-		}
-		this.aiChatService.setApiKey(key);
-		model.setProperty('/apiKeyInput', '');
-		model.setProperty('/hasKey', true);
 	}
 
 	public onAiSuggestedPrompt(event: { getSource: () => { getText: () => string } }): void {
@@ -301,10 +298,6 @@ export default abstract class BaseController extends Controller {
 				messages.push(errorMessage);
 			} else {
 				messages[assistantIndex] = errorMessage;
-			}
-			// A 401 means the stored key is invalid -> ask for it again.
-			if ((error as { status?: number }).status === 401) {
-				model.setProperty('/hasKey', false);
 			}
 		} finally {
 			model.setProperty('/messages', [...messages]);

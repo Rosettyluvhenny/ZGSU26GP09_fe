@@ -1,0 +1,53 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
+	<Dialog id="jobDetailDialog" title="Job Detail" draggable="true" resizable="true" contentWidth="36rem">
+		<content>
+			<form:SimpleForm layout="ResponsiveGridLayout" labelSpanL="4" labelSpanM="4" columnsL="1" columnsM="1" editable="false">
+				<form:content>
+					<Label text="Job ID" />
+					<Text text="{jobList>/selectedJob/id}" />
+
+					<Label text="Trigger Type" />
+					<Text text="{jobList>/selectedJob/triggerText}" />
+
+					<Label text="Status" />
+					<ObjectStatus
+						text="{jobList>/selectedJob/status}"
+						state="{path: 'jobList>/selectedJob/status', formatter: '.formatStatusState'}" />
+
+					<Label text="Executed By" />
+					<Text text="{jobList>/selectedJob/executedBy}" />
+
+					<Label text="Started At" />
+					<Text text="{path: 'jobList>/selectedJob/startedAt', formatter: '.formatDateTime'}" />
+
+					<Label text="Finished At" />
+					<Text text="{path: 'jobList>/selectedJob/finishedAt', formatter: '.formatDateTime'}" />
+
+					<Label text="Duration" />
+					<Text text="{path: 'jobList>/selectedJob/durationMs', formatter: '.formatDuration'}" />
+
+					<Label text="Total Registries" />
+					<Text text="{jobList>/selectedJob/totalRegistry}" />
+
+					<Label text="Changes" />
+					<Text text="{jobList>/selectedJob/changeCount}" />
+
+					<Label text="New Versions" />
+					<Text text="{jobList>/selectedJob/newVersionCount}" />
+
+					<Label text="Summary" />
+					<Text text="{jobList>/selectedJob/summary}" wrapping="true" />
+				</form:content>
+			</form:SimpleForm>
+			<MessageStrip
+				text="{jobList>/selectedJob/errorMessage}"
+				type="Error"
+				visible="{= !!${jobList>/selectedJob/errorMessage} }"
+				class="sapUiSmallMarginBeginEnd sapUiSmallMarginBottom" />
+		</content>
+		<buttons>
+			<Button text="View Logs" icon="sap-icon://log" type="Emphasized" press=".onViewJobLogs" />
+			<Button text="Close" press=".onCloseJobDialog" />
+		</buttons>
+	</Dialog>
+</core:FragmentDefinition>

@@ -9,10 +9,10 @@
 				<form:content>
 					<Label text="Log ID" />
 					<Text text="{logList>/selectedLog/id}" />
-					<Label text="Timestamp" />
+					<Label text="Created At" />
 					<Text text="{path: 'logList>/selectedLog/actionAt', formatter: '.formatDateTime'}" />
-					<Label text="Action Type" />
-					<Text text="{logList>/selectedLog/actionType}" />
+					<Label text="Action" />
+					<ObjectStatus text="{logList>/selectedLog/actionText}" state="{path: 'logList>/selectedLog/actionText', formatter: '.formatLogActionState'}" />
 					<Label text="Result" />
 					<ObjectStatus text="{logList>/selectedLog/logResult}" state="{path: 'logList>/selectedLog/logResult', formatter: '.formatLogResultState'}" />
 					<Label text="Actor" />
@@ -23,6 +23,8 @@
 					<Text text="{logList>/selectedLog/objectIdType}" />
 					<Label text="Object ID" />
 					<Text text="{= ${logList>/selectedLog/objectId} || '—' }" />
+					<Label text="Job ID" />
+					<Text text="{= ${logList>/selectedLog/jobId} || '—' }" />
 					<Label text="Remarks" />
 					<Text text="{logList>/selectedLog/remarks}" />
 				</form:content>
@@ -30,10 +32,10 @@
 		</content>
 		<beginButton>
 			<Button
-				text="Open Registry"
+				text="{= ${logList>/selectedLog/objectIdType} === 'VERSION' ? 'Open Version' : (${logList>/selectedLog/objectIdType} === 'DETAIL' ? 'Open Detail' : 'Open Registry') }"
 				type="Emphasized"
 				icon="sap-icon://business-objects-experience"
-				visible="{= ${logList>/selectedLog/objectIdType} === 'REGISTRY' &amp;&amp; !!${logList>/selectedLog/objectId} }"
+				visible="{= (${logList>/selectedLog/objectIdType} === 'REGISTRY' || ${logList>/selectedLog/objectIdType} === 'VERSION' || ${logList>/selectedLog/objectIdType} === 'DETAIL') &amp;&amp; !!${logList>/selectedLog/objectId} }"
 				press=".onNavigateToObject" />
 		</beginButton>
 		<endButton>

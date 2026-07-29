@@ -4,7 +4,7 @@ metadata:
 type: application
 framework:
   name: SAPUI5
-  version: "1.149.1"
+  version: "1.108.33"
   libraries:
     - name: sap.f
     - name: sap.tnt
@@ -16,6 +16,9 @@ builder:
   resources:
     excludes:
       - "test/e2e/**"
+      # Dev-only bootstrap: loads UI5 from the tooling-served /resources so local dev
+      # runs the same 1.108.33 the launchpad does. Would 404 if deployed.
+      - "index-local.html"
   customTasks:
     - name: ui5-tooling-transpile-task
       afterTask: replaceVersion

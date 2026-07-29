@@ -29,6 +29,7 @@ export default class VersionDetail extends BaseController {
 	private versionId: string | null = null;
 	private fullTree: NodeTreeViewItem[] = [];
 	private _sendMailDialog: Dialog | null = null;
+	private highlightClearTimer: number | null = null;
 
 	public onInit(): void {
 		this.setModel(
@@ -50,7 +51,7 @@ export default class VersionDetail extends BaseController {
 		this.setModel(new JSONModel([]), 'treeModel');
 		this.getRouter()
 			.getRoute("versionDetail")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
@@ -104,6 +105,9 @@ export default class VersionDetail extends BaseController {
 		}
 
 		this.selectXmlLine(node.lineStart || offsetToLine(node.offsetStart, (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetailLineStarts') as number[]));
+		// Clear selection so clicking the same node again re-fires selectionChange + flash.
+		const tree = event.getSource() as unknown as { removeSelections?: (b?: boolean) => void };
+		window.setTimeout(() => tree.removeSelections?.(true), 0);
 	}
 
 	public onTreeSearch(event: UI5Event): void {
@@ -284,13 +288,13 @@ export default class VersionDetail extends BaseController {
 		sendMailModel.setProperty('/busy', true);
 		BusyIndicator.show(0);
 		try {
-			const result = await this.getOwnerComponent().getDetailService().sendEmail({
+			await this.getOwnerComponent().getDetailService().sendEmail({
 				htmlContent,
 				recipients,
 				subject
 			});
 			this._sendMailDialog?.close();
-			MessageBox.success(result.message || 'Email sent successfully.');
+			MessageBox.success('Email sent successfully.');
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
@@ -590,7 +594,6 @@ export default class VersionDetail extends BaseController {
 	// }
 
 	private scrollToItem(table: Table, lineNo: number): void {
-		// Clear previous highlights
 		table.getItems().forEach((item) => {
 			item.removeStyleClass('versionDetailXmlHighlighted');
 		});
@@ -602,6 +605,13 @@ export default class VersionDetail extends BaseController {
 		if (item) {
 			item.addStyleClass('versionDetailXmlHighlighted');
 			item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
+			if (this.highlightClearTimer !== null) {
+				window.clearTimeout(this.highlightClearTimer);
+			}
+			this.highlightClearTimer = window.setTimeout(() => {
+				table.getItems().forEach((row) => row.removeStyleClass('versionDetailXmlHighlighted'));
+				this.highlightClearTimer = null;
+			}, 1400);
 		}
 	}
 }

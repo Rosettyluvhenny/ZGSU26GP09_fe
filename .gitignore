@@ -9,6 +9,12 @@ Makefile_*.mta
 mta_archives/
 *.mtar
 
+# Packaged app archives — build output, never source.
+# ui5-task-zipper writes the app zip on every build; these were tracked and
+# dirtied the tree on every run (FLP_MIGRATION.md deferred finding B).
+archive.zip
+resources/*.zip
+
 # Logs
 logs
 *.log
@@ -20,7 +26,7 @@ yarn-error.log*
 node_modules/
 
 .DS_Store
-.env
 
-# AI API key (deploy-only, never committed) — copy AiKey.example.ts to AiKey.ts
-webapp/services/AiKey.ts
+# AI provider keys for local dev only — copy .env.example to .env.
+# Deployed environments get them from the AI_GROQ / AI_OPENROUTER destinations.
+.env

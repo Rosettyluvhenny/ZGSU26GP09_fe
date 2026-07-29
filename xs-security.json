@@ -10,7 +10,7 @@
     "role-templates": [
         {
             "name": "User",
-            "description": "General app access",
+            "description": "General app access, including the AI assistant",
             "scope-references": [
                 "$XSAPPNAME.User"
             ]

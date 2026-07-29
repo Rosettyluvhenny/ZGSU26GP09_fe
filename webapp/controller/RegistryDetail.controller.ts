@@ -1,6 +1,7 @@
 import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
-import type Table from 'sap/m/Table';
+import History from 'sap/ui/core/routing/History';
+import Table from 'sap/m/Table';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import type UI5Event from 'sap/ui/base/Event';
@@ -31,7 +32,7 @@ export default class RegistryDetail extends BaseController {
 		);
 		this.getRouter()
 			.getRoute("registryDetail")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
@@ -44,6 +45,17 @@ export default class RegistryDetail extends BaseController {
 		}
 
 		await this.loadRegistry();
+	}
+
+	public onNavBack(): void {
+		// Prefer browser history so Logs → Registry Detail → Back returns to Logs
+		// (not always Registry List). Deep links still fall back to the list.
+		const previousHash = History.getInstance().getPreviousHash();
+		if (previousHash !== undefined && previousHash !== '') {
+			window.history.go(-1);
+			return;
+		}
+		this.navTo('registryList', {}, true);
 	}
 
 	public async onRefresh(): Promise<void> {
@@ -171,6 +183,8 @@ export default class RegistryDetail extends BaseController {
 				canCompare: false,
 				generateBusy: false
 			});
+			// Clear table's internal selection state so checkboxes don't linger after back-navigation
+			(this.byId('versionsTable') as Table)?.removeSelections(true);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {

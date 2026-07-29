@@ -1,5 +1,69 @@
+/* ── Theming rules for this file — read before adding a colour ───────────────
+   Two traps, both found on 2026-07-28 when the app was first looked at inside the
+   launchpad. Everything below follows from them.
+
+   1. **Do not use `var(--sapX)` for colour.** UI5 1.108 — the version the Fiori
+      Launchpad runs — does NOT publish the `--sap*` CSS custom properties; they
+      were opt-in (`sap-ui-xx-cssVariables`) until ~1.120, and 1.108's compiled
+      theme CSS uses literal colours. Verified undefined on a live 1.108 page.
+      So `var(--sapTextColor, #223548)` silently took its LIGHT fallback on every
+      theme, painting light-theme colours behind the dark shell's light text —
+      measured contrast 1.04:1 on diff rows, where AA wants 4.5.
+
+   2. **Do not key a dark override to one theme id.** The launchpad chooses the
+      theme, not this app, and `s40lp1` serves the **Quartz** (`sap_fiori_3`)
+      family — so `html.sapUiTheme-sap_horizon_dark` never matches in FLP. Three
+      blocks in this file were written that way and were dead there.
+
+   The two safe patterns, used throughout:
+   - **Backgrounds and borders:** a translucent `rgba()` tint over whatever the
+     theme already painted, with NO `color` set so text is inherited. Needs no
+     theme detection at all and cannot go stale.
+   - **Foreground hues** (syntax highlighting, where a real hue is required and no
+     single colour can pass 4.5:1 on both white and near-black): an `--app*` token
+     defined in `:root` and overridden in the `html[class*="_dark"]` block below,
+     which matches any dark or high-contrast-black theme by substring. */
+:root {
+	--appXmlTag: #0064d9;
+	--appXmlAttr: #aa5808;
+	--appXmlVal: #256f3a;
+	--appXmlPunct: #556b82;
+	--appXmlCmt: #6a6d70;
+	--appAccentOutline: #0070f2;
+	--appKeyIcon: #a85200;
+	--appCardBg: #ffffff;
+}
+
+html[class*="_dark"],
+html[class*="_hcb"] {
+	--appXmlTag: #7fb5ff;
+	--appXmlAttr: #ffb570;
+	--appXmlVal: #7ddc9a;
+	--appXmlPunct: #a8b8c8;
+	--appXmlCmt: #9aa0a6;
+	--appAccentOutline: #7fb5ff;
+	--appKeyIcon: #ffb570;
+	--appCardBg: #1d232a;
+}
+
 .versionDetailDetailSelect {
 	width: 100%;
+}
+
+/* ── Fluid tables ──────────────────────────────────────────────────────────
+   sap.m responsive tables shrink-wrap to the sum of their column widths, so on
+   a wide screen they leave dead space on the right and any width-less column
+   collapses to 0. Forcing the inner table to span its container makes the
+   columns expand proportionally to fill the available width (fluid on desktop),
+   while the demandPopin breakpoints still collapse columns on small screens. */
+.sapMList .sapMListTbl {
+	width: 100% !important;
+}
+
+/* The XML source/diff tables are the exception: their monospace content must keep
+   its natural width and scroll horizontally, so they opt back out of the fill. */
+.versionDetailXmlTable .sapMListTbl {
+	width: auto !important;
 }
 
 /* ── Side navigation hide ────────────────────────────────────────────────── */
@@ -43,7 +107,9 @@
 	text-align: right;
 	padding-right: 0.75rem;
 	font-family: monospace;
-	color: var(--sapContent_LabelColor);
+	/* Muted via opacity on the inherited colour rather than a fixed grey, so the
+	   gutter stays legible whichever theme the launchpad picks. */
+	opacity: 0.7;
 	white-space: nowrap;
 }
 
@@ -52,26 +118,30 @@
 	white-space: pre;
 }
 
-/* XML syntax highlighting — semantic theme variables keep it readable in dark mode */
+/* XML syntax highlighting. These were `var(--sapInformativeTextColor, …)` etc., which
+   read as "theme-aware" but resolved to the light fallback on 1.108 — 2.93–3.53:1 in a
+   dark launchpad. Now app-owned tokens with a real dark variant (trap 1 and 2 at the
+   top of this file). No single hue can pass 4.5:1 on both white and near-black, so
+   syntax colours genuinely need the two variants. */
 .versionDetailXmlText .xmlTokTag {
-	color: var(--sapInformativeTextColor, #0064d9);
+	color: var(--appXmlTag);
 	font-weight: 600;
 }
 
 .versionDetailXmlText .xmlTokAttr {
-	color: var(--sapCriticalTextColor, #aa5808);
+	color: var(--appXmlAttr);
 }
 
 .versionDetailXmlText .xmlTokVal {
-	color: var(--sapPositiveTextColor, #256f3a);
+	color: var(--appXmlVal);
 }
 
 .versionDetailXmlText .xmlTokPunct {
-	color: var(--sapContent_LabelColor, #556b82);
+	color: var(--appXmlPunct);
 }
 
 .versionDetailXmlText .xmlTokCmt {
-	color: var(--sapNeutralTextColor, #6a6d70);
+	color: var(--appXmlCmt);
 	font-style: italic;
 }
 
@@ -79,55 +149,86 @@
 	cursor: pointer;
 }
 
-.versionDetailXmlHighlighted {
-	background-color: var(--sapList_Hover_Background) !important;
+/* Brief flash when revealing a line from the tree / change list.
+   Outline-only so diff row colors stay intact; class is cleared by JS after the animation. */
+@keyframes versionDetailXmlFlash {
+	0%,
+	40% {
+		box-shadow: inset 4px 0 0 var(--appAccentOutline);
+		outline-color: var(--appAccentOutline);
+	}
+	100% {
+		box-shadow: none;
+		outline-color: transparent;
+	}
 }
 
+.versionDetailXmlTable .sapMLIB.versionDetailXmlHighlighted,
+.versionDetailXmlTable .sapMLIB.versionDetailXmlHighlighted[data-diffstatus],
+.versionDetailXmlTable .sapMLIB.versionDetailXmlHighlighted[data-linetype] {
+	outline: 2px solid var(--appAccentOutline);
+	outline-offset: -2px;
+	animation: versionDetailXmlFlash 1.4s ease-out forwards;
+}
+
+/* Status row tints. Previously `var(--sapWarningBackground, #fdf2e5)` and friends,
+   which painted an opaque near-white row behind the dark shell's near-white text:
+   measured 1.04–1.07:1, i.e. the row content simply disappeared. Translucent tints
+   composite over the theme's own row background instead, so they read on any theme
+   and the text colour is left alone. */
 li[data-diffstatus="Warning"],
 tr[data-diffstatus="Warning"] {
-	background-color: var(--sapWarningBackground, #fdf2e5) !important;
+	background-color: rgba(255, 170, 0, 0.18) !important;
 }
 
 li[data-diffstatus="Success"],
 tr[data-diffstatus="Success"] {
-	background-color: var(--sapSuccessBackground, #eaf6ea) !important;
+	background-color: rgba(60, 200, 100, 0.18) !important;
 }
 
 li[data-diffstatus="Error"],
 tr[data-diffstatus="Error"] {
-	background-color: var(--sapErrorBackground, #ffebee) !important;
+	background-color: rgba(255, 85, 85, 0.18) !important;
 }
 
 /* ── XML line-level diff (del / ins / empty padding rows) ────────────────── */
 
-/* Theme-aware diff backgrounds. The values below are the light-theme defaults;
-   the dark override keeps the diff legible instead of washing out light green/red
-   under light text. */
+/* Diff backgrounds. These *were* a light `:root` pair plus a dark override keyed to
+   `html.sapUiTheme-sap_horizon_dark` — which never matches inside the launchpad, since
+   `s40lp1` serves the Quartz (`sap_fiori_3`) family. The dark half was therefore dead
+   exactly where it mattered, and FLP got the light values under light text.
+   Translucent tints remove the need for a dark variant at all: one value composites
+   correctly over a light or a dark row (trap 2 at the top of this file). */
 :root {
-	--appDiffDelBg: #ffd7d5;
-	--appDiffInsBg: #ccffd8;
-	--appDiffEmptyBg: #f0f0f0;
+	--appDiffDelBg: rgba(255, 85, 85, 0.22);
+	--appDiffInsBg: rgba(60, 200, 100, 0.22);
+	--appDiffModBg: rgba(255, 190, 60, 0.22);
+	--appDiffEmptyBg: rgba(127, 127, 127, 0.12);
 }
 
-html.sapUiTheme-sap_horizon_dark {
-	--appDiffDelBg: #5c2b2b;
-	--appDiffInsBg: #244d30;
-	--appDiffEmptyBg: #2a2a2e;
-}
-
+/* sap.m.Table renders list items as <li>; keep <tr> for table-mode themes. */
+li[data-linetype="del"],
 tr[data-linetype="del"] {
 	background-color: var(--appDiffDelBg) !important;
 }
 
+li[data-linetype="ins"],
 tr[data-linetype="ins"] {
 	background-color: var(--appDiffInsBg) !important;
 }
 
+li[data-linetype="mod"],
+tr[data-linetype="mod"] {
+	background-color: var(--appDiffModBg) !important;
+}
+
+li[data-linetype="empty"],
 tr[data-linetype="empty"] {
 	background-color: var(--appDiffEmptyBg) !important;
 	opacity: 0.55;
 }
 
+li[data-linetype="empty"] .sapMListTblCell,
 tr[data-linetype="empty"] td {
 	border: none !important;
 }
@@ -144,34 +245,51 @@ tr[data-linetype="empty"] td {
 	width: 100%;
 }
 
+/* The input row sits in `content` rather than the Dialog's footer aggregation,
+   which 1.108 does not have — see the comment in AiChatDialog.fragment.xml.
+   This restores the separator the real footer would have drawn. */
+.aiChatFooter {
+	border-top: 1px solid rgba(127, 127, 127, 0.3);
+	background-color: transparent;
+}
+
+/* ⚠️ Deliberately no var(--sapX) in the colours below, and no `color` at all.
+   UI5 1.108's Horizon does NOT publish the --sap* CSS custom properties — they were
+   opt-in (sap-ui-xx-cssVariables) before ~1.120 — so on the launchpad every
+   var(--sapX, <light fallback>) here silently resolved to its LIGHT fallback and
+   painted near-white bubbles behind FLP's near-white dark-theme text: measured
+   contrast 1.04–1.08:1 where AA wants 4.5. Verified undefined on a live 1.108 page.
+   Instead these are translucent tints layered over whatever background the theme
+   already painted, with the text colour left to inherit — so contrast tracks the
+   active theme on 1.108 and 1.149 alike, in light and dark, without naming a theme. */
 .aiChatBubble {
 	max-width: 85%;
 	border-radius: 0.75rem;
 	padding: 0.5rem 0.75rem;
 	margin: 0.25rem 0.5rem;
-	background-color: var(--sapList_Background);
-	border: 1px solid var(--sapList_BorderColor);
+	background-color: rgba(127, 127, 127, 0.14);
+	border: 1px solid rgba(127, 127, 127, 0.25);
 	overflow-wrap: anywhere;
 }
 
 li[data-airole="user"] .aiChatBubble {
 	margin-left: auto;
-	background-color: var(--sapInformationBackground, #e1f4ff);
+	background-color: rgba(85, 145, 255, 0.18);
+	border-color: rgba(85, 145, 255, 0.38);
 }
 
 li[data-airole="assistant"] .aiChatBubble {
 	margin-right: auto;
-	background-color: var(--sapNeutralBackground, #f4f4f4);
 }
 
 li[data-airole="error"] .aiChatBubble {
 	margin-right: auto;
-	background-color: var(--sapErrorBackground, #ffebee);
-	border-color: var(--sapErrorBorderColor, #e90b0b);
+	background-color: rgba(255, 85, 85, 0.16);
+	border-color: rgba(255, 85, 85, 0.45);
 }
 
 .aiChatBubble pre {
-	background-color: var(--sapContent_ForegroundColor, rgba(0, 0, 0, 0.05));
+	background-color: rgba(127, 127, 127, 0.18);
 	border-radius: 0.375rem;
 	padding: 0.5rem;
 	overflow-x: auto;
@@ -192,7 +310,15 @@ li[data-airole="error"] .aiChatBubble {
    Retints the stock Horizon theme with the app's identity colour. The theme
    class selectors beat Horizon's own :root declarations regardless of stylesheet
    load order, so the accent survives a light/dark theme switch.
-   To rebrand the whole app, change the two accent hex values below. */
+   To rebrand the whole app, change the two accent hex values below.
+
+   ⚠️ **This whole section is inert on UI5 1.108, i.e. in the launchpad.** It works by
+   overriding `--sap*` theme variables, and 1.108's compiled theme CSS uses literal
+   colours rather than reading those variables (trap 1 at the top of this file), so
+   there is nothing for these declarations to affect. The app is therefore un-branded
+   inside FLP and branded on BTP/1.149. Left in place because it is correct and free on
+   1.149; retinting 1.108 would mean overriding UI5's own class selectors instead, which
+   is a cosmetic project, not a readability fix — nothing here affects legibility. */
 html.sapUiTheme-sap_horizon {
 	--sapBrandColor: #5b3fd6;
 	--sapHighlightColor: #5b3fd6;
@@ -208,7 +334,8 @@ html.sapUiTheme-sap_horizon {
 	--sapLink_Hover_Color: #4c34b8;
 }
 
-html.sapUiTheme-sap_horizon_dark {
+html[class*="_dark"],
+html[class*="_hcb"] {
 	--sapBrandColor: #9d8bff;
 	--sapHighlightColor: #9d8bff;
 	--sapSelectedColor: #9d8bff;
@@ -255,7 +382,10 @@ html.sapUiTheme-sap_horizon_dark {
 	max-width: 400px;
 	border-radius: 16px;
 	box-shadow: 0 18px 50px rgba(20, 10, 60, 0.35);
-	background: var(--sapGroup_ContentBackground, #ffffff);
+	/* Opaque on purpose — the card sits on the purple gradient hero, so it cannot be a
+	   translucent tint. Hence a token with a real dark variant rather than a hardcoded
+	   #ffffff, which would have put dark-theme light text on a white card. */
+	background: var(--appCardBg);
 }
 
 .loginCard .sapMPanelContent {
@@ -269,6 +399,104 @@ html.sapUiTheme-sap_horizon_dark {
 
 /* ── Model Explorer ─────────────────────────────────────────────────────────── */
 .modelKeyIcon {
-	color: var(--sapWarningColor, #e9730c);
+	color: var(--appKeyIcon);
+}
+
+/* ── Home KPI tiles ──────────────────────────────────────────────────────────
+   The four registry-count tiles are fixed-width GenericTiles; in a plain HBox
+   they hug the left and leave dead space on the right. Letting them flex-grow
+   equally makes the row span the full width like the panels below, while the
+   flex-basis keeps them wrapping onto multiple rows on narrow screens. */
+.kpiTileRow {
+	width: 100%;
+	gap: 0.75rem;
+	align-items: stretch;
+}
+
+.kpiTileRow > .kpiTile {
+	flex: 1 1 11rem;
+	width: auto !important;
+}
+
+/* ── Scan Activity chart ─────────────────────────────────────────────────────
+   Custom bar chart on the Home dashboard. Replaces the stock ColumnMicroChart,
+   which rendered thin, left-hugging columns with no axis or context. Bars are
+   plain divs sized inline (height %) by the controller; the today/empty state
+   is emitted as a data-attribute via writeToDom CustomData (same pattern as the
+   diff and chat styling above) so CSS can theme each state. */
+:root {
+	--appScanBarTop: #7c63e6;
+	--appScanBarBottom: #5b3fd6;
+	--appScanBarTodayTop: #a693ff;
+	--appScanBarTodayBottom: #6d54e0;
+}
+
+/* Substring match, not `html.sapUiTheme-sap_horizon_dark` — see trap 2 at the top of
+   this file. FLP runs the Quartz family, so the exact-id form never applied there. */
+html[class*="_dark"],
+html[class*="_hcb"] {
+	--appScanBarTop: #9d8bff;
+	--appScanBarBottom: #6d54e0;
+	--appScanBarTodayTop: #b3a4ff;
+	--appScanBarTodayBottom: #7d66ec;
+}
+
+/* No `color` here on purpose. These were `var(--sapTextColor, #223548)` — a very dark
+   navy that, on 1.108 where the variable does not exist, painted itself onto the dark
+   shell at 1.43:1 and made the headline figures invisible. `--sapTextColor` is the
+   inherited text colour anyway, so simply not setting one is both correct and shorter. */
+.scanActivityTotal {
+	font-size: 1.75rem;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.scanActivityPeak {
+	font-size: 0.875rem;
+	font-weight: 600;
+}
+
+.scanActivityCaption {
+	font-size: 0.75rem;
+	opacity: 0.75;
+}
+
+/* The bar row. flex-end anchors bars to the baseline; the border is the axis. */
+.scanActivityChart {
+	align-items: flex-end;
+	height: 6rem;
+	gap: 5px;
+	padding-top: 0.25rem;
+	border-bottom: 1px solid rgba(127, 127, 127, 0.35);
+}
+
+.scanActivityCol {
+	flex: 1 1 0;
+	height: 100%;
+	min-width: 0;
+	justify-content: flex-end;
+	cursor: default;
+}
+
+.scanActivityBar {
+	width: 100%;
+	min-height: 4px;
+	border-radius: 4px 4px 0 0;
+	background: linear-gradient(180deg, var(--appScanBarTop) 0%, var(--appScanBarBottom) 100%);
+	transition: filter 0.15s ease;
+}
+
+.scanActivityCol:hover .scanActivityBar {
+	filter: brightness(1.1);
+}
+
+.scanActivityBar[data-scanbar="today"] {
+	background: linear-gradient(180deg, var(--appScanBarTodayTop) 0%, var(--appScanBarTodayBottom) 100%);
+	box-shadow: 0 0 0 2px rgba(140, 115, 255, 0.45);
+}
+
+.scanActivityBar[data-scanbar="empty"] {
+	background: rgba(127, 127, 127, 0.35);
+	opacity: 0.55;
 }
 

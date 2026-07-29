@@ -7,7 +7,7 @@
 	xmlns:f="sap.f"
 	xmlns:l="sap.ui.layout">
 
-	<f:DynamicPage id="registryListPage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="registryListPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
@@ -18,38 +18,48 @@
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
 				<VBox width="100%">
-					<Toolbar design="Transparent" style="Clear">
+					<OverflowToolbar design="Transparent" style="Clear">
 						<Button text="Create Registry" type="Emphasized" press=".onCreateRegistry" visible="{ui>/canCreate}" />
 						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
-						<ToolbarSpacer />
-						<Select selectedKey="{registryList>/searchField}" change=".onFilterChange" class="sapUiTinyMarginEnd">
-							<core:Item key="all" text="All Fields" />
-							<core:Item key="registryName" text="Registry Name" />
-							<core:Item key="registryId" text="Registry ID" />
-						</Select>
-						<SearchField width="15rem" placeholder="Global search" value="{registryList>/search}" search=".onFilterChange" />
-					</Toolbar>
-					<HBox wrap="Wrap" alignItems="Center" class="sapUiTinyMarginTop">
-						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Service Type" />
-							<Select width="10rem" selectedKey="{registryList>/groupType}" change=".onFilterChange" items="{registryList>/groupTypes}">
-								<core:Item key="{registryList>key}" text="{registryList>text}" />
+					</OverflowToolbar>
+					<!--
+						Search sits on the filter row, not on the button toolbar above it: it is a
+						filter, and pairing it with Create/Refresh read as an action. alignItems="End"
+						on both boxes bottom-aligns everything, so the Select and SearchField line up
+						with the filter *controls* rather than with their labels — the labelled VBoxes
+						are taller by exactly one label.
+					-->
+					<HBox wrap="Wrap" alignItems="End" justifyContent="SpaceBetween" width="100%" class="sapUiTinyMarginTop">
+						<HBox wrap="Wrap" alignItems="End">
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Service Type" />
+								<Select width="10rem" selectedKey="{registryList>/groupType}" change=".onFilterChange" items="{registryList>/groupTypes}">
+									<core:Item key="{registryList>key}" text="{registryList>text}" />
+								</Select>
+							</VBox>
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Status" />
+								<Select width="10rem" selectedKey="{registryList>/status}" change=".onFilterChange" items="{registryList>/statuses}">
+									<core:Item key="{registryList>key}" text="{registryList>text}" />
+								</Select>
+							</VBox>
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Registry Name" />
+								<Input width="12rem" value="{registryList>/registryName}" placeholder="Filter by Name" submit=".onFilterChange" />
+							</VBox>
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Created By" />
+								<Input width="12rem" value="{registryList>/createdBy}" placeholder="Filter by User" submit=".onFilterChange" />
+							</VBox>
+						</HBox>
+						<HBox alignItems="End">
+							<Select selectedKey="{registryList>/searchField}" change=".onFilterChange" class="sapUiTinyMarginEnd">
+								<core:Item key="all" text="All Fields" />
+								<core:Item key="registryName" text="Registry Name" />
+								<core:Item key="registryId" text="Registry ID" />
 							</Select>
-						</VBox>
-						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Status" />
-							<Select width="10rem" selectedKey="{registryList>/status}" change=".onFilterChange" items="{registryList>/statuses}">
-								<core:Item key="{registryList>key}" text="{registryList>text}" />
-							</Select>
-						</VBox>
-						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Registry Name" />
-							<Input width="12rem" value="{registryList>/registryName}" placeholder="Filter by Name" submit=".onFilterChange" />
-						</VBox>
-						<VBox>
-							<Label text="Created By" />
-							<Input width="12rem" value="{registryList>/createdBy}" placeholder="Filter by User" submit=".onFilterChange" />
-						</VBox>
+							<SearchField width="15rem" placeholder="Global search" value="{registryList>/search}" search=".onFilterChange" />
+						</HBox>
 					</HBox>
 				</VBox>
 			</f:DynamicPageHeader>
@@ -58,24 +68,24 @@
 			<VBox width="100%" class="sapUiSmallMargin">
 				<Table id="registryTable" items="{registryList>/items}" busy="{registryList>/busy}" mode="None" growing="true" sticky="ColumnHeaders">
 					<headerToolbar>
-						<Toolbar>
+						<OverflowToolbar>
 							<Title text="Registries" level="H2" />
 							<ToolbarSpacer />
 							<Button icon="sap-icon://sort" press=".onSortPress" tooltip="Sort" />
 							<ObjectStatus text="{= ${registryList>/items}.length + ' items' }" state="Information" class="sapUiSmallMarginBegin" />
-						</Toolbar>
+						</OverflowToolbar>
 					</headerToolbar>
 					<columns>
-						<Column width="14rem"><Text text="Registry Name" /></Column>
-						<Column width="12rem"><Text text="Service Name" /></Column>
-						<Column width="8rem"><Text text="Service Type" /></Column>
-						<Column width="6rem"><Text text="Version No" /></Column>
+						<Column width="16rem"><Text text="Registry Name" /></Column>
+						<Column width="12rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Service Name" /></Column>
+						<Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Service Type" /></Column>
+						<Column width="6rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Version No" /></Column>
 						<Column width="9rem"><Text text="Current Status" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Created By" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Created At" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Last Changed By" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Last Changed At" /></Column>
-						<Column width="10rem" visible="{ui>/canUpdate}"><Text text="Actions" /></Column>
+						<Column width="10rem" minScreenWidth="Tablet" demandPopin="true" visible="{ui>/canUpdate}"><Text text="Actions" /></Column>
 					</columns>
 					<items>
 						<ColumnListItem type="Navigation" press=".onRowPress">

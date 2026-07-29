@@ -9,7 +9,7 @@
 		"strictNullChecks": false,
 		"strictPropertyInitialization": false,
 		"rootDir": "./webapp",
-		"types": ["@sapui5/types", "@types/qunit"],
+		"types": ["@sapui5/ts-types-esm", "@types/qunit"],
 		"paths": {
 			"com/zgp9/fe/*": ["./webapp/*"],
 			"unit/*": ["./webapp/test/unit/*"],

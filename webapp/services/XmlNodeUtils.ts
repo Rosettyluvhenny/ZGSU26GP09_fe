@@ -183,9 +183,10 @@ export function buildNodeTree(items: NodeTreeResponseItem[]): NodeTreeViewItem[]
 
 	const sortTree = (nodes: NodeTreeViewItem[]): void => {
 		nodes.sort((left, right) => {
+			// Attribute group / attributes first, then element children by seq.
 			const leftKind = Number(Boolean(left.isAttributeGroup)) + Number(Boolean(left.isAttribute));
 			const rightKind = Number(Boolean(right.isAttributeGroup)) + Number(Boolean(right.isAttribute));
-			return leftKind - rightKind || left.seq - right.seq || left.depth - right.depth;
+			return rightKind - leftKind || left.seq - right.seq || left.depth - right.depth;
 		});
 		for (const node of nodes) {
 			sortTree(node.children);
@@ -341,11 +342,96 @@ export function normalizeXmlLine(line: string): string {
 	return `<${tagName}${attrStr ? ' ' + attrStr : ''}${close}`;
 }
 
+/** Name/Namespace identity — rename ⇒ delete+add (match NodeTree), not mod. */
+const IDENTITY_ATTRS = ['Name', 'Namespace'] as const;
+
+function parseXmlElementLine(line: string): { kind: 'open' | 'close'; tagName: string; identity: string | null } | null {
+	const trimmed = line.trim();
+	if (!trimmed.startsWith('<')
+			|| trimmed.startsWith('<!--') || trimmed.startsWith('<?') || trimmed.startsWith('<!')) {
+		return null;
+	}
+
+	const close = /^<\/([\w:.-]+)\s*>$/.exec(trimmed);
+	if (close) {
+		return { kind: 'close', tagName: close[1], identity: null };
+	}
+
+	const open = /^<([\w:.-]+)([\s\S]*?)\s*\/?>$/.exec(trimmed);
+	if (!open) {
+		return null;
+	}
+
+	const tagName = open[1];
+	const attrBlock = open[2] ?? '';
+	let identity: string | null = null;
+	for (const attrName of IDENTITY_ATTRS) {
+		const rx = new RegExp(`(?:^|\\s)${attrName}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`);
+		const am = rx.exec(attrBlock);
+		if (am) {
+			identity = `${attrName}=${am[1] ?? am[2] ?? ''}`;
+			break;
+		}
+	}
+
+	return { kind: 'open', tagName, identity };
+}
+
+function xmlLineSimilarity(a: string, b: string): number {
+	const ka = normalizeXmlLine(a);
+	const kb = normalizeXmlLine(b);
+	if (ka === kb) return 1;
+	const tokenize = (s: string) => new Set(s.match(/\S+/g) ?? []);
+	const sa = tokenize(ka);
+	const sb = tokenize(kb);
+	if (sa.size === 0 && sb.size === 0) return 1;
+	if (sa.size === 0 || sb.size === 0) return 0;
+	let common = 0;
+	sa.forEach((t) => { if (sb.has(t)) common++; });
+	return (2 * common) / (sa.size + sb.size);
+}
+
 /**
- * Computes a line-level diff between two arrays of text lines using LCS.
+ * True only for attribute-only edits on the same tag + Name/Namespace.
+ * Rename / tag change must stay del+ins (NodeTree DELETED+ADDED).
  *
- * @param keyFn  Optional normalizer applied to both arrays before comparison.
- *               The original lines (not keys) are stored in the returned ops.
+ * When tag + identity match, always treat as mod (ignore token similarity) so a
+ * multi-attribute edit cannot flip to del+ins while NodeTree still says MODIFIED.
+ * Similarity is only a fallback for lines without Name/Namespace (text, <key>, …).
+ */
+export function canMergeAsXmlModification(baseLine: string, compareLine: string, minSimilarity = 0.5): boolean {
+	const baseInfo = parseXmlElementLine(baseLine);
+	const compareInfo = parseXmlElementLine(compareLine);
+
+	if (baseInfo || compareInfo) {
+		if (!baseInfo || !compareInfo) {
+			return false;
+		}
+		if (baseInfo.kind !== compareInfo.kind || baseInfo.tagName !== compareInfo.tagName) {
+			return false;
+		}
+		if ((baseInfo.identity ?? '') !== (compareInfo.identity ?? '')) {
+			return false;
+		}
+		// Same element identity ⇒ attribute-only change ⇒ mod (align with NodeTree).
+		if (baseInfo.identity !== null) {
+			return true;
+		}
+	}
+
+	return xmlLineSimilarity(baseLine, compareLine) >= minSimilarity;
+}
+
+/**
+ * Computes a line-level diff between two arrays of text lines.
+ *
+ * Uses a forward sync with look-ahead instead of classic LCS backtrack.
+ * LCS is optimal in length but, for repeated tokens like `</EntityType>`,
+ * its backtrack often pairs a base closing tag with a *later* compare copy
+ * (e.g. from a newly inserted entity), which makes the real closing tag look
+ * inserted. Preferring the nearest forward sync point keeps local structure.
+ *
+ * @param keyFn  Optional normalizer applied before comparison only.
  *               Pass `normalizeXmlLine` for XML content.
  */
 export function computeLineDiff(
@@ -353,39 +439,58 @@ export function computeLineDiff(
 	compareLines: string[],
 	keyFn?: (line: string) => string
 ): LineDiffOp[] {
-	const m = baseLines.length;
-	const n = compareLines.length;
 	const key = keyFn ?? ((s: string) => s);
 	const baseKeys = baseLines.map(key);
 	const compareKeys = compareLines.map(key);
+	const m = baseKeys.length;
+	const n = compareKeys.length;
+	const ops: LineDiffOp[] = [];
 
-	// Build LCS dp table using normalized keys
-	const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0) as number[]);
-	for (let i = 1; i <= m; i++) {
-		for (let j = 1; j <= n; j++) {
-			dp[i][j] = baseKeys[i - 1] === compareKeys[j - 1]
-				? dp[i - 1][j - 1] + 1
-				: Math.max(dp[i - 1][j], dp[i][j - 1]);
+	let i = 0;
+	let j = 0;
+	while (i < m && j < n) {
+		if (baseKeys[i] === compareKeys[j]) {
+			ops.push({ op: 'same', baseLine: baseLines[i], compareLine: compareLines[j] });
+			i++;
+			j++;
+			continue;
+		}
+
+		// Nearest place the current base line appears later in compare, and vice versa.
+		const jMatch = compareKeys.indexOf(baseKeys[i], j + 1);
+		const iMatch = baseKeys.indexOf(compareKeys[j], i + 1);
+		const skipCompare = jMatch === -1 ? Number.POSITIVE_INFINITY : jMatch - j;
+		const skipBase = iMatch === -1 ? Number.POSITIVE_INFINITY : iMatch - i;
+
+		if (skipCompare === Number.POSITIVE_INFINITY && skipBase === Number.POSITIVE_INFINITY) {
+			// No resync — treat as a one-line replace.
+			ops.push({ op: 'del', line: baseLines[i] });
+			ops.push({ op: 'ins', line: compareLines[j] });
+			i++;
+			j++;
+		} else if (skipCompare < skipBase) {
+			// Insert compare lines until we hit the base line again (added block).
+			while (j < jMatch) {
+				ops.push({ op: 'ins', line: compareLines[j] });
+				j++;
+			}
+		} else {
+			// Delete base lines until we hit the compare line again (removed block).
+			// On equal skip distance, prefer delete so reorderings stay cleaner.
+			while (i < iMatch) {
+				ops.push({ op: 'del', line: baseLines[i] });
+				i++;
+			}
 		}
 	}
 
-	// Backtrack – prefer "leftmost match" to avoid pairing later occurrences
-	// of repeated tokens when an earlier match is available.
-	const ops: LineDiffOp[] = [];
-	let i = m, j = n;
-	while (i > 0 || j > 0) {
-		if (i > 0 && j > 0 && baseKeys[i - 1] === compareKeys[j - 1]
-				&& dp[i - 1][j] < dp[i][j]) {
-			// Store ORIGINAL lines so each side can display its own text
-			ops.unshift({ op: 'same', baseLine: baseLines[i - 1], compareLine: compareLines[j - 1] });
-			i--; j--;
-		} else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-			ops.unshift({ op: 'ins', line: compareLines[j - 1] });
-			j--;
-		} else {
-			ops.unshift({ op: 'del', line: baseLines[i - 1] });
-			i--;
-		}
+	while (i < m) {
+		ops.push({ op: 'del', line: baseLines[i] });
+		i++;
+	}
+	while (j < n) {
+		ops.push({ op: 'ins', line: compareLines[j] });
+		j++;
 	}
 
 	return ops;

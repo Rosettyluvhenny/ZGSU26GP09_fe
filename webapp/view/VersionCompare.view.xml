@@ -5,25 +5,23 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:f="sap.f">
 
-	<f:DynamicPage id="versionComparePage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="versionComparePage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="Version Comparison" level="H1" />
+					<HBox alignItems="Center">
+						<Title text="Version Comparison" level="H1" />
+						<ObjectStatus text="{versionCompare>/changeCount} changed" icon="sap-icon://edit" state="Warning" class="sapUiMediumMarginBegin" />
+						<ObjectStatus text="{versionCompare>/differCount} different" icon="sap-icon://compare" state="Error" class="sapUiMediumMarginBegin" />
+						<ObjectStatus text="{versionCompare>/unchangeCount} unchanged" icon="sap-icon://accept" state="Success" class="sapUiMediumMarginBegin" />
+					</HBox>
 				</f:heading>
-				<f:content>
-					<ObjectStatus text="{versionCompare>/changeCount} changed" icon="sap-icon://edit" state="Warning" />
-					<ObjectStatus text="{versionCompare>/differCount} different" icon="sap-icon://compare" state="Error" class="sapUiMediumMarginBegin" />
-					<ObjectStatus text="{versionCompare>/unchangeCount} unchanged" icon="sap-icon://accept" state="Success" class="sapUiMediumMarginBegin" />
-				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
 		<f:header>
 			<f:DynamicPageHeader pinnable="false">
 				<OverflowToolbar>
 					<Button text="Back" icon="sap-icon://nav-back" press=".onNavBack" />
-					<Button text="Copy Left XML" press=".onCopyLeftXml" />
-					<Button text="Copy Right XML" press=".onCopyRightXml" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
@@ -32,16 +30,26 @@
 				<IconTabBar id="versionCompareTabs" expandable="false" selectedKey="change" class="sapUiResponsiveContentPadding">
 					<items>
 						<IconTabFilter key="change" icon="sap-icon://edit" iconColor="Critical" text="Changed" count="{versionCompare>/changeCount}">
+							<!-- Column widths must stay well under the content width available inside the
+								 launchpad (~65rem after the shell bar and side nav). sap.m.Table uses
+								 table-layout:fixed, which will NOT shrink below the sum of the declared
+								 widths — it overflows and is clipped with no horizontal scrollbar, so the
+								 last column simply disappears. At the original 18+16+16+10+9=69rem the
+								 Action column and its View Detail button were invisible in FLP. -->
 							<Table items="{versionCompare>/change}" growing="true" noDataText="No changed details.">
 								<columns>
-									<Column width="18rem"><Text text="Service Def" /></Column>
-									<Column width="16rem"><Text text="Base Detail" /></Column>
-									<Column width="16rem"><Text text="Compare Detail" /></Column>
-									<Column width="10rem"><Text text="Type" /></Column>
-									<Column width="9rem"><Text text="Action" /></Column>
+									<Column width="14rem"><Text text="Service Def" /></Column>
+									<Column width="14rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Base Detail" /></Column>
+									<Column width="14rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Compare Detail" /></Column>
+									<Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
+									<Column width="8rem"><Text text="Action" /></Column>
 								</columns>
 								<items>
-									<ColumnListItem>
+									<!-- Navigable row as well as the button: the row keeps working when the
+										 window is narrow enough to clip the Action column, and it matches
+										 JobList's chevron pattern. Same handler — a ColumnListItem carries
+										 the binding context the button did. -->
+									<ColumnListItem type="Navigation" press=".onViewDetail">
 										<cells>
 											<Text text="{versionCompare>serviceDefId}" />
 											<Text text="{versionCompare>baseDetailId}" />
@@ -57,14 +65,14 @@
 						<IconTabFilter key="differ" icon="sap-icon://compare" iconColor="Negative" text="Different" count="{versionCompare>/differCount}">
 							<Table items="{versionCompare>/differ}" growing="true" noDataText="No differing details.">
 								<columns>
-									<Column width="18rem"><Text text="Service Def" /></Column>
-									<Column width="16rem"><Text text="Base Detail" /></Column>
-									<Column width="16rem"><Text text="Compare Detail" /></Column>
-									<Column width="10rem"><Text text="Type" /></Column>
-									<Column width="9rem"><Text text="Action" /></Column>
+									<Column width="14rem"><Text text="Service Def" /></Column>
+									<Column width="14rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Base Detail" /></Column>
+									<Column width="14rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Compare Detail" /></Column>
+									<Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
+									<Column width="8rem"><Text text="Action" /></Column>
 								</columns>
 								<items>
-									<ColumnListItem>
+									<ColumnListItem type="Navigation" press=".onViewDifferentDetail">
 										<cells>
 											<Text text="{versionCompare>serviceDefId}" />
 											<Text text="{versionCompare>baseDetailId}" />
@@ -78,12 +86,14 @@
 						</IconTabFilter>
 
 						<IconTabFilter key="unchange" icon="sap-icon://accept" iconColor="Positive" text="Unchanged" count="{versionCompare>/unchangeCount}">
+							<!-- No action on this tab, so the row stays non-navigable. Widths kept in
+								 line with the other two so the three tabs do not jump when switching. -->
 							<Table items="{versionCompare>/unchange}" growing="true" noDataText="No unchanged details.">
 								<columns>
-									<Column width="18rem"><Text text="Service Def" /></Column>
-									<Column width="16rem"><Text text="Base Detail" /></Column>
-									<Column width="16rem"><Text text="Compare Detail" /></Column>
-									<Column width="10rem"><Text text="Type" /></Column>
+									<Column width="14rem"><Text text="Service Def" /></Column>
+									<Column width="14rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Base Detail" /></Column>
+									<Column width="14rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Compare Detail" /></Column>
+									<Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
 								</columns>
 								<items>
 									<ColumnListItem>

@@ -67,6 +67,7 @@ export interface Job {
 	executedBy: string;
 
 	triggerType: string;
+	triggerText: string;
 	totalRegistry: number;
 	changeCount: number;
 	newVersionCount: number;
@@ -79,6 +80,8 @@ export interface Job {
 export interface LogEntry {
 	id: string;
 	actionType: string;
+	/** Human-readable action label from BE (ActionText); fall back to actionType if missing. */
+	actionText: string;
 	actor: string;
 	actionAt: string;
 	ipAddress: string;
@@ -86,6 +89,7 @@ export interface LogEntry {
 	logResult: string;
 	objectId: string;
 	objectIdType: string;
+	jobId: string;
 }
 
 export interface SessionData {
@@ -145,7 +149,7 @@ export interface XmlLineEntry {
 	text: string;
 	isWhitespace: boolean;
 	highlight?: string;
-	lineType?: 'same' | 'del' | 'ins' | 'empty';
+	lineType?: 'same' | 'del' | 'ins' | 'mod' | 'empty';
 }
 
 export interface VersionActionResult {

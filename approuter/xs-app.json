@@ -1,10 +1,33 @@
 {
     "welcomeFile": "/index.html",
     "authenticationMethod": "route",
+    "logout": {
+        "logoutEndpoint": "/logout",
+        "logoutPage": "/logout.html"
+    },
     "routes": [
+        {
+            "source": "^/logout.html$",
+            "localDir": "resources",
+            "authenticationType": "none"
+        },
         {
             "source": "^/sap/(.*)$",
             "destination": "S40",
+            "authenticationType": "xsuaa",
+            "csrfProtection": false
+        },
+        {
+            "source": "^/ai/groq/chat/completions$",
+            "target": "/chat/completions",
+            "destination": "AI_GROQ",
+            "authenticationType": "xsuaa",
+            "csrfProtection": false
+        },
+        {
+            "source": "^/ai/openrouter/chat/completions$",
+            "target": "/chat/completions",
+            "destination": "AI_OPENROUTER",
             "authenticationType": "xsuaa",
             "csrfProtection": false
         },

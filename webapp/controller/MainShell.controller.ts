@@ -1,5 +1,6 @@
-import Theming from "sap/ui/core/Theming";
+import Core from "sap/ui/core/Core";
 import type Control from "sap/ui/core/Control";
+import type { Router$RouteMatchedEvent } from "sap/ui/core/routing/Router";
 
 import BaseController from "./BaseController";
 import ODataClient from "../services/ODataClient";
@@ -15,13 +16,17 @@ export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
 
 	public onInit(): void {
-		this.getRouter().attachRouteMatched((event) => { void this.onGlobalRouteMatched(event); });
+		this.getRouter().attachRouteMatched((event: Router$RouteMatchedEvent) => { this.onGlobalRouteMatched(event); });
 
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
 		});
 
-		const sideNavVisible = readSideNavPreference();
+		// On phone-width screens the side navigation renders as a full-screen overlay,
+		// so default it collapsed and let the user open it via the menu button — the
+		// stored preference only drives the desktop/tablet experience.
+		const isPhoneWidth = window.matchMedia("(max-width: 599px)").matches;
+		const sideNavVisible = isPhoneWidth ? false : readSideNavPreference();
 		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
 		this.applySideNavVisibility(sideNavVisible);
 
@@ -59,7 +64,7 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	private async onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): Promise<void> {
+	private onGlobalRouteMatched(event: Router$RouteMatchedEvent): void {
 		const routeName = event.getParameter("name");
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
@@ -102,12 +107,13 @@ export default class MainShell extends BaseController {
 	public onToggleTheme(): void {
 		const nextIsDark = !this.getUiModel().getProperty("/isDarkTheme");
 		const nextTheme = nextIsDark ? DARK_THEME : LIGHT_THEME;
-		Theming.setTheme(nextTheme);
+		// ui5lint-disable-next-line no-deprecated-api -- sap/ui/core/Theming does not exist on the launchpad's UI5 1.108.33
+		Core.applyTheme(nextTheme);
 		writeThemePreference(nextTheme);
 		this.getUiModel().setProperty("/isDarkTheme", nextIsDark);
 	}
 
-	public async onLogout(): Promise<void> {
+	public onLogout(): void {
 		ODataClient.clearSecurityState();
 		(this.getSessionModel()).setData({
 			userName: "",
@@ -115,10 +121,44 @@ export default class MainShell extends BaseController {
 			loginAt: null,
 		});
 		this.getUiModel().setProperty("/canExecuteScanJob", false);
-		window.location.reload();
+		this.redirectToLogout();
+	}
+
+	/**
+	 * Ends the session the way the standalone host expects.
+	 *
+	 * There is deliberately no launchpad branch here. Embedded, the FLP owns the session and
+	 * logout happens through the shell bar's avatar menu; the app's own Logout button — the
+	 * only caller of this method — is hidden when embedded (FLP_MIGRATION.md 3.3), so an
+	 * `isInLaunchpad()` branch was unreachable code and was deleted. See 3.4.
+	 *
+	 * Known gap, unchanged by that deletion: on the **ABAP standalone** URL "/logout" does not
+	 * exist — it is an approuter endpoint — so that host has been 404ing on logout all along.
+	 *
+	 * Standalone on BTP, "/logout" is the approuter's central logout endpoint: it clears the
+	 * approuter session cookie and the XSUAA session, then redirects to the configured
+	 * logoutPage. A plain reload cannot do this — the session cookie survives it, so the
+	 * approuter re-serves the app and the user appears stuck logged in.
+	 *
+	 * The live logoutPage is "/logout.html", from approuter/xs-app.json. Note the root
+	 * xs-app.json still says "/" — it is bundled into the app zip but is not what the
+	 * standalone approuter reads (FLP_MIGRATION.md deferred finding A). Locally
+	 * ui5-middleware-sap-proxy mirrors /logout as a redirect to /logout.html, so this branch
+	 * is exercisable with npm start.
+	 *
+	 * Isolated for unit tests so the QUnit page is not navigated under the runner.
+	 */
+	protected redirectToLogout(): void {
+		window.location.assign("/logout");
 	}
 
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {
+		// On phone the nav is a full-screen overlay; close it so it doesn't cover the
+		// page the user just navigated to.
+		if (window.matchMedia("(max-width: 599px)").matches && this.getUiModel().getProperty("/sideNavVisible")) {
+			this.getUiModel().setProperty("/sideNavVisible", false);
+			this.applySideNavVisibility(false);
+		}
 		this.pendingRoute = route;
 		this.flushPendingNavigation();
 	}
@@ -129,20 +169,11 @@ export default class MainShell extends BaseController {
 		}
 
 		if (!this.byId("shellFcl")) {
-			console.log("shellFcl not found yet, waiting...");
 			return;
 		}
 
 		const route = this.pendingRoute;
 		this.pendingRoute = null;
-		const fcl = this.byId("shellFcl");
-		console.log("id:", fcl?.getId());
-		console.log("class:", fcl?.getMetadata().getName());
-		console.log("is FCL:", fcl?.isA("sap.f.FlexibleColumnLayout"));
 		this.navTo(route, {}, true);
-	}
-
-	private getCurrentHash(): string {
-		return window.location.hash.replace(/^#/, "");
 	}
 }

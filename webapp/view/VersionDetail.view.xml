@@ -8,7 +8,7 @@
 	xmlns:form="sap.ui.layout.form"
 	xmlns:core="sap.ui.core">
 
-	<f:DynamicPage id="versionDetailPage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="versionDetailPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
@@ -56,7 +56,7 @@
 							selectedKey="{versionDetail>/selectedDetail/id}"
 							change=".onDetailChange"
 							items="{versionDetail>/details}">
-								<core:Item width="100%" key="{versionDetail>id}" text="{= ${versionDetail>serviceDefinition} }" />
+								<core:Item key="{versionDetail>id}" text="{= ${versionDetail>serviceDefinition} }" />
 						</Select>
 						<form:SimpleForm class="sapUiSmallMarginTop" layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
 							<form:content>
@@ -83,7 +83,7 @@
 					<ToolbarSpacer />
 				</OverflowToolbar>
 
-				<l:Splitter width="100%" height="40rem" class="sapUiSmallMarginTop">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '64rem' : '40rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }" class="sapUiSmallMarginTop">
 					<Page title="Node Tree" showHeader="true" enableScrolling="false" busy="{versionDetail>/selectedDetailBusy}" class="versionDetailSplitPage">
 						<layoutData>
 							<l:SplitterLayoutData size="24rem" resizable="true" />

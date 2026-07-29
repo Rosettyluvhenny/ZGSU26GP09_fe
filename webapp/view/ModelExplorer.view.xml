@@ -7,16 +7,16 @@
 	xmlns:l="sap.ui.layout"
 	xmlns:core="sap.ui.core">
 
-	<f:DynamicPage id="modelExplorerPage" toggleHeaderOnTitleClick="false" busy="{model>/busy}">
+	<f:DynamicPage id="modelExplorerPage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true" busy="{model>/busy}">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="Model Explorer" level="H1" />
+					<HBox alignItems="Center">
+						<Title text="Model Explorer" level="H1" />
+						<Title text="{model>/serviceName}" level="H3" visible="{= !!${model>/serviceName} }" class="sapUiMediumMarginBegin" />
+						<ObjectStatus text="OData {model>/version}" state="Information" class="sapUiMediumMarginBegin" visible="{= !!${model>/version} }" />
+					</HBox>
 				</f:heading>
-				<f:content>
-					<Title text="{model>/serviceName}" level="H3" visible="{= !!${model>/serviceName} }" />
-					<ObjectStatus text="OData {model>/version}" state="Information" class="sapUiMediumMarginBegin" visible="{= !!${model>/version} }" />
-				</f:content>
 			</f:DynamicPageTitle>
 		</f:title>
 		<f:header>
@@ -46,7 +46,7 @@
 					class="sapUiSmallMarginBottom"
 					visible="{= !!${model>/parseError} }" />
 
-				<l:Splitter width="100%" height="42rem">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '64rem' : '42rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }">
 					<!-- Left: categorised element lists -->
 					<Page showHeader="false" enableScrolling="false" class="versionDetailSplitPage">
 						<layoutData>
@@ -62,40 +62,39 @@
 								<items>
 									<IconTabFilter key="entities" icon="sap-icon://tree" tooltip="Entity Types" text="Entities" count="{model>/counts/entityTypes}">
 										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
-											<List items="{model>/entityTypes}" mode="SingleSelectMaster" noDataText="No entity types">
+											<List items="{model>/entityTypes}" mode="SingleSelectMaster" noDataText="No entity types" selectionChange=".onSelectEntityType">
 												<StandardListItem
 													title="{model>name}"
 													description="{= ${model>keys}.length + ' key · ' + ${model>properties}.length + ' props' }"
-													type="Active"
-													press=".onSelectEntityType" />
+													type="Active" />
 											</List>
 										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="sets" icon="sap-icon://database" tooltip="Entity Sets" text="Sets" count="{model>/counts/entitySets}">
 										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
-											<List items="{model>/entitySets}" mode="SingleSelectMaster" noDataText="No entity sets">
-												<StandardListItem title="{model>name}" description="{model>entityType}" type="Active" press=".onSelectEntitySet" />
+											<List items="{model>/entitySets}" mode="SingleSelectMaster" noDataText="No entity sets" selectionChange=".onSelectEntitySet">
+												<StandardListItem title="{model>name}" description="{model>entityType}" type="Active" />
 											</List>
 										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="complex" icon="sap-icon://combine" tooltip="Complex Types" text="Complex" count="{model>/counts/complexTypes}">
 										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
-											<List items="{model>/complexTypes}" mode="SingleSelectMaster" noDataText="No complex types">
-												<StandardListItem title="{model>name}" description="{= ${model>properties}.length + ' props' }" type="Active" press=".onSelectComplexType" />
+											<List items="{model>/complexTypes}" mode="SingleSelectMaster" noDataText="No complex types" selectionChange=".onSelectComplexType">
+												<StandardListItem title="{model>name}" description="{= ${model>properties}.length + ' props' }" type="Active" />
 											</List>
 										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="enums" icon="sap-icon://list" tooltip="Enum Types" text="Enums" count="{model>/counts/enumTypes}">
 										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
-											<List items="{model>/enumTypes}" mode="SingleSelectMaster" noDataText="No enum types">
-												<StandardListItem title="{model>name}" description="{= ${model>members}.length + ' members' }" type="Active" press=".onSelectEnumType" />
+											<List items="{model>/enumTypes}" mode="SingleSelectMaster" noDataText="No enum types" selectionChange=".onSelectEnumType">
+												<StandardListItem title="{model>name}" description="{= ${model>members}.length + ' members' }" type="Active" />
 											</List>
 										</ScrollContainer>
 									</IconTabFilter>
 									<IconTabFilter key="ops" icon="sap-icon://action" tooltip="Actions &amp; Functions" text="Ops" count="{model>/counts/operations}">
 										<ScrollContainer height="100%" width="100%" vertical="true" horizontal="false">
-											<List items="{model>/operations}" mode="SingleSelectMaster" noDataText="No actions or functions">
-												<StandardListItem title="{model>name}" description="{model>kind}" type="Active" press=".onSelectOperation" />
+											<List items="{model>/operations}" mode="SingleSelectMaster" noDataText="No actions or functions" selectionChange=".onSelectOperation">
+												<StandardListItem title="{model>name}" description="{model>kind}" type="Active" />
 											</List>
 										</ScrollContainer>
 									</IconTabFilter>

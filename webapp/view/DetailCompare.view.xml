@@ -6,7 +6,7 @@
 	xmlns:f="sap.f"
 	xmlns:l="sap.ui.layout">
 
-	<f:DynamicPage id="detailComparePage" toggleHeaderOnTitleClick="false">
+	<f:DynamicPage id="detailComparePage" toggleHeaderOnTitleClick="false" preserveHeaderStateOnScroll="true">
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
@@ -44,7 +44,7 @@
 		</f:header>
 		<f:content>
 			<VBox class="sapUiSmallMargin" busy="{detailCompare>/compareWorkspaceBusy}">
-				<Panel expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+				<Panel expandable="true" expanded="false" class="sapUiSmallMarginBottom">
 					<headerToolbar>
 						<OverflowToolbar>
 							<Title text="Change Review" level="H3" />
@@ -58,18 +58,12 @@
 								state="Success"
 								icon="sap-icon://accept"
 								class="sapUiSmallMarginBegin" />
-							<ObjectStatus
-								text="{detailCompare>/changeCosmetic} cosmetic"
-								state="None"
-								icon="sap-icon://document-text"
-								class="sapUiSmallMarginBegin" />
 							<ToolbarSpacer />
 							<SegmentedButton selectedKey="{detailCompare>/changeFilter}" selectionChange=".onChangeFilterSelect">
 								<items>
 									<SegmentedButtonItem key="all" text="All" />
 									<SegmentedButtonItem key="Breaking" text="Breaking" />
 									<SegmentedButtonItem key="Compatible" text="Compatible" />
-									<SegmentedButtonItem key="Cosmetic" text="Cosmetic" />
 								</items>
 							</SegmentedButton>
 						</OverflowToolbar>
@@ -84,15 +78,16 @@
 								growingThreshold="50"
 								mode="None"
 								itemPress=".onChangeRowPress"
-								noDataText="No changes in this category.">
+								noDataText="No changes in this category."
+								width="100%">
 								<columns>
-									<Column width="16rem"><Text text="Element" /></Column>
-									<Column width="11rem"><Text text="Type" /></Column>
-									<Column width="10rem"><Text text="Attribute" /></Column>
-									<Column width="9rem"><Text text="Before" /></Column>
-									<Column width="9rem"><Text text="After" /></Column>
-									<Column width="9rem"><Text text="Severity" /></Column>
-									<Column><Text text="Reason" /></Column>
+									<Column width="22%" minScreenWidth="6rem"><Text text="Element" /></Column>
+									<Column width="13%" minScreenWidth="Tablet" demandPopin="true"><Text text="Type" /></Column>
+									<Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="Attribute" /></Column>
+									<Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="Before" /></Column>
+									<Column width="12%" minScreenWidth="Tablet" demandPopin="true"><Text text="After" /></Column>
+									<Column width="11%"><Text text="Severity" /></Column>
+									<Column width="18%" minScreenWidth="Tablet" demandPopin="true"><Text text="Reason" /></Column>
 								</columns>
 								<items>
 									<ColumnListItem
@@ -116,7 +111,7 @@
 					</content>
 				</Panel>
 
-				<l:Splitter width="100%" height="34rem" class="sapUiSmallMarginBottom">
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '54rem' : '34rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }" class="sapUiSmallMarginBottom">
 					<Page title="Base Node Tree ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
 						<layoutData>
 							<l:SplitterLayoutData size="50%" resizable="true" />
@@ -157,18 +152,21 @@
 					<ToolbarSpacer />
 					<SegmentedButton selectedKey="{detailCompare>/xmlViewMode}" selectionChange=".onXmlViewModeChange">
 						<items>
-							<SegmentedButtonItem key="all" text="All lines" icon="sap-icon://lines" />
+							<SegmentedButtonItem key="all" text="All lines" icon="sap-icon://text-align-justified" />
 							<SegmentedButtonItem key="changes" text="Changes only" icon="sap-icon://filter" />
 						</items>
 					</SegmentedButton>
 				</Toolbar>
 
-				<l:Splitter width="100%" height="36rem">
-					<Page title="Base XML ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
-						<layoutData>
-							<l:SplitterLayoutData size="50%" resizable="true" />
-						</layoutData>
-						<content>
+				<l:Splitter width="100%" height="{= ${ui>/isNarrowWidth} ? '58rem' : '36rem' }" orientation="{= ${ui>/isNarrowWidth} ? 'Vertical' : 'Horizontal' }">
+				<Page title="Base XML ({detailCompare>/baseDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+					<layoutData>
+						<l:SplitterLayoutData size="50%" resizable="true" />
+					</layoutData>
+					<headerContent>
+						<Button icon="sap-icon://copy" tooltip="Copy Base XML" press=".onCopyBaseXml" enabled="{= !!${detailCompare>/basePrettyXml} }" />
+					</headerContent>
+					<content>
 							<ScrollContainer class="versionDetailXmlScroll" id="baseXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
 								<Table id="baseDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/baseXmlLines}" mode="None">
 								<columns>
@@ -191,11 +189,14 @@
 							</ScrollContainer>
 						</content>
 					</Page>
-					<Page title="Compare XML ({detailCompare>/compareDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
-						<layoutData>
-							<l:SplitterLayoutData size="auto" />
-						</layoutData>
-						<content>
+				<Page title="Compare XML ({detailCompare>/compareDetailId})" showHeader="true" enableScrolling="false" class="versionDetailSplitPage">
+					<layoutData>
+						<l:SplitterLayoutData size="auto" />
+					</layoutData>
+					<headerContent>
+						<Button icon="sap-icon://copy" tooltip="Copy Compare XML" press=".onCopyCompareXml" enabled="{= !!${detailCompare>/comparePrettyXml} }" />
+					</headerContent>
+					<content>
 							<ScrollContainer class="versionDetailXmlScroll" id="compareXmlScroll" width="100%" height="100%" horizontal="true" vertical="true">
 								<Table id="compareDetailXmlTable" class="versionDetailXmlTable" width="100%" fixedLayout="false" growing="true" growingScrollToLoad="true" growingThreshold="100" items="{detailCompare>/compareXmlLines}" mode="None">
 								<columns>

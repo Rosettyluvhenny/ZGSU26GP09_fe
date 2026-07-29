@@ -1,20 +1,18 @@
 import UIComponent from 'sap/ui/core/UIComponent';
-import Device from 'sap/ui/Device';
-import * as Messaging from 'sap/ui/core/Messaging';
-import Theming from 'sap/ui/core/Theming';
+import { support } from 'sap/ui/Device';
+// UI5 1.108 has no sap/ui/core/Theming or sap/ui/core/Messaging — those modules arrived with
+// the ~1.118 core split. The Core singleton carries applyTheme/getConfiguration/
+// getMessageManager instead, and is what the launchpad's 1.108.33 runtime provides.
+import Core from 'sap/ui/core/Core';
 import JSONModel from 'sap/ui/model/json/JSONModel';
-import type { Router$BeforeRouteMatchedEvent } from 'sap/ui/core/routing/Router';
-import MessageModel from 'sap/ui/model/message/MessageModel';
 
-import { readThemePreference, writeSessionStorage } from './services/SessionStorage';
-import type { SessionData } from './model/types';
+import { readThemePreference } from './services/SessionStorage';
 
 import AuthenticationService from './services/AuthenticationService';
 import DetailService from './services/DetailService';
 import ErrorHandler from './services/ErrorHandler';
 import JobService from './services/JobService';
 import LogService from './services/LogService';
-import ODataClient from './services/ODataClient';
 import RegistryService from './services/RegistryService';
 import VersionService from './services/VersionService';
 import models from './model/models';
@@ -44,19 +42,46 @@ export default class Component extends UIComponent {
 		this.setModel(models.createDeviceModel(), 'device');
 		this.setModel(models.createSessionModel(), 'session');
 		this.setModel(models.createUiModel(), 'ui');
-		this.setModel((Messaging as unknown as { getMessageModel: () => MessageModel }).getMessageModel(), 'message');
+		// ui5lint-disable-next-line no-deprecated-api -- sap/ui/core/Messaging, the non-deprecated replacement, does not exist on the launchpad's UI5 1.108.33
+		this.setModel(Core.getMessageManager().getMessageModel(), 'message');
 
 		this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter());
 
+		this.registerViewportWidthTracking();
 
 		this.getRouter().initialize();
 	}
 
+	// Keep a viewport-width flag on the ui model so layouts (e.g. the split-view
+	// Splitters) can switch to a stacked orientation on narrow screens. Unlike
+	// device>/system/phone, this reacts to desktop window resizing and browser zoom.
+	private registerViewportWidthTracking(): void {
+		const ui = this.getModel('ui') as JSONModel;
+		// matchMedia reflects the CSS viewport width, so it fires reliably on window
+		// resize and also when the user zooms the browser (unlike Device.resize, which
+		// is throttled and can miss programmatic/emulated resizes).
+		// isPhoneWidth (<600px) drives the shell nav overlay; isNarrowWidth (<1024px)
+		// drives the split-view panes (tree ‖ XML) so they stack vertically whenever
+		// there isn't enough room to show them side by side comfortably.
+		const phoneMql = window.matchMedia('(max-width: 599px)');
+		const narrowMql = window.matchMedia('(max-width: 1023px)');
+		const update = (): void => {
+			ui.setProperty('/isPhoneWidth', phoneMql.matches);
+			ui.setProperty('/isNarrowWidth', narrowMql.matches);
+		};
+		update();
+		phoneMql.addEventListener('change', update);
+		narrowMql.addEventListener('change', update);
+		window.addEventListener('resize', update);
+	}
+
 	private applyStoredTheme(): void {
 		const storedTheme = readThemePreference();
-		if (storedTheme && storedTheme !== Theming.getTheme()) {
-			Theming.setTheme(storedTheme);
+		// ui5lint-disable-next-line no-deprecated-api -- sap/ui/core/Theming does not exist on the launchpad's UI5 1.108.33
+		if (storedTheme && storedTheme !== Core.getConfiguration().getTheme()) {
+			// ui5lint-disable-next-line no-deprecated-api -- as above; Theming.setTheme is unavailable on 1.108.33
+			Core.applyTheme(storedTheme);
 		}
 	}
 
@@ -67,7 +92,13 @@ export default class Component extends UIComponent {
 
 		const link = document.createElement('link');
 		link.rel = 'stylesheet';
-		link.href = new URL('css/style.css', document.baseURI).toString();
+		// sap.ui.require.toUrl, not new URL(…, document.baseURI): embedded in a launchpad the
+		// document *is* the launchpad's page, so baseURI points at the FLP root rather than at
+		// this app, and the stylesheet 404s. The app then renders unstyled rather than visibly
+		// broken, which is a slow failure to recognise. toUrl resolves through the resource
+		// root registered for com.zgp9.fe, which is correct on FLP, BTP, the ABAP standalone
+		// URL and local dev alike. See FLP_MIGRATION.md 3.5.
+		link.href = sap.ui.require.toUrl('com/zgp9/fe/css/style.css');
 		link.setAttribute('data-app-stylesheet', 'true');
 		document.head.appendChild(link);
 	}
@@ -76,7 +107,7 @@ export default class Component extends UIComponent {
 		if (this.contentDensityClass === undefined) {
 			if (document.body.classList.contains('sapUiSizeCozy') || document.body.classList.contains('sapUiSizeCompact')) {
 				this.contentDensityClass = '';
-			} else if (!Device.support.touch) {
+			} else if (!support.touch) {
 				this.contentDensityClass = 'sapUiSizeCompact';
 			} else {
 				this.contentDensityClass = 'sapUiSizeCozy';
@@ -111,9 +142,5 @@ export default class Component extends UIComponent {
 
 	public getErrorHandler(): ErrorHandler {
 		return this.errorHandler;
-	}
-
-	public getMessageManager(): typeof Messaging {
-		return Messaging;
 	}
 }

@@ -1,11 +1,11 @@
 {
-	"version": "0.0.1",
-	"configurations": [
-		{
-			"name": "ui5-dev",
-			"runtimeExecutable": "npx",
-			"runtimeArgs": ["ui5", "serve", "--port", "8080"],
-			"port": 8080
-		}
-	]
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ui5-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 8080
+    }
+  ]
 }

@@ -1,14 +1,15 @@
 import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
-import TreeTable from 'sap/ui/table/TreeTable';
+import type Tree from 'sap/m/Tree';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
-import MessageBox from 'sap/m/MessageBox';
+// UI5 1.108 exports Icon/Action as named module exports rather than as members of the
+// default export, so MessageBox.Icon / MessageBox.Action do not type-check against it.
+import MessageBox, { Icon as MessageBoxIcon, Action as MessageBoxAction } from 'sap/m/MessageBox';
+import MessageToast from 'sap/m/MessageToast';
 import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
-
-import History from 'sap/ui/core/routing/History';
 import type Table from 'sap/m/Table';
 
 import BaseController, { type AiChatContext } from './BaseController';
@@ -21,7 +22,7 @@ interface ExtendedTreeBinding {
 }
 
 import type { NodeDiffEntry, NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
-import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, computeLineDiff, highlightXmlLine, normalizeXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
+import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, canMergeAsXmlModification, computeLineDiff, highlightXmlLine, normalizeXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 import { analyzeChanges, type ChangeRow, type ChangeSeverity } from '../services/ChangeAnalysis';
 
 /**
@@ -51,41 +52,44 @@ export default class DetailCompare extends BaseController {
 	private suppressScrollSync = false;
 	private _sendMailDialogPromise: Promise<Dialog> | null = null;
 	private _sendMailDialog: Dialog | null = null;
+	/** Guards against overlapping loadCompareWorkspace calls when routes change quickly. */
+	private loadToken = 0;
+	private highlightClearTimer: number | null = null;
+	private static readonly HIGHLIGHT_MS = 1400;
 
 	public onInit(): void {
-		this.setModel(
-			new JSONModel({
-				compareWorkspaceBusy: false,
-				baseDetail: null,
-				compareDetail: null,
-				baseTree: [],
-				compareTree: [],
-				baseXmlLines: [] as XmlLineEntry[],
-				compareXmlLines: [] as XmlLineEntry[],
-				baseLineStarts: [],
-				compareLineStarts: [],
-				compareNodeDiff: [],
-				baseRawXml: '',
-				compareRawXml: '',
-				diffAdded: 0,
-				diffRemoved: 0,
-				diffChanged: 0,
-				changeBlockCount: 0,
-				navPosition: '',
-				xmlViewMode: 'all',
-				changeRows: [] as ChangeRow[],
-				changeFilter: 'all',
-				changeHeadline: '',
-				changeBreaking: 0,
-				changeCompatible: 0,
-				changeCosmetic: 0,
-				changeTotal: 0
-			}),
-			'detailCompare'
-		);
+		const model = new JSONModel({
+			compareWorkspaceBusy: false,
+			baseDetail: null,
+			compareDetail: null,
+			baseTree: [],
+			compareTree: [],
+			baseXmlLines: [] as XmlLineEntry[],
+			compareXmlLines: [] as XmlLineEntry[],
+			baseLineStarts: [],
+			compareLineStarts: [],
+			compareNodeDiff: [],
+			baseRawXml: '',
+			compareRawXml: '',
+			diffAdded: 0,
+			diffRemoved: 0,
+			diffChanged: 0,
+			changeBlockCount: 0,
+			navPosition: '',
+			xmlViewMode: 'all',
+			changeRows: [] as ChangeRow[],
+			changeFilter: 'all',
+			changeHeadline: '',
+			changeBreaking: 0,
+			changeCompatible: 0,
+			changeTotal: 0
+		});
+		// Default sizeLimit is 100; XML/change rows and trees routinely exceed that.
+		model.setSizeLimit(100000);
+		this.setModel(model, 'detailCompare');
 		this.getRouter()
 			.getRoute("detailCompare")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
@@ -233,38 +237,54 @@ export default class DetailCompare extends BaseController {
 		let emailMode: 'full' | 'diff' = (sendMailModel.getProperty('/emailMode') as string) === 'full' ? 'full' : 'diff';
 		let htmlContent = this.buildCompareHtml(basePrettyXml, comparePrettyXml, subject, emailMode);
 		let htmlSizeKb = Math.round(htmlContent.length / 1024);
-		console.log(`[SendMail] mode: ${emailMode}, HTML size: ${htmlSizeKb} KB, recipients: "${recipients}"`);
 
-		// Nếu Full XML vẫn > 500 KB sau khi tối ưu CSS → hỏi user thay vì auto-switch
+		// Full XML > 500 KB: ask before sending. Emphasize Full (user already chose that mode)
+		// so Enter / primary button does NOT silently fall back to Diff.
 		if (emailMode === 'full' && htmlSizeKb > 500) {
 			const diffContent = this.buildCompareHtml(basePrettyXml, comparePrettyXml, subject, 'diff');
 			const diffKb = Math.round(diffContent.length / 1024);
+			const ACTION_DIFF = 'Send Diff Only';
+			const ACTION_FULL = 'Try Full Anyway';
 			const choice = await new Promise<'diff' | 'full' | 'cancel'>((resolve) => {
-				MessageBox.warning(
+				MessageBox.show(
 					`Full XML is ${htmlSizeKb} KB which may exceed the backend limit.\n\n` +
-					`• Send as Diff Only (${diffKb} KB) — recommended\n` +
-					`• Try sending Full XML anyway (may fail)\n` +
+					`• ${ACTION_DIFF} (${diffKb} KB) — recommended for delivery\n` +
+					`• ${ACTION_FULL} (${htmlSizeKb} KB) — may fail on backend/Gmail\n` +
 					`• Cancel`,
 					{
-						actions: ['Send Diff Only', 'Try Full Anyway', MessageBox.Action.CANCEL],
-						emphasizedAction: 'Send Diff Only',
-						onClose: (action: string) => {
-							if (action === 'Send Diff Only') resolve('diff');
-							else if (action === 'Try Full Anyway') resolve('full');
-							else resolve('cancel');
+						icon: MessageBoxIcon.WARNING,
+						title: 'Large email',
+						actions: [ACTION_FULL, ACTION_DIFF, MessageBoxAction.CANCEL],
+						emphasizedAction: ACTION_FULL,
+						onClose: (action?: string) => {
+							if (action === ACTION_DIFF) {
+								resolve('diff');
+							} else if (action === ACTION_FULL) {
+								resolve('full');
+							} else {
+								resolve('cancel');
+							}
 						}
 					}
 				);
 			});
 
-			if (choice === 'cancel') return;
+			if (choice === 'cancel') {
+				return;
+			}
 			if (choice === 'diff') {
 				htmlContent = diffContent;
 				htmlSizeKb = diffKb;
 				emailMode = 'diff';
+			} else {
+				// Rebuild explicitly so we never keep a stale/wrong payload.
+				htmlContent = this.buildCompareHtml(basePrettyXml, comparePrettyXml, subject, 'full');
+				htmlSizeKb = Math.round(htmlContent.length / 1024);
+				emailMode = 'full';
 			}
-			// 'full': giữ nguyên, thử gửi và để backend trả lỗi nếu có
 		}
+
+		MessageToast.show(emailMode === 'full' ? `Sending Full XML (${htmlSizeKb} KB)…` : `Sending Diff Only (${htmlSizeKb} KB)…`);
 
 		sendMailModel.setProperty('/busy', true);
 		BusyIndicator.show(0);
@@ -278,10 +298,10 @@ export default class DetailCompare extends BaseController {
 			this._sendMailDialog?.close();
 
 			if (result.success) {
-				MessageBox.success(result.message || 'Email sent successfully to ' + recipients + '.');
+				MessageBox.success('Email sent successfully to ' + recipients + '.');
 			} else {
 				const detail = result.failedRecip ? `\nFailed recipients: ${result.failedRecip}` : '';
-				MessageBox.warning((result.message || 'Email may not have been delivered.') + detail);
+				MessageBox.warning('Email may not have been delivered.' + detail);
 			}
 		} catch (error) {
 			await this.handleServiceError(error);
@@ -299,7 +319,7 @@ export default class DetailCompare extends BaseController {
 		// intentionally empty – triggers two-way binding refresh
 	}
 
-	/** Tách và validate danh sách email (phân cách bởi ; hoặc ,) */
+	/** Split and validate email list (separated by ; or ,). */
 	private validateEmails(raw: string): { valid: string[]; invalid: string[] } {
 		const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		const list = raw.split(/[;,]/).map(s => s.trim()).filter(Boolean);
@@ -312,14 +332,14 @@ export default class DetailCompare extends BaseController {
 	}
 
 	/**
-	 * Highlight XML + preserve indentation (space → &nbsp;) + inline styles thay CSS class
-	 * để màu sắc không bị mất khi Gmail cắt email và strip <style> block.
+	 * Highlight XML, preserve indentation (space → &nbsp;), and use inline styles
+	 * instead of CSS classes so colors survive when Gmail truncates and strips <style>.
 	 */
 	private highlightForEmail(line: string): string {
 		const indent = /^( +)/.exec(line)?.[1] ?? '';
 		const indentHtml = indent.replace(/ /g, '&nbsp;');
 		let html = indentHtml + highlightXmlLine(line.slice(indent.length));
-		// Inline styles thay class → Gmail safe
+		// Inline styles instead of classes → Gmail-safe
 		html = html
 			.replace(/class="xmlTokPunct"/g, 'style="color:#00C"')
 			.replace(/class="xmlTokTag"/g,   'style="color:#00008B"')
@@ -333,63 +353,49 @@ export default class DetailCompare extends BaseController {
 		const escHtml = (s: string): string =>
 			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-		// Full mode dùng CSS <style> block → mỗi cell chỉ cần class="n"/"x"/...
-		// thay vì inline style dài ~130 chars → giảm ~250 KB cho file lớn.
-		// Diff mode vẫn dùng inline style để tương thích Gmail (style block bị strip khi truncate).
+		// Full mode uses a CSS <style> block so each cell only needs class="n"/"x"/...
+		// instead of ~130-char inline styles → saves ~250 KB on large files.
+		// Diff mode keeps inline styles for Gmail compatibility (style blocks are stripped when truncated).
 		const useClasses = mode === 'full';
 
-		// Full mode: chỉ dùng CSS class cho SAME rows (không cần màu diff).
-		// Del/ins/change rows luôn dùng inline style để màu diff hiện dù email client
-		// strip <style> block (Gmail, v.v.).
-		// Same rows chiếm ~80-90% tổng dòng → tiết kiệm ~200 KB.
+		// Full mode: CSS classes for SAME rows only (no diff color needed).
+		// Del/ins/change rows always use inline styles so diff colors show even if the
+		// email client strips the <style> block (e.g. Gmail).
+		// Same rows are ~80-90% of lines → saves ~200 KB.
 		const cssBlock = useClasses ? `<style>
 td.n{padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%}
 td.x{padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%}
 span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:#00C}span.xc{color:#6a9955}
 </style>` : '';
 
-		// Same rows: CSS class (full) hoặc inline style (diff)
+		// Same rows: CSS class (full) or inline style (diff)
 		const S_N    = useClasses ? 'class="n"' : 'style="padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
 		const S_X    = useClasses ? 'class="x"' : 'style="padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
-		// Del/ins/change rows: LUÔN inline style để màu diff không phụ thuộc <style> block
+		// Del/ins/change rows: always inline style so diff colors do not depend on <style>
 		const S_N_D  = 'style="padding:2px 4px;border:1px solid #ffd7d5;background:#ffd7d5;color:#c00;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
 		const S_N_I  = 'style="padding:2px 4px;border:1px solid #ccffd8;background:#ccffd8;color:#080;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
+		const S_N_M  = 'style="padding:2px 4px;border:1px solid #fff3cd;background:#fff3cd;color:#856404;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
 		const S_N_E  = 'style="padding:2px 4px;border:1px solid #eee;background:#f8f8f8;width:3%"';
 		const S_X_D  = 'style="padding:2px 6px;border:1px solid #ffd7d5;background:#ffd7d5;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
 		const S_X_I  = 'style="padding:2px 6px;border:1px solid #ccffd8;background:#ccffd8;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
+		const S_X_M  = 'style="padding:2px 6px;border:1px solid #fff3cd;background:#fff3cd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
 		const S_X_E  = 'style="padding:2px 6px;border:1px solid #eee;background:#f8f8f8;width:47%"';
 		const SEP    = 'style="padding:3px 8px;text-align:center;color:#888;background:#f5f5f5;font-family:sans-serif;font-size:11px;border:1px solid #ddd"';
 
-		// ── Build aligned rows với LCS line diff ──────────────────────────────
+		// ── Build aligned rows with LCS line diff ──────────────────────────────
 		interface AlignedRow { op: 'same' | 'del' | 'ins' | 'change'; bNo: number; cNo: number; bLine: string; cLine: string; }
 
-		// Normalize attributes trước khi so sánh LCS; original lines dùng cho display
+		// Normalize attributes before LCS compare; keep original lines for display.
 		const ops = computeLineDiff(baseXml.split('\n'), compareXml.split('\n'), normalizeXmlLine);
 
-		// Tính độ tương đồng giữa 2 dòng dựa trên số token chung / tổng token
-		// Dùng normalized key để similarity không bị ảnh hưởng bởi thứ tự attribute
-		const lineSimilarity = (a: string, b: string): number => {
-			const ka = normalizeXmlLine(a);
-			const kb = normalizeXmlLine(b);
-			if (ka === kb) return 1;
-			const tokenize = (s: string) => new Set(s.trim().match(/\S+/g) ?? []);
-			const sa = tokenize(ka), sb = tokenize(kb);
-			if (sa.size === 0 && sb.size === 0) return 1;
-			if (sa.size === 0 || sb.size === 0) return 0;
-			let common = 0;
-			sa.forEach(t => { if (sb.has(t)) common++; });
-			return (2 * common) / (sa.size + sb.size);
-		};
-
-		// Post-process: chỉ merge adjacent (del, ins) → change khi 2 dòng đủ giống nhau (≥50%).
-		// Nếu khác hoàn toàn thì giữ nguyên del/ins riêng để tránh ghép sai.
+		// Merge adjacent (del, ins) → change only when identity unchanged (NodeTree MOD).
 		const merged: Array<{ op: 'same' | 'del' | 'ins' | 'change'; bLine: string; cLine: string }> = [];
 		let k = 0;
 		while (k < ops.length) {
 			const cur = ops[k];
 			const next = k + 1 < ops.length ? ops[k + 1] : undefined;
 			if (cur.op === 'del' && next !== undefined && next.op === 'ins'
-					&& lineSimilarity(cur.line, next.line) >= 0.5) {
+					&& canMergeAsXmlModification(cur.line, next.line)) {
 				merged.push({ op: 'change', bLine: cur.line, cLine: next.line });
 				k += 2;
 			} else if (cur.op === 'del') {
@@ -399,7 +405,6 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				merged.push({ op: 'ins', bLine: '', cLine: cur.line });
 				k++;
 			} else {
-				// same: mỗi bên giữ original text của chính mình
 				merged.push({ op: 'same', bLine: cur.baseLine, cLine: cur.compareLine });
 				k++;
 			}
@@ -419,7 +424,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			}
 		}
 
-		// Full mode: syntax token spans dùng class thay style (tiết kiệm thêm ~30-40KB)
+		// Full mode: syntax token spans use classes instead of styles (saves ~30-40KB more)
 		const hlEmail = (line: string) => {
 			const h = this.highlightForEmail(line);
 			if (!useClasses) return h;
@@ -445,9 +450,9 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				const h = hlEmail(row.cLine);
 				return `<tr><td ${S_N_E}>&nbsp;</td><td ${S_X_E}>&nbsp;</td><td ${S_N_I}>${row.cNo}</td><td ${S_X_I}>${h}</td></tr>`;
 			}
-			// change: inline word-level diff
+			// change / modified: yellow on both sides (not del/ins)
 			const [bHtml, cHtml] = this.inlineDiffHtml(row.bLine, row.cLine);
-			return `<tr><td ${S_N_D}>${row.bNo}</td><td ${S_X_D}>${bHtml}</td><td ${S_N_I}>${row.cNo}</td><td ${S_X_I}>${cHtml}</td></tr>`;
+			return `<tr><td ${S_N_M}>${row.bNo}</td><td ${S_X_M}>${bHtml}</td><td ${S_N_M}>${row.cNo}</td><td ${S_X_M}>${cHtml}</td></tr>`;
 		};
 
 		let rows = '';
@@ -457,7 +462,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		if (mode === 'full') {
 			for (const row of alignedRows) rows += renderRow(row);
 		} else {
-			// Diff mode: changed rows + 3 dòng context
+			// Diff mode: changed rows + 3 lines of context
 			const CONTEXT = 3;
 			const changedIdx = new Set<number>();
 			alignedRows.forEach((r, i) => { if (r.op !== 'same') changedIdx.add(i); });
@@ -501,14 +506,14 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	/**
-	 * Tính inline word-level diff giữa 2 dòng.
-	 * Trả về [baseHtml, compareHtml] với <mark class="del"> / <mark class="ins"> trên phần thay đổi.
+	 * Compute inline word-level diff between two lines.
+	 * Returns [baseHtml, compareHtml] with <mark class="del"> / <mark class="ins"> on changes.
 	 */
 	private inlineDiffHtml(base: string, compare: string): [string, string] {
 		const esc = (s: string) =>
 			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-		// Tách thành tokens: chuỗi ký tự liên tiếp không phải space, và khoảng trắng
+		// Split into tokens: contiguous non-space runs, and whitespace
 		const tokenize = (s: string): string[] => s.match(/\S+|\s+/g) ?? (s ? [s] : []);
 
 		const bTok = tokenize(base);
@@ -526,7 +531,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			}
 		}
 
-		// Backtrack để lấy danh sách thao tác
+		// Backtrack to build the operation list
 		type Op = { op: 'same' | 'del' | 'ins'; val: string };
 		const ops: Op[] = [];
 		let i = m, j = n;
@@ -562,20 +567,33 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 
 	// ─────────────────────────────────────────────────────────────────────────
 
+	public onCopyBaseXml(): void {
+		const xml = (this.getModel('detailCompare') as JSONModel).getProperty('/basePrettyXml') as string;
+		void navigator.clipboard
+			.writeText(xml)
+			.then(() => MessageToast.show('Base XML copied.'))
+			.catch(() => MessageToast.show('Failed to copy XML.'));
+	}
+
+	public onCopyCompareXml(): void {
+		const xml = (this.getModel('detailCompare') as JSONModel).getProperty('/comparePrettyXml') as string;
+		void navigator.clipboard
+			.writeText(xml)
+			.then(() => MessageToast.show('Compare XML copied.'))
+			.catch(() => MessageToast.show('Failed to copy XML.'));
+	}
+
 	public onNavBack(): void {
-		const previousHash = History.getInstance().getPreviousHash();
-		if (previousHash !== undefined && previousHash !== '') {
-			window.history.go(-1);
+		if (this.registryId && this.leftVersionId && this.rightVersionId) {
+			this.navTo('versionCompare', {
+				registryId: this.registryId,
+				leftVersionId: this.leftVersionId,
+				rightVersionId: this.rightVersionId
+			}, true);
+		} else if (this.registryId) {
+			this.navTo('registryDetail', { registryId: this.registryId }, true);
 		} else {
-			if (this.registryId && this.leftVersionId && this.rightVersionId) {
-				this.getRouter().navTo('versionCompare', {
-					registryId: this.registryId,
-					leftVersionId: this.leftVersionId,
-					rightVersionId: this.rightVersionId
-				}, undefined, true);
-			} else {
-				this.getRouter().navTo('home', {}, undefined, true);
-			}
+			this.navTo('registryList', {}, true);
 		}
 	}
 
@@ -586,6 +604,8 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		}
 
 		this.revealTreeNode(node, 'base');
+		// Clear selection so clicking the same node again re-fires selectionChange + flash.
+		this.clearTreeSelection(event);
 	}
 
 	public onCompareTreeSelectionChange(event: UI5Event): void {
@@ -595,6 +615,12 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		}
 
 		this.revealTreeNode(node, 'compare');
+		this.clearTreeSelection(event);
+	}
+
+	private clearTreeSelection(event: UI5Event): void {
+		const tree = event.getSource() as unknown as { removeSelections?: (b?: boolean) => void };
+		window.setTimeout(() => tree.removeSelections?.(true), 0);
 	}
 
 	/** Selecting a node in either tree scrolls both XML panes to that element. */
@@ -620,23 +646,29 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			return;
 		}
 
+		const loadToken = ++this.loadToken;
 		const model = this.getModel('detailCompare') as JSONModel;
 		model.setProperty('/baseDetailId', this.baseDetailId);
 		model.setProperty('/compareDetailId', this.compareDetailId);
 		model.setProperty('/compareWorkspaceBusy', true);
 		model.setProperty('/baseTree', []);
 		model.setProperty('/compareTree', []);
-		BusyIndicator.show(0);
+
 		try {
+			const detailService = this.getOwnerComponent().getDetailService();
 			const [baseDetail, compareDetail, baseParsedDetail, compareParsedDetail, baseNodeTree, compareNodeTree, compareNodeDiff] = await Promise.all([
-				this.getOwnerComponent().getDetailService().getDetail(this.baseDetailId),
-				this.getOwnerComponent().getDetailService().getDetail(this.compareDetailId),
-				this.getOwnerComponent().getDetailService().getParsedDetail(this.baseDetailId),
-				this.getOwnerComponent().getDetailService().getParsedDetail(this.compareDetailId),
-				this.getOwnerComponent().getDetailService().getNodeTree(this.baseDetailId),
-				this.getOwnerComponent().getDetailService().getNodeTree(this.compareDetailId),
-				this.getOwnerComponent().getDetailService().compareNodeTree(this.baseDetailId, this.compareDetailId)
+				detailService.getDetail(this.baseDetailId),
+				detailService.getDetail(this.compareDetailId),
+				detailService.getParsedDetail(this.baseDetailId),
+				detailService.getParsedDetail(this.compareDetailId),
+				detailService.getNodeTree(this.baseDetailId),
+				detailService.getNodeTree(this.compareDetailId),
+				detailService.compareNodeTree(this.baseDetailId, this.compareDetailId)
 			]);
+
+			if (loadToken !== this.loadToken) {
+				return;
+			}
 
 			let baseRawXml = baseParsedDetail.metadataXml || baseDetail.xml || '';
 			baseRawXml = baseRawXml.replace(/<\?xml[^>]*\?>\s*/gi, '');
@@ -652,21 +684,36 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			const compareTreeRaw = buildNodeTree(compareNodeTree);
 			const compareTree = compareTreeRaw.length > 0 ? compareTreeRaw : this.createFallbackNodeTree(compareDetail);
 
-			const diffMap = new Map(compareNodeDiff.map((item) => [item.SEMANTIC_ID, item.STATUS]));
-
 			this.applyLineNumbers(baseTree, baseLineStarts);
 			this.applyLineNumbers(compareTree, compareLineStarts);
 
-			const compareTreeMapped = applyNodeDiffStatus(compareTree, diffMap);
+			const statusBySemanticId = new Map(compareNodeDiff.map((item) => [item.SEMANTIC_ID, item.STATUS]));
+			const compareTreeMapped = applyNodeDiffStatus(compareTree, statusBySemanticId);
 
-		const aligned = this.buildAlignedXmlLines(baseXml, compareXml);
-		let baseXmlLines = aligned.base;
-		let compareXmlLines = aligned.compare;
+			const aligned = this.buildAlignedXmlLines(baseXml, compareXml);
+			let baseXmlLines = aligned.base;
+			let compareXmlLines = aligned.compare;
 
-		model.setProperty('/baseRawXml', baseRawXml);
-		model.setProperty('/compareRawXml', compareRawXml);
-		model.setProperty('/basePrettyXml', baseXml);
-		model.setProperty('/comparePrettyXml', compareXml);
+			this.applyChangeAnalysis(compareNodeDiff, compareTreeMapped, baseTree);
+
+			if (compareNodeDiff.length > 0) {
+				this.applyDiffHighlights(compareNodeDiff, baseTree, compareTreeMapped);
+				baseXmlLines = this.applyLineHighlights(baseXmlLines, buildLineHighlightMap(baseTree));
+				compareXmlLines = this.applyLineHighlights(compareXmlLines, buildLineHighlightMap(compareTreeMapped));
+			}
+
+			if (loadToken !== this.loadToken) {
+				return;
+			}
+
+			this.baseXmlLinesAll = baseXmlLines;
+			this.compareXmlLinesAll = compareXmlLines;
+			this.computeDiffTotals(baseXmlLines, compareXmlLines);
+
+			model.setProperty('/baseRawXml', baseRawXml);
+			model.setProperty('/compareRawXml', compareRawXml);
+			model.setProperty('/basePrettyXml', baseXml);
+			model.setProperty('/comparePrettyXml', compareXml);
 			model.setProperty('/baseDetail', baseDetail);
 			model.setProperty('/compareDetail', compareDetail);
 			model.setProperty('/baseTree', baseTree);
@@ -674,90 +721,83 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			model.setProperty('/baseLineStarts', baseLineStarts);
 			model.setProperty('/compareLineStarts', compareLineStarts);
 			model.setProperty('/compareNodeDiff', compareNodeDiff);
+			model.setProperty('/xmlViewMode', 'all');
+			this.applyXmlViewMode('all');
 
-			const newDiff = await this.getOwnerComponent().getDetailService().compareDetail(this.baseDetailId, this.compareDetailId);
-			console.log('compareDetail API result (newDiff):', newDiff);
-
-			this.applyChangeAnalysis(newDiff ?? compareNodeDiff, compareTreeMapped, baseTree);
-
-			if (newDiff) {
-				const newDiffMap = new Map<string, string>();
-				newDiff.forEach((item) => {
-					newDiffMap.set(item.SEMANTIC_ID, item.STATUS);
-					if (item.ATTRIBUTEDIFF && Array.isArray(item.ATTRIBUTEDIFF)) {
-						item.ATTRIBUTEDIFF.forEach((attr) => {
-							newDiffMap.set(`${item.SEMANTIC_ID}/${attr.NAME}`, attr.STATUS);
-						});
-					}
-				});
-				console.log('Mapped diff statuses:', Array.from(newDiffMap.entries()));
-
-				const mapHighlight = (status?: string) => {
-					if (status === 'MODIFIED') return 'Warning'; // Yellow
-					if (status === 'ADDED') return 'Success'; // Green
-					if (status === 'DELETED') return 'Error'; // Red
-					return 'None';
-				};
-				const applyHighlight = (nodes: NodeTreeViewItem[], parentStatus?: string, isParentHighlighted = false): boolean => {
-					let anyExpanded = false;
-					for (const node of nodes) {
-						let status = newDiffMap.get(node.semanticId);
-
-						// Inherit status for attributes if they don't have their own diff status
-						if ((node.isAttribute || node.isAttributeGroup) && !status && parentStatus) {
-							status = parentStatus;
-						}
-
-						node.highlight = mapHighlight(status);
-
-						const thisNodeHighlighted = node.highlight !== 'None';
-						const effectivelyHighlightedParent = isParentHighlighted || thisNodeHighlighted;
-
-						let childrenExpanded = false;
-						if (node.children && node.children.length > 0) {
-							childrenExpanded = applyHighlight(node.children, status, effectivelyHighlightedParent);
-						}
-
-						if (childrenExpanded) {
-							node.shouldExpand = true;
-							anyExpanded = true;
-						} else if (thisNodeHighlighted && !isParentHighlighted) {
-							node.shouldExpand = true;
-							anyExpanded = true;
-						} else {
-							node.shouldExpand = false;
-						}
-					}
-					return anyExpanded;
-				};
-
-				applyHighlight(baseTree);
-				applyHighlight(compareTreeMapped);
-
-				const baseLineHighlights = buildLineHighlightMap(baseTree);
-				const compareLineHighlights = buildLineHighlightMap(compareTreeMapped);
-				baseXmlLines = this.applyLineHighlights(baseXmlLines, baseLineHighlights);
-				compareXmlLines = this.applyLineHighlights(compareXmlLines, compareLineHighlights);
-
-				model.setProperty('/baseTree', baseTree);
-				model.setProperty('/compareTree', compareTreeMapped);
-
+			if (compareNodeDiff.length > 0) {
 				this.scheduleTreeExpansion('baseTree');
 				this.scheduleTreeExpansion('compareTree');
 			}
-
-			this.baseXmlLinesAll = baseXmlLines;
-			this.compareXmlLinesAll = compareXmlLines;
-			this.computeDiffTotals(baseXmlLines, compareXmlLines);
-			model.setProperty('/xmlViewMode', 'all');
-			this.applyXmlViewMode('all');
-			model.refresh(true);
 		} catch (error) {
-			await this.handleServiceError(error);
+			if (loadToken === this.loadToken) {
+				await this.handleServiceError(error);
+			}
 		} finally {
-			model.setProperty('/compareWorkspaceBusy', false);
-			BusyIndicator.hide();
+			if (loadToken === this.loadToken) {
+				model.setProperty('/compareWorkspaceBusy', false);
+			}
 		}
+	}
+
+	/** Apply node/attribute highlight + expand flags from a single compareNodeTree result. */
+	private applyDiffHighlights(diff: NodeDiffEntry[], baseTree: NodeTreeViewItem[], compareTree: NodeTreeViewItem[]): void {
+		const statusByKey = new Map<string, string>();
+		diff.forEach((item) => {
+			statusByKey.set(item.SEMANTIC_ID, item.STATUS);
+			if (Array.isArray(item.ATTRIBUTEDIFF)) {
+				item.ATTRIBUTEDIFF.forEach((attr) => {
+					statusByKey.set(`${item.SEMANTIC_ID}/${attr.NAME}`, attr.STATUS);
+				});
+			}
+		});
+
+		const mapHighlight = (status?: string) => {
+			if (status === 'MODIFIED') {
+				return 'Warning';
+			}
+			if (status === 'ADDED') {
+				return 'Success';
+			}
+			if (status === 'DELETED') {
+				return 'Error';
+			}
+			return 'None';
+		};
+
+		const applyHighlight = (nodes: NodeTreeViewItem[], parentStatus?: string, isParentHighlighted = false): boolean => {
+			let anyExpanded = false;
+			for (const node of nodes) {
+				let status = statusByKey.get(node.semanticId);
+
+				if ((node.isAttribute || node.isAttributeGroup) && !status && parentStatus) {
+					status = parentStatus;
+				}
+
+				node.highlight = mapHighlight(status);
+
+				const thisNodeHighlighted = node.highlight !== 'None';
+				const effectivelyHighlightedParent = isParentHighlighted || thisNodeHighlighted;
+
+				let childrenExpanded = false;
+				if (node.children && node.children.length > 0) {
+					childrenExpanded = applyHighlight(node.children, status, effectivelyHighlightedParent);
+				}
+
+				if (childrenExpanded) {
+					node.shouldExpand = true;
+					anyExpanded = true;
+				} else if (thisNodeHighlighted && !isParentHighlighted) {
+					node.shouldExpand = true;
+					anyExpanded = true;
+				} else {
+					node.shouldExpand = false;
+				}
+			}
+			return anyExpanded;
+		};
+
+		applyHighlight(baseTree);
+		applyHighlight(compareTree);
 	}
 
 
@@ -772,7 +812,6 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		model.setProperty('/changeHeadline', analysis.headline);
 		model.setProperty('/changeBreaking', analysis.breaking);
 		model.setProperty('/changeCompatible', analysis.compatible);
-		model.setProperty('/changeCosmetic', analysis.cosmetic);
 		model.setProperty('/changeTotal', analysis.total);
 
 		// Land on the risky changes when there are any, otherwise show everything.
@@ -912,25 +951,19 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	private scheduleTreeExpansion(treeId: string): void {
-		const tree = this.byId(treeId) as TreeTable;
-		console.log(`[scheduleTreeExpansion] looking for "${treeId}"`, tree);
-		if (!tree) return;
+		const tree = this.byId(treeId) as Tree;
+		if (!tree) {
+			return;
+		}
 
 		tree.attachEventOnce('updateFinished', () => {
 			const binding = tree.getBinding('items') as unknown as ExtendedTreeBinding;
-			console.log(`[scheduleTreeExpansion] updateFinished fired for "${treeId}"`);
-			console.log(`[scheduleTreeExpansion] binding type`, binding?.getMetadata?.().getName());
-
 			if (!binding || typeof binding.expand !== 'function') {
-				console.warn(`[scheduleTreeExpansion] missing binding or expand function`);
 				return;
 			}
 
 			let i = 0;
 			let limit = 0;
-			const length = binding.getLength();
-			console.log(`[scheduleTreeExpansion] starting loop... length:`, length);
-
 			while (i < binding.getLength() && limit < 100000) {
 				limit++;
 				const context = binding.getContextByIndex(i);
@@ -938,13 +971,11 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 
 				if (node && node.shouldExpand && node.children && node.children.length > 0) {
 					if (typeof binding.isExpanded === 'function' && !binding.isExpanded(i)) {
-						console.log(`[scheduleTreeExpansion] expanding node at index ${i}:`, node.label || node.nodeName);
 						binding.expand(i);
 					}
 				}
 				i++;
 			}
-			console.log(`[scheduleTreeExpansion] loop finished after ${limit} iterations. New length:`, binding.getLength());
 		});
 	}
 
@@ -1080,8 +1111,9 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			this.growTableToIndex(compareTable, rowIndex, () => {
 				window.setTimeout(() => {
 					this.suppressScrollSync = true;
-					this.highlightRowAt(baseTable, rowIndex);
-					this.highlightRowAt(compareTable, rowIndex);
+					this.highlightRowAt(baseTable, rowIndex, false);
+					this.highlightRowAt(compareTable, rowIndex, false);
+					this.scheduleHighlightClear(baseTable, compareTable);
 					this.scrollPaneToRow('baseXmlScroll', baseTable, rowIndex);
 					this.scrollPaneToRow('compareXmlScroll', compareTable, rowIndex);
 					// The change list and trees sit above the XML panes, so bring the
@@ -1220,10 +1252,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	private scrollToItem(table: Table, lineNo: number): void {
-		table.getItems().forEach((item) => {
-			item.removeStyleClass('versionDetailXmlHighlighted');
-		});
-
+		this.clearXmlHighlights(table);
 		const item = table.getItems().find((listItem) => {
 			const context = listItem.getBindingContext('detailCompare');
 			return (context?.getObject() as XmlLineEntry | null)?.lineNo === lineNo;
@@ -1231,6 +1260,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		if (item) {
 			item.addStyleClass('versionDetailXmlHighlighted');
 			item.getDomRef()?.scrollIntoView({ block: 'center', inline: 'nearest' });
+			this.scheduleHighlightClear(table);
 		}
 	}
 
@@ -1248,7 +1278,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			const b = baseLines[i]?.lineType ?? 'same';
 			const c = compareLines[i]?.lineType ?? 'same';
 
-			if (b === 'del' && c === 'ins') {
+			if (b === 'mod' || c === 'mod' || (b === 'del' && c === 'ins')) {
 				changed++;
 			} else if (b === 'del') {
 				removed++;
@@ -1279,7 +1309,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			const c = compareLines[i]?.lineType ?? 'same';
 			// Test for an actual del/ins on either side so the collapsed-gap
 			// separators (blank on both sides) are not counted as changes.
-			const isChangeRow = b === 'del' || b === 'ins' || c === 'del' || c === 'ins';
+			const isChangeRow = b === 'del' || b === 'ins' || b === 'mod' || c === 'del' || c === 'ins' || c === 'mod';
 			if (isChangeRow) {
 				if (!inBlock) {
 					blockStarts.push(i);
@@ -1424,9 +1454,30 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		}
 	}
 
-	private highlightRowAt(table: Table, rowIndex: number): void {
+	private highlightRowAt(table: Table, rowIndex: number, autoClear = true): void {
+		this.clearXmlHighlights(table);
+		const item = table.getItems()[rowIndex];
+		if (!item) {
+			return;
+		}
+		item.addStyleClass('versionDetailXmlHighlighted');
+		if (autoClear) {
+			this.scheduleHighlightClear(table);
+		}
+	}
+
+	private clearXmlHighlights(table: Table): void {
 		table.getItems().forEach((item) => item.removeStyleClass('versionDetailXmlHighlighted'));
-		table.getItems()[rowIndex]?.addStyleClass('versionDetailXmlHighlighted');
+	}
+
+	private scheduleHighlightClear(...tables: Table[]): void {
+		if (this.highlightClearTimer !== null) {
+			window.clearTimeout(this.highlightClearTimer);
+		}
+		this.highlightClearTimer = window.setTimeout(() => {
+			tables.forEach((table) => this.clearXmlHighlights(table));
+			this.highlightClearTimer = null;
+		}, DetailCompare.HIGHLIGHT_MS);
 	}
 
 	private createFallbackNodeTree(detail: RegistryDetail): NodeTreeViewItem[] {
@@ -1459,42 +1510,26 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	/**
-	 * Dùng LCS line-level diff để tạo hai mảng có cùng độ dài (aligned).
-	 * Dòng bị xóa ở base → compare có empty row (lineNo=0).
-	 * Dòng được thêm ở compare → base có empty row (lineNo=0).
+	 * Use LCS line-level diff to build two equal-length (aligned) arrays.
+	 * Deleted base line → empty row on compare (lineNo=0).
+	 * Inserted compare line → empty row on base (lineNo=0).
 	 */
 	private buildAlignedXmlLines(baseXml: string, compareXml: string): { base: XmlLineEntry[]; compare: XmlLineEntry[] } {
 		const ops = computeLineDiff(baseXml.split('\n'), compareXml.split('\n'), normalizeXmlLine);
 		const emptyRow = (): XmlLineEntry => ({ lineNo: 0, text: '', isWhitespace: true, highlight: 'None', lineType: 'empty' });
 
-		// Giống lineSimilarity trong buildCompareHtml: dùng normalized key
-		const lineSimilarity = (a: string, b: string): number => {
-			const ka = normalizeXmlLine(a);
-			const kb = normalizeXmlLine(b);
-			if (ka === kb) return 1;
-			const tok = (s: string) => new Set(s.match(/\S+/g) ?? []);
-			const sa = tok(ka), sb = tok(kb);
-			if (sa.size === 0 && sb.size === 0) return 1;
-			if (sa.size === 0 || sb.size === 0) return 0;
-			let common = 0;
-			sa.forEach(t => { if (sb.has(t)) common++; });
-			return (2 * common) / (sa.size + sb.size);
-		};
-
-		// Merge adjacent (del, ins) → 'change' khi đủ tương đồng (≥50%),
-		// giống logic buildCompareHtml → base và compare canh hàng cùng row
 		type MergedOp =
-			| { op: 'same';   baseLine: string; compareLine: string }
-			| { op: 'del';    line: string }
-			| { op: 'ins';    line: string }
+			| { op: 'same'; baseLine: string; compareLine: string }
+			| { op: 'del'; line: string }
+			| { op: 'ins'; line: string }
 			| { op: 'change'; baseLine: string; compareLine: string };
 
 		const merged: MergedOp[] = [];
 		let k = 0;
 		while (k < ops.length) {
-			const cur  = ops[k];
+			const cur = ops[k];
 			const next = k + 1 < ops.length ? ops[k + 1] : undefined;
-			if (cur.op === 'del' && next?.op === 'ins' && lineSimilarity(cur.line, next.line) >= 0.5) {
+			if (cur.op === 'del' && next?.op === 'ins' && canMergeAsXmlModification(cur.line, next.line)) {
 				merged.push({ op: 'change', baseLine: cur.line, compareLine: next.line });
 				k += 2;
 			} else {
@@ -1518,9 +1553,8 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				base.push(emptyRow());
 				compare.push({ lineNo: cNo++, text: op.line, isWhitespace: !op.line.trim(), highlight: 'None', lineType: 'ins' });
 			} else {
-				// change: 2 dòng xuất hiện cùng row, base đỏ / compare xanh — không có empty padding
-				base.push({ lineNo: bNo++, text: op.baseLine, isWhitespace: !op.baseLine.trim(), highlight: 'None', lineType: 'del' });
-				compare.push({ lineNo: cNo++, text: op.compareLine, isWhitespace: !op.compareLine.trim(), highlight: 'None', lineType: 'ins' });
+				base.push({ lineNo: bNo++, text: op.baseLine, isWhitespace: !op.baseLine.trim(), highlight: 'None', lineType: 'mod' });
+				compare.push({ lineNo: cNo++, text: op.compareLine, isWhitespace: !op.compareLine.trim(), highlight: 'None', lineType: 'mod' });
 			}
 		}
 
@@ -1528,11 +1562,11 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	private applyLineHighlights(lines: XmlLineEntry[], _lineHighlights: Map<number, string>): XmlLineEntry[] {
-		// Node-diff backend tô theo range của cả node cha (không phải từng dòng thực sự đổi).
-		// Điều này gây false positive: mọi dòng trong range của một node MODIFIED đều vàng,
-		// kể cả dòng opening tag hay sibling không thay đổi gì.
-		// Thông tin semantic diff đã được hiển thị đầy đủ ở Node Tree panel phía trên.
-		// → Tắt hoàn toàn node-diff ở XML view; chỉ dùng line-level diff (del/ins/same).
+		// Backend node-diff paints the whole parent node range (not only changed lines).
+		// That causes false positives: every line in a MODIFIED node range turns yellow,
+		// including unchanged opening tags or siblings.
+		// Semantic diff is already shown fully in the Node Tree panel above.
+		// → Disable node-diff on the XML view; use line-level diff only (del/ins/same).
 		return lines.map((line) => ({ ...line, highlight: 'None' }));
 	}
 
