@@ -31,32 +31,39 @@
 						<Button text="Go" type="Emphasized" press=".onGo" />
 						<Button text="Clear" press=".onClearFilters" />
 						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
-						<ToolbarSpacer />
-						<SearchField width="18rem" placeholder="Search type, remarks, actor, Object ID…" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
 					</OverflowToolbar>
-					<HBox wrap="Wrap" alignItems="End" class="sapUiTinyMarginTop">
-						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Action" />
-							<Select width="11rem" selectedKey="{logList>/actionType}" items="{logList>/actionTypeOptions}" change=".onFilterChange">
-								<core:Item key="{logList>key}" text="{logList>text}" />
-							</Select>
-						</VBox>
-						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Result" />
-							<Select width="10rem" selectedKey="{logList>/logResult}" items="{logList>/logResultOptions}" change=".onFilterChange">
-								<core:Item key="{logList>key}" text="{logList>text}" />
-							</Select>
-						</VBox>
-						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Object Type" />
-							<Select width="11rem" selectedKey="{logList>/objectIdType}" items="{logList>/objectIdTypeOptions}" change=".onFilterChange">
-								<core:Item key="{logList>key}" text="{logList>text}" />
-							</Select>
-						</VBox>
-						<VBox>
-							<Label text="Created At" />
-							<DateRangeSelection width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
-						</VBox>
+					<!--
+						Search sits on the filter row rather than the button toolbar — same layout as
+						RegistryList. alignItems="End" on both boxes bottom-aligns everything, so the
+						SearchField lines up with the filter *controls* and not with their labels; the
+						labelled VBoxes are taller by exactly one label.
+					-->
+					<HBox wrap="Wrap" alignItems="End" justifyContent="SpaceBetween" width="100%" class="sapUiTinyMarginTop">
+						<HBox wrap="Wrap" alignItems="End">
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Action" />
+								<Select width="11rem" selectedKey="{logList>/actionType}" items="{logList>/actionTypeOptions}" change=".onFilterChange">
+									<core:Item key="{logList>key}" text="{logList>text}" />
+								</Select>
+							</VBox>
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Result" />
+								<Select width="10rem" selectedKey="{logList>/logResult}" items="{logList>/logResultOptions}" change=".onFilterChange">
+									<core:Item key="{logList>key}" text="{logList>text}" />
+								</Select>
+							</VBox>
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Object Type" />
+								<Select width="11rem" selectedKey="{logList>/objectIdType}" items="{logList>/objectIdTypeOptions}" change=".onFilterChange">
+									<core:Item key="{logList>key}" text="{logList>text}" />
+								</Select>
+							</VBox>
+							<VBox class="sapUiSmallMarginEnd">
+								<Label text="Created At" />
+								<DateRangeSelection width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
+							</VBox>
+						</HBox>
+						<SearchField width="18rem" placeholder="Search type, remarks, actor, Object ID…" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
 					</HBox>
 				</VBox>
 			</f:DynamicPageHeader>
