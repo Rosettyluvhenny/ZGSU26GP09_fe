@@ -37,7 +37,7 @@
 					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
 					press=".onToggleSideNav"
 					type="Transparent" />
-				<Title text="Registry Control Center" level="H3" visible="{= !${ui>/isInLaunchpad} }" />
+				<Title text="{i18n>appTitle}" level="H3" visible="{= !${ui>/isInLaunchpad} }" />
 				<ToolbarSpacer />
 				<ObjectStatus text="{session>/userName}" state="Information" visible="{= !${ui>/isInLaunchpad} }" />
 				<Button
