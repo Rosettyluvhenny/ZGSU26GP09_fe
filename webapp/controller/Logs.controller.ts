@@ -199,7 +199,7 @@ export default class Logs extends BaseController {
 	}
 
 	/** CREATE → green, UPDATE → yellow; other actions stay neutral. */
-	public formatLogActionState(action: string): 'Success' | 'Warning' | 'None' {
+	public formatLogActionState(action: string): 'Success' | 'Warning' | 'Information' {
 		const normalized = (action || '').toUpperCase().trim();
 		if (normalized === 'CREATE' || normalized === 'C') {
 			return 'Success';
@@ -207,7 +207,7 @@ export default class Logs extends BaseController {
 		if (normalized === 'UPDATE' || normalized === 'U' || normalized === 'UP') {
 			return 'Warning';
 		}
-		return 'None';
+		return 'Information';
 	}
 
 	public formatShortId(id: string): string {
@@ -300,7 +300,7 @@ export default class Logs extends BaseController {
 
 	private buildOptionsFromSet(values: Set<string>): FilterOption[] {
 		const unique = [...values].sort((a, b) => a.localeCompare(b));
-		return [{ key: 'All', text: 'All' }, ...unique.map((value) => ({ key: value, text: value }))];
+		return [{ key: 'All', teft: 'All' }, ...unique.map((value) => ({ key: value, text: value }))];
 	}
 
 	private ensureSelectedFilterKey(selectedPath: string, optionsPath: string): void {
