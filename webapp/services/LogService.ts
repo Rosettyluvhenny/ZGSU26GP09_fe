@@ -3,6 +3,11 @@ import ODataClient from './ODataClient';
 import type { LogEntry } from '../model/types';
 import { mapLogEntity, normalizeODataCollection } from './ODataParsers';
 
+export interface ActionTypeOption {
+	key: string;
+	text: string;
+}
+
 export const LOG_PAGE_SIZE = 50;
 
 export interface LogQueryFilter {
@@ -66,6 +71,24 @@ export default class LogService {
 	/** @deprecated Use getLogs({ jobId }) instead */
 	public async getLogsByJobId(jobId: string): Promise<LogPageResult> {
 		return this.getLogs({ jobId });
+	}
+
+	/**
+	 * Fetches all valid action types from the value-help entity ZI_LOG_ACT_TYPE_VH.
+	 * Schema: { ActionId: string (2), Description: string (20) }
+	 * Returns [{key, text}] ready for the Action filter Select.
+	 */
+	public async getActionTypeOptions(): Promise<ActionTypeOption[]> {
+		const payload = await this.client.readJson('/ZI_LOG_ACT_TYPE_VH');
+		const records = normalizeODataCollection(payload);
+		return records
+			.map((record) => {
+				const r = record as Record<string, unknown>;
+				const key = String(r['ActionId'] ?? '');
+				const text = String(r['Description'] ?? key);
+				return { key, text };
+			})
+			.filter((opt) => opt.key.length > 0);
 	}
 
 	private buildLogUrl(filter: LogQueryFilter): string {

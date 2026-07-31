@@ -91,8 +91,27 @@ function plural(noun: string): string {
 	return `${noun}s`;
 }
 
+function splitOutsideBrackets(s: string): string[] {
+	const parts: string[] = [];
+	let depth = 0;
+	let start = 0;
+	for (let i = 0; i < s.length; i++) {
+		if (s[i] === '[') {
+			depth++;
+		} else if (s[i] === ']') {
+			depth--;
+		} else if (s[i] === '/' && depth === 0) {
+			parts.push(s.slice(start, i));
+			start = i + 1;
+		}
+	}
+	parts.push(s.slice(start));
+	return parts.filter(Boolean);
+}
+
 function lastSegment(semanticId: string): string {
-	const segment = (semanticId ?? '').split('/').filter(Boolean).pop();
+	const parts = splitOutsideBrackets(semanticId ?? '');
+	const segment = parts.pop();
 	return segment && segment.length > 0 ? segment : semanticId ?? '';
 }
 
