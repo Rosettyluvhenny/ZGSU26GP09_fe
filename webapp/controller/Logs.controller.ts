@@ -200,8 +200,8 @@ export default class Logs extends BaseController {
 		return 'None';
 	}
 
-	/** CREATE → green, UPDATE → yellow; other actions stay neutral. */
-	public formatLogActionState(action: string): 'Success' | 'Warning' | 'None' {
+	/** CREATE → green, UPDATE → yellow; other actions → blue. */
+	public formatLogActionState(action: string): 'Success' | 'Warning' | 'Information' {
 		const normalized = (action || '').toUpperCase().trim();
 		if (normalized === 'CREATE' || normalized === 'C') {
 			return 'Success';
@@ -209,7 +209,7 @@ export default class Logs extends BaseController {
 		if (normalized === 'UPDATE' || normalized === 'U' || normalized === 'UP') {
 			return 'Warning';
 		}
-		return 'None';
+		return 'Information';
 	}
 
 	public formatShortId(id: string): string {
