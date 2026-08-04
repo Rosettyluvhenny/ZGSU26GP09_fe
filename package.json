@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@sap/ux-ui5-tooling": "^1.28.0",
-    "@sapui5/ts-types-esm": "1.108.33",
+    "@sapui5/ts-types-esm": "^1.108.33",
     "@types/sinon": "^22.0.0",
     "@ui5/cli": "^4.0.23",
     "@ui5/linter": "^1.19.0",
