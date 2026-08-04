@@ -4,7 +4,7 @@ import type { Router$RouteMatchedEvent } from "sap/ui/core/routing/Router";
 
 import BaseController from "./BaseController";
 import ODataClient from "../services/ODataClient";
-import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
+import { readSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
 const LIGHT_THEME = "sap_horizon";
 const DARK_THEME = "sap_horizon_dark";
@@ -30,15 +30,23 @@ export default class MainShell extends BaseController {
 		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
 		this.applySideNavVisibility(sideNavVisible);
 
+		// The toggle button lives in the routed pages' title bars now, so the press is
+		// handled by whichever page controller is showing (BaseController.onToggleSideNav)
+		// and never reaches this controller. Watch the model instead of a click, so the
+		// shell's CSS class follows /sideNavVisible whoever wrote it.
+		//
+		// A standalone binding, not `attachPropertyChange`: on 1.108 JSONModel.setProperty
+		// runs checkUpdate over the model's registered bindings but does **not** fire the
+		// model-level propertyChange event, so the obvious-looking handler never runs. The
+		// `addBinding` call is what registers this one — `bindProperty` alone does not.
+		const sideNavBinding = this.getUiModel().bindProperty("/sideNavVisible");
+		this.getUiModel().addBinding(sideNavBinding);
+		sideNavBinding.attachChange(() => {
+			this.applySideNavVisibility(sideNavBinding.getValue() as boolean);
+		});
+
 		// Load permissions once on page load — drives nav bar and button visibility
 		void this.loadGlobalPermissions();
-	}
-
-	public onToggleSideNav(): void {
-		const visible = !(this.getUiModel().getProperty("/sideNavVisible") as boolean);
-		this.getUiModel().setProperty("/sideNavVisible", visible);
-		this.applySideNavVisibility(visible);
-		writeSideNavPreference(visible);
 	}
 
 	private applySideNavVisibility(visible: boolean): void {
@@ -155,9 +163,9 @@ export default class MainShell extends BaseController {
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {
 		// On phone the nav is a full-screen overlay; close it so it doesn't cover the
 		// page the user just navigated to.
+		// The onInit listener above turns this into the CSS class, so only the model is set.
 		if (window.matchMedia("(max-width: 599px)").matches && this.getUiModel().getProperty("/sideNavVisible")) {
 			this.getUiModel().setProperty("/sideNavVisible", false);
-			this.applySideNavVisibility(false);
 		}
 		this.pendingRoute = route;
 		this.flushPendingNavigation();

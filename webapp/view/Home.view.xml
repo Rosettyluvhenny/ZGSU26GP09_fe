@@ -9,7 +9,10 @@
 	<Page id="homePage" title="Home" showHeader="false" busy="{home>/busy}">
 		<content>
 			<VBox class="sapUiMediumMargin">
-				<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" class="sapUiSmallMarginBottom" />
+				<HBox alignItems="Center" class="sapUiSmallMarginBottom">
+					<core:Fragment fragmentName="com.zgp9.fe.view.fragments.NavToggleButton" type="XML" />
+					<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" />
+				</HBox>
 				<HBox alignItems="Center" class="sapUiMediumMarginBottom">
 					<Text text="Here's a snapshot of your registries and scan jobs." />
 					<ToolbarSpacer />

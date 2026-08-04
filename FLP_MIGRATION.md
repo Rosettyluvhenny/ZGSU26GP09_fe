@@ -612,6 +612,43 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
 - [x] 3.3 ✅ **COMPLETE — both widths verified in FLP.** Desktop 2026-07-27 (app header entirely
       absent, side navigation working); **phone at 400px on 2026-07-28** (header reappears with
       only the menu button, side nav collapsed, tiles stacked). See 7.2. Original text follows.
+
+      ⚠️ **REVISED 2026-08-04 — the accepted consequence below was rejected on review, in two
+      steps.** The original binding, `!isInLaunchpad || isPhoneWidth` on the whole `ToolHeader`,
+      made the menu button — and so any way to collapse the side nav — **present on embedded phone
+      but missing on embedded desktop**. Reported as a bug, and it reads as one: the same control
+      appears and disappears with window width for no reason the user can see. The "convenience,
+      not a function" argument holds for *one* consistent behaviour, not a width-dependent one.
+
+      **Step 1 (commit `2972229`), superseded.** Made the toolbar unconditionally visible. Correct
+      behaviour, bad shape: deployed to the launchpad it put a full-width toolbar strip under the
+      FLP shell bar containing a single button, which looked like a stray second header.
+
+      **Step 2, current.** The toggle moved out of the shell header entirely, into each routed
+      page's own title bar via `view/fragments/NavToggleButton.fragment.xml` — Home, RegistryList,
+      JobList, Logs. It sits left of that page's heading ("Welcome back…", "Registry Explorer",
+      "Scan Job Management", "Logs"). Detail views deliberately omit it: they open in a further FCL
+      column while their list page stays visible in the first, so the button is still on screen.
+      The `ToolHeader` therefore goes back to `visible="{= !${ui>/isInLaunchpad} }"` and holds only
+      the four genuinely duplicated controls, and **the same placement now serves both hosts** —
+      no `isPhoneWidth` branch, no chrome cost embedded, nothing that differs by width.
+
+      Consequences worth knowing:
+      - `onToggleSideNav` moved from `MainShell` to `BaseController`: the press is now handled by
+        whichever page controller is showing, not by the shell. It only writes `/sideNavVisible`.
+      - `MainShell` picks the change up through a **registered property binding**
+        (`bindProperty` + `addBinding`), not `attachPropertyChange` — on 1.108 `JSONModel`
+        `setProperty` runs `checkUpdate` over registered bindings but never fires the model-level
+        `propertyChange` event. Verified in the browser; the obvious handler silently never runs.
+        `addBinding` is missing from the 1.108 typings and is shimmed in `ui5-108-types.d.ts` (3).
+      - `ui>/isPhoneWidth` now has no binding anywhere. `Component.ts` still maintains it.
+
+      Verified locally on 2026-08-04 at 1280px: button absent from the `ToolHeader`, present at the
+      same offset in Home, RegistryList and Logs, and press → model → binding → CSS class → aside
+      hidden/shown → tooltip flip confirmed end to end. **JobList was not exercised** — the local
+      backend 401s, so `canExecuteScanJob` is false and the route guard redirects away; its markup
+      is identical to RegistryList. **Still unverified in a real launchpad** (`isInLaunchpad()`
+      cannot return true locally, 3.0/7.1). 7.2 is reopened for the next deploy.
       ✅ **Desktop verified in FLP 2026-07-27** — the app header is entirely absent and the
       side navigation (Home / Registry Management / Logs) works. ~~**Phone width below 600px is
       still unverified in FLP**~~ — that is 7.2, and it is the half of this item where the
@@ -1276,7 +1313,15 @@ FLP resolved the component without complaint.
         looks broken when it is working.
       - ~~Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.~~ Done for 3.1, 3.2, 3.5 and 3.6.
         3.3 stays `[~]` pending 7.2's phone check; 3.4 is `[!]` — a finding, not a pass.
-- [x] 7.2 ✅ **CLOSED 2026-07-28.** Desktop confirmed 2026-07-27 (shell bar with the app title,
+- [~] 7.2 ⚠️ **REOPENED 2026-08-04** by the 3.3 revision — what was verified below is no longer
+      what the code does. On the next deploy confirm, at **both** widths, that: there is no app
+      header at all (not the one-button strip that step 1 shipped); the side-nav toggle sits left
+      of the page heading on Home, Registry Explorer, Scan Job Management and Logs; and it
+      collapses and restores the nav on embedded desktop, not just on phone. Check **JobList**
+      in particular — it is the one page the local check could not reach, since the local backend
+      401s and the route guard redirects away.
+      The closure below described the old, width-dependent behaviour and is kept for history.
+      ✅ ~~**CLOSED 2026-07-28.**~~ Desktop confirmed 2026-07-27 (shell bar with the app title,
       app header entirely absent, side navigation working). **Phone width confirmed 2026-07-28 at
       400px inside FLP:** the app header reappears carrying **only the menu button**, the side nav
       is collapsed, and the KPI tiles stack — exactly the deliberate departure recorded in 3.3.

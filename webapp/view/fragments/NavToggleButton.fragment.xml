@@ -1,0 +1,25 @@
+<!--
+	The side-navigation toggle, placed in each routed page's own title bar rather than
+	in the shell header — see FLP_MIGRATION.md 3.3.
+
+	It cannot live in the ToolPage header: embedded in a launchpad that header is hidden
+	(the FLP shell bar already carries the title, user, theme and logout), and keeping the
+	toolbar alive just for this one button left a full-width strip under the shell bar with
+	a single control in it. Inside the page title the button costs no extra chrome on any
+	host, and the placement is identical standalone and embedded.
+
+	Included by the four routed pages — Home, RegistryList, JobList, Logs. Detail views
+	deliberately omit it: they open in a further FlexibleColumnLayout column while their
+	list page stays visible in the first, so the button is still on screen.
+
+	`press` resolves against the including view's controller, so the handler lives on
+	BaseController rather than on MainShell.
+-->
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+	<Button
+		icon="sap-icon://menu2"
+		tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
+		press=".onToggleSideNav"
+		type="Transparent"
+		class="sapUiTinyMarginEnd" />
+</core:FragmentDefinition>
