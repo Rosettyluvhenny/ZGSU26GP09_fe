@@ -11,6 +11,7 @@
 			<f:DynamicPageTitle>
 				<f:heading>
 					<HBox alignItems="Center">
+						<core:Fragment fragmentName="com.zgp9.fe.view.fragments.NavToggleButton" type="XML" />
 						<Title text="Logs" level="H1" />
 						<ObjectStatus text="{logList>/countLabel}" state="Information" class="sapUiSmallMarginBegin" />
 					</HBox>
