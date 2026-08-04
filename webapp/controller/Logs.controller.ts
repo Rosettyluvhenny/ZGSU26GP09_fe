@@ -1,4 +1,4 @@
-import JSONModel from 'sap/ui/model/json/JSONModel';
+﻿import JSONModel from 'sap/ui/model/json/JSONModel';
 import Fragment from 'sap/ui/core/Fragment';
 import MessageToast from 'sap/m/MessageToast';
 import type Dialog from 'sap/m/Dialog';
@@ -22,7 +22,7 @@ export default class Logs extends BaseController {
 	private dateFrom: Date | null = null;
 	private dateTo: Date | null = null;
 	private loadingMore = false;
-	/** Distinct values seen from backend responses — never hard-coded. */
+	/** Distinct values seen from backend responses â€” never hard-coded. */
 	private knownActions = new Map<string, string>();
 	private knownLogResults = new Set<string>();
 	private knownObjectIdTypes = new Set<string>();
@@ -36,7 +36,7 @@ export default class Logs extends BaseController {
 			actionType: 'All',
 			logResult: 'All',
 			objectIdType: 'All',
-			// Filter options are built from values returned by the backend — never invented.
+			// Filter options are built from values returned by the backend â€” never invented.
 			actionTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
 			logResultOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
 			objectIdTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
@@ -47,7 +47,7 @@ export default class Logs extends BaseController {
 			hasMore: false,
 			countLabel: '0 entries'
 		});
-		// JSONModel default sizeLimit is 100 — without raising it, More can load 207
+		// JSONModel default sizeLimit is 100 â€” without raising it, More can load 207
 		// into the model while the table only renders the first 100 rows.
 		model.setSizeLimit(5000);
 		this.setModel(model, 'logList');
@@ -198,7 +198,7 @@ export default class Logs extends BaseController {
 		return 'None';
 	}
 
-	/** CREATE → green, UPDATE → yellow; other actions stay neutral. */
+	/** CREATE â†’ green, UPDATE â†’ yellow; other actions stay neutral. */
 	public formatLogActionState(action: string): 'Success' | 'Warning' | 'Information' {
 		const normalized = (action || '').toUpperCase().trim();
 		if (normalized === 'CREATE' || normalized === 'C') {
@@ -212,13 +212,13 @@ export default class Logs extends BaseController {
 
 	public formatShortId(id: string): string {
 		if (!id) {
-			return '—';
+			return 'â€”';
 		}
 		const normalized = id.replace(/[{}]/g, '');
 		if (normalized.length <= 13) {
 			return normalized;
 		}
-		return `${normalized.slice(0, 8)}…${normalized.slice(-4)}`;
+		return `${normalized.slice(0, 8)}â€¦${normalized.slice(-4)}`;
 	}
 
 	private async loadLogs(reset: boolean): Promise<void> {
@@ -300,7 +300,7 @@ export default class Logs extends BaseController {
 
 	private buildOptionsFromSet(values: Set<string>): FilterOption[] {
 		const unique = [...values].sort((a, b) => a.localeCompare(b));
-		return [{ key: 'All', teft: 'All' }, ...unique.map((value) => ({ key: value, text: value }))];
+		return [{ key: 'All', text: 'All' }, ...unique.map((value) => ({ key: value, text: value }))];
 	}
 
 	private ensureSelectedFilterKey(selectedPath: string, optionsPath: string): void {
@@ -354,3 +354,4 @@ export default class Logs extends BaseController {
 		this.detailDialog?.close();
 	}
 }
+

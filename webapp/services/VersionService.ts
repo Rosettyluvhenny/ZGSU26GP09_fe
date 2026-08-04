@@ -1,4 +1,4 @@
-import ODataClient from './ODataClient';
+﻿import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 
 import type { CompareVersionEntry, CompareVersionResult, RegistryVersion, VersionCompareActionEntry, VersionCompareActionResult } from '../model/types';
@@ -48,9 +48,11 @@ function mapCompareResult(payload: VersionCompareActionResult): CompareVersionRe
 }
 
 export default class VersionService {
-	private readonly client = new ODataClient();
+	private readonly client: ODataClient;
 
-	public constructor(private readonly detailService: DetailService) { }
+	public constructor(private readonly detailService: DetailService, model?: import("sap/ui/model/odata/v4/ODataModel").default) {
+		this.client = new ODataClient(model);
+	}
 
 	public async getVersions(registryId: string): Promise<RegistryVersion[]> {
 		const backendVersions = await this.loadVersionsFromBackend(registryId);
@@ -101,3 +103,5 @@ export default class VersionService {
 		return mapVersionEntity(entity, parsedDetail);
 	}
 }
+
+

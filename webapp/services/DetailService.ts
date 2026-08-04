@@ -1,4 +1,4 @@
-import ODataClient from './ODataClient';
+﻿import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 
 import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail, SendMailParams, SendMailResult } from '../model/types';
@@ -67,7 +67,10 @@ function mapNodeDiffItem(item: Record<string, unknown>): NodeDiffEntry {
 
 
 export default class DetailService {
-	private readonly client = new ODataClient();
+	private readonly client: ODataClient;
+	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
+		this.client = new ODataClient(model);
+	}
 
 	public async getDetails(versionId: string): Promise<RegistryDetail[]> {
 		return this.loadDetailsFromBackend(versionId);
@@ -175,3 +178,4 @@ export default class DetailService {
 
 
 }
+

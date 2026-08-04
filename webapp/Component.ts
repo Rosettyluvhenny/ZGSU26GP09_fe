@@ -1,4 +1,4 @@
-import UIComponent from 'sap/ui/core/UIComponent';
+﻿import UIComponent from 'sap/ui/core/UIComponent';
 import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
 import Theming from 'sap/ui/core/Theming';
@@ -25,17 +25,25 @@ export default class Component extends UIComponent {
 		interfaces: ['sap.ui.core.IAsyncContentCreation']
 	};
 
-	private readonly authenticationService = new AuthenticationService();
-	private readonly detailService = new DetailService();
-	private readonly registryService = new RegistryService();
-	private readonly versionService = new VersionService(this.detailService);
-	private readonly jobService = new JobService();
-	private readonly logService = new LogService();
+	private authenticationService!: AuthenticationService;
+	private detailService!: DetailService;
+	private registryService!: RegistryService;
+	private versionService!: VersionService;
+	private jobService!: JobService;
+	private logService!: LogService;
 	private errorHandler!: ErrorHandler;
 	private contentDensityClass: string;
 
 	public init(): void {
 		super.init();
+
+		const model = this.getModel() as import("sap/ui/model/odata/v4/ODataModel").default;
+		this.authenticationService = new AuthenticationService(model);
+		this.detailService = new DetailService(model);
+		this.registryService = new RegistryService(model);
+		this.versionService = new VersionService(this.detailService, model);
+		this.jobService = new JobService(model);
+		this.logService = new LogService(model);
 
 		this.applyStoredTheme();
 		this.setModel(models.createDeviceModel(), 'device');
@@ -60,7 +68,7 @@ export default class Component extends UIComponent {
 		// resize and also when the user zooms the browser (unlike Device.resize, which
 		// is throttled and can miss programmatic/emulated resizes).
 		// isPhoneWidth (<600px) drives the shell nav overlay; isNarrowWidth (<1024px)
-		// drives the split-view panes (tree ‖ XML) so they stack vertically whenever
+		// drives the split-view panes (tree â€– XML) so they stack vertically whenever
 		// there isn't enough room to show them side by side comfortably.
 		const phoneMql = window.matchMedia('(max-width: 599px)');
 		const narrowMql = window.matchMedia('(max-width: 1023px)');
@@ -138,3 +146,5 @@ export default class Component extends UIComponent {
 		return Messaging;
 	}
 }
+
+

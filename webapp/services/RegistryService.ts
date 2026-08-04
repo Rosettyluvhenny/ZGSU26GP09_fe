@@ -1,4 +1,4 @@
-import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
+﻿import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
 import ServiceError from './ServiceError';
 
 import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem } from '../model/types';
@@ -159,7 +159,10 @@ async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body
 
 
 export default class RegistryService {
-	private readonly client = new ODataClient();
+	private readonly client: ODataClient;
+	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
+		this.client = new ODataClient(model);
+	}
 
 	public async getPermissions(): Promise<string[]> {
 		const csrfToken = await this.client.fetchCsrfToken();
@@ -390,3 +393,4 @@ export default class RegistryService {
 		}
 	}
 }
+

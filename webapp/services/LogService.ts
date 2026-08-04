@@ -1,4 +1,4 @@
-import ODataClient from './ODataClient';
+﻿import ODataClient from './ODataClient';
 
 import type { LogEntry } from '../model/types';
 import { mapLogEntity, normalizeODataCollection } from './ODataParsers';
@@ -48,7 +48,10 @@ function readODataCount(payload: unknown, fallback: number): number {
 }
 
 export default class LogService {
-	private readonly client = new ODataClient();
+	private readonly client: ODataClient;
+	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
+		this.client = new ODataClient(model);
+	}
 
 	public async getLogs(filter: LogQueryFilter = {}): Promise<LogPageResult> {
 		const top = filter.top ?? LOG_PAGE_SIZE;
@@ -124,3 +127,4 @@ export default class LogService {
 		return `/Log?${query.join('&')}`;
 	}
 }
+

@@ -1,4 +1,4 @@
-import ODataClient from './ODataClient';
+﻿import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 
 import type { Job } from '../model/types';
@@ -12,7 +12,10 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 
 
 export default class JobService {
-	private readonly client = new ODataClient();
+	private readonly client: ODataClient;
+	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
+		this.client = new ODataClient(model);
+	}
 
 	public async getJobs(search = ''): Promise<Job[]> {
 		const backendJobs = await this.loadJobsFromBackend();
@@ -71,4 +74,5 @@ export default class JobService {
 		return mapJobEntity(entity);
 	}
 }
+
 

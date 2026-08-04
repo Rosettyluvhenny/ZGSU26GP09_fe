@@ -1,4 +1,4 @@
-import ServiceError from './ServiceError';
+﻿import ServiceError from './ServiceError';
 
 export const SERVICE_ORIGIN = '/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001';
 export const SERVICE_BASE_URL = `${SERVICE_ORIGIN}/`;
@@ -15,6 +15,7 @@ export interface ODataRequestOptions {
 }
 
 export default class ODataClient {
+	constructor(private readonly model?: import('sap/ui/model/odata/v4/ODataModel').default) {}
 	private static csrfToken = '';
 	private static etag = '*';
 	private static authPromise: Promise<string> | null = null;
@@ -90,7 +91,6 @@ export default class ODataClient {
 	}
 
 	private async requestJson(path: string, options: ODataRequestOptions = {}): Promise<unknown> {
-		await ODataClient.ensureAuth();
 		const response = await fetch(this.buildUrl(path, options.query), {
 			method: 'GET',
 			credentials: 'include',
@@ -120,7 +120,6 @@ export default class ODataClient {
 	}
 
 	private async requestText(path: string, options: ODataRequestOptions = {}): Promise<string> {
-		await ODataClient.ensureAuth();
 		const response = await fetch(this.buildUrl(path, options.query), {
 			method: 'GET',
 			credentials: 'include',
@@ -167,7 +166,7 @@ export default class ODataClient {
 				}
 				}
 			} catch {
-				// ignore parse errors — fall back to generic message
+				// ignore parse errors â€” fall back to generic message
 			}
 			const message = detail
 				? `${method} ${path} failed (${response.status}): ${detail}`
@@ -212,6 +211,14 @@ export default class ODataClient {
 			return ODataClient.csrfToken;
 		}
 
+		if (this.model) {
+			try {
+				await this.model.getMetaModel().requestObject('/');
+			} catch (e) {
+				// Ignore errors from metamodel
+			}
+		}
+
 		return await this.refreshCsrfToken();
 	}
 
@@ -228,3 +235,4 @@ export default class ODataClient {
 		return headers;
 	}
 }
+
