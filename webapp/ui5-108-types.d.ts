@@ -142,3 +142,22 @@ declare module 'sap/ui/test/starter/config' {
 		[key: string]: unknown;
 	}
 }
+
+/*
+ * 3. `Model#addBinding`, absent from the 1.108 typings (zero hits in the package) though the
+ * method has existed on `sap.ui.model.Model` for far longer.
+ *
+ * `MainShell.controller.ts` needs it to observe `/sideNavVisible` without owning a control
+ * bound to it. `bindProperty()` alone returns a binding the model never checks: registration
+ * is what `addBinding` does, and without it the binding's `change` event never fires. The
+ * model-level `propertyChange` event is not an alternative — on 1.108 `JSONModel.setProperty`
+ * runs `checkUpdate` over registered bindings but never fires it (verified in the browser).
+ */
+
+declare module 'sap/ui/model/Model' {
+	import type Binding from 'sap/ui/model/Binding';
+
+	export default interface Model {
+		addBinding(binding: Binding): void;
+	}
+}

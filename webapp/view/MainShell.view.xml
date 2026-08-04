@@ -18,43 +18,35 @@
 			<!--
 				Header visibility, standalone vs embedded — see FLP_MIGRATION.md 3.3.
 
-				Embedded in a launchpad, the FLP shell bar already carries the app title, the
-				user, the theme switch and logout, so showing them again is duplication; theme
-				in particular belongs to FLP user settings, not to the app. Each of those four
-				is therefore hidden individually on `isInLaunchpad`, rather than deleted — the
-				standalone hosts (BTP, ABAP direct URL) have no shell bar and still need them.
+				Embedded in a launchpad the whole toolbar goes: the FLP shell bar already
+				carries the app title, the user, the theme switch and logout, so showing them
+				again is duplication; theme in particular belongs to FLP user settings, not to
+				the app. Bound rather than deleted, because the standalone hosts (BTP, ABAP
+				direct URL) have no shell bar and still need all four.
 
-				The toolbar itself is unconditionally visible, because the menu button is the
-				one control the FLP shell bar does NOT duplicate: it toggles this app's side
-				navigation, which the shell knows nothing about. 3.3 originally dropped the
-				whole toolbar when embedded and re-added it below 600px, where the side nav
-				collapses to an overlay and the button is the only way back. That left the
-				button — and so any way to collapse the nav — missing on embedded desktop while
-				present on embedded phone, which reads as a bug rather than as the "convenience,
-				not a function" trade-off 3.3 accepted. Embedded desktop now pays a one-button
-				toolbar strip under the shell bar in exchange for consistent behaviour.
+				There is no side-navigation toggle here any more. It was the one control the
+				shell bar does NOT duplicate, so 3.3 kept the toolbar alive below 600px purely
+				to host it — which left the button present on embedded phone but missing on
+				embedded desktop. Keeping the toolbar at every width fixed that, but bought a
+				full-width strip under the shell bar holding a single button. The toggle now
+				lives in each routed page's own title bar (NavToggleButton.fragment.xml), which
+				costs no chrome on either host and puts it in the same place standalone and
+				embedded — so this toolbar is once again purely the four duplicated controls.
 			-->
-			<tnt:ToolHeader>
-				<Button
-					icon="sap-icon://menu2"
-					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
-					press=".onToggleSideNav"
-					type="Transparent" />
-				<Title text="{i18n>appTitle}" level="H3" visible="{= !${ui>/isInLaunchpad} }" />
+			<tnt:ToolHeader visible="{= !${ui>/isInLaunchpad} }">
+				<Title text="{i18n>appTitle}" level="H3" />
 				<ToolbarSpacer />
-				<ObjectStatus text="{session>/userName}" state="Information" visible="{= !${ui>/isInLaunchpad} }" />
+				<ObjectStatus text="{session>/userName}" state="Information" />
 				<Button
 					icon="{= ${ui>/isDarkTheme} ? 'sap-icon://light-mode' : 'sap-icon://dark-mode' }"
 					tooltip="{= ${ui>/isDarkTheme} ? 'Switch to light theme' : 'Switch to dark theme' }"
 					press=".onToggleTheme"
-					type="Transparent"
-					visible="{= !${ui>/isInLaunchpad} }" />
+					type="Transparent" />
 				<Button
 					icon="sap-icon://log"
 					text="Logout"
 					press=".onLogout"
-					type="Transparent"
-					visible="{= !${ui>/isInLaunchpad} }" />
+					type="Transparent" />
 			</tnt:ToolHeader>
 		</tnt:header>
 		<tnt:sideContent>

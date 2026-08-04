@@ -10,7 +10,10 @@
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="Scan Job Management" level="H1" />
+					<HBox alignItems="Center">
+						<core:Fragment fragmentName="com.zgp9.fe.view.fragments.NavToggleButton" type="XML" />
+						<Title text="Scan Job Management" level="H1" />
+					</HBox>
 				</f:heading>
 			</f:DynamicPageTitle>
 		</f:title>
