@@ -288,13 +288,23 @@ export default class VersionDetail extends BaseController {
 		sendMailModel.setProperty('/busy', true);
 		BusyIndicator.show(0);
 		try {
-			await this.getOwnerComponent().getDetailService().sendEmail({
+			const result = await this.getOwnerComponent().getDetailService().sendEmail({
 				htmlContent,
 				recipients,
 				subject
 			});
 			this._sendMailDialog?.close();
-			MessageBox.success('Email sent successfully.');
+
+			const beMessage = (result.message ?? '').trim();
+			if (result.success) {
+				MessageBox.success(beMessage || 'Email sent successfully.');
+			} else {
+				let warning = beMessage || 'Email may not have been delivered.';
+				if (result.failedRecip && !warning.includes(result.failedRecip)) {
+					warning += `\nFailed recipients: ${result.failedRecip}`;
+				}
+				MessageBox.warning(warning);
+			}
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {

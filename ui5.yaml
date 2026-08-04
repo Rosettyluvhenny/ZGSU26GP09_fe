@@ -14,9 +14,6 @@ framework:
     - name: sap.suite.ui.microchart
     - name: themelib_sap_horizon
 builder:
-  resources:
-    excludes:
-      - "test/e2e/**"
   customTasks:
     - name: ui5-tooling-transpile-task
       afterTask: replaceVersion

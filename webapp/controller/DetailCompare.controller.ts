@@ -295,11 +295,15 @@ export default class DetailCompare extends BaseController {
 
 			this._sendMailDialog?.close();
 
+			const beMessage = (result.message ?? '').trim();
 			if (result.success) {
-				MessageBox.success('Email sent successfully to ' + recipients + '.');
+				MessageBox.success(beMessage || `Email sent successfully to ${recipients}.`);
 			} else {
-				const detail = result.failedRecip ? `\nFailed recipients: ${result.failedRecip}` : '';
-				MessageBox.warning('Email may not have been delivered.' + detail);
+				let warning = beMessage || 'Email may not have been delivered.';
+				if (result.failedRecip && !warning.includes(result.failedRecip)) {
+					warning += `\nFailed recipients: ${result.failedRecip}`;
+				}
+				MessageBox.warning(warning);
 			}
 		} catch (error) {
 			await this.handleServiceError(error);
@@ -351,15 +355,7 @@ export default class DetailCompare extends BaseController {
 		const escHtml = (s: string): string =>
 			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-		// Full mode uses a CSS <style> block so each cell only needs class="n"/"x"/...
-		// instead of ~130-char inline styles → saves ~250 KB on large files.
-		// Diff mode keeps inline styles for Gmail compatibility (style blocks are stripped when truncated).
 		const useClasses = mode === 'full';
-
-		// Full mode: CSS classes for SAME rows only (no diff color needed).
-		// Del/ins/change rows always use inline styles so diff colors show even if the
-		// email client strips the <style> block (e.g. Gmail).
-		// Same rows are ~80-90% of lines → saves ~200 KB.
 		const cssBlock = useClasses ? `<style>
 td.n{padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%}
 td.x{padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%}

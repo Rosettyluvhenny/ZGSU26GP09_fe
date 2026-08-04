@@ -9,13 +9,10 @@
 		"strictNullChecks": false,
 		"strictPropertyInitialization": false,
 		"rootDir": "./webapp",
-		"types": ["@sapui5/types", "@types/qunit"],
+		"types": ["@sapui5/types"],
 		"paths": {
-			"com/zgp9/fe/*": ["./webapp/*"],
-			"unit/*": ["./webapp/test/unit/*"],
-			"integration/*": ["./webapp/test/integration/*"]
+			"com/zgp9/fe/*": ["./webapp/*"]
 		}
 	},
-	"exclude": ["./webapp/test/e2e/**/*"],
 	"include": ["./webapp/**/*"]
 }
