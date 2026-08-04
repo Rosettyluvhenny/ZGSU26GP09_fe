@@ -1,0 +1,54 @@
+specVersion: "4.0"
+metadata:
+  name: com.zgp9.fe
+type: application
+framework:
+  # Deliberately NOT 1.108.33, unlike ui5.yaml / ui5-deploy.yaml / ui5-dist.yaml.
+  #
+  # UI5 1.108's QUnit test starter loads the testsuite from a hardcoded
+  # "<resourcesRoot>/../test-resources/<namespace>/" URL, bypassing resource roots entirely,
+  # and rejects any suite name not under test-resources/ ("Invalid test suite name"). An
+  # application-type project does not serve /test-resources/<namespace>/, so the suite 404s
+  # and the runner reports "No test page found". Making it work needs a static middleware
+  # mapping that path onto webapp/test — infrastructure this migration does not need.
+  #
+  # Running the suite on a newer UI5 costs almost no coverage: these are controller-logic
+  # tests built on sinon stubs, so they never exercised UI5 control rendering. The 1.108
+  # rendering path is verified by running the app on index-local.html instead.
+  #
+  # See FLP_MIGRATION.md Phase 2.7.
+  name: SAPUI5
+  version: "1.149.1"
+  libraries:
+    - name: sap.f
+    - name: sap.tnt
+    - name: sap.ui.layout
+    - name: sap.m
+    - name: sap.ui.core
+    - name: themelib_sap_horizon
+builder:
+  resources:
+    excludes:
+      - "test/e2e/**"
+  customTasks:
+    - name: ui5-tooling-transpile-task
+      afterTask: replaceVersion
+server:
+  customMiddleware:
+    - name: ui5-tooling-transpile-middleware
+      afterMiddleware: compression
+      configuration:
+        debug: true
+        babelConfig:
+          sourceMaps: true
+          ignore:
+          - "**/*.d.ts"
+          presets:
+          - - "@babel/preset-env"
+            - targets: defaults
+          - - transform-ui5
+          - "@babel/preset-typescript"
+          plugins:
+          - istanbul
+    - name: ui5-middleware-livereload
+      afterMiddleware: compression

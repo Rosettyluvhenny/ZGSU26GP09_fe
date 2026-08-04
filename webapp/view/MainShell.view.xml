@@ -8,22 +8,51 @@
 
 	<tnt:ToolPage id="shellPage" class="shellPage" sideExpanded="{ui>/sideNavVisible}">
 		<tnt:header>
-			<OverflowToolbar>
+			<!--
+				sap.tnt.ToolHeader, not sap.m.OverflowToolbar: on UI5 1.108 the ToolPage "header"
+				aggregation accepts only sap.tnt.IToolHeader, and an OverflowToolbar here logs
+				"is not valid for aggregation" and is not placed correctly. Newer UI5 relaxed the
+				aggregation, which is why this worked on 1.149. ToolHeader extends
+				OverflowToolbar, so the children below behave identically.
+			-->
+			<!--
+				Header visibility, standalone vs embedded — see FLP_MIGRATION.md 3.3.
+
+				Embedded in a launchpad, the FLP shell bar already carries the app title, the
+				user, the theme switch and logout, so showing them again is duplication; theme
+				in particular belongs to FLP user settings, not to the app. Bound rather than
+				deleted, because the standalone hosts (BTP, ABAP direct URL) have no shell bar
+				and still need the full header.
+
+				The phone-width exception is NOT in the original plan. The menu button below is
+				the only way to reopen the side navigation once it collapses to an overlay
+				(<600px — see MainShell.onInit), so hiding the whole header there would leave
+				an embedded phone user with no navigation at all. On phone the header therefore
+				stays and carries the menu button alone; every duplicated control is hidden
+				individually rather than by dropping the toolbar.
+			-->
+			<tnt:ToolHeader visible="{= !${ui>/isInLaunchpad} || ${ui>/isPhoneWidth} }">
 				<Button
 					icon="sap-icon://menu2"
 					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
 					press=".onToggleSideNav"
 					type="Transparent" />
-				<Title text="Registry Control Center" level="H3" />
+				<Title text="{i18n>appTitle}" level="H3" visible="{= !${ui>/isInLaunchpad} }" />
 				<ToolbarSpacer />
-				<ObjectStatus text="{session>/userName}" state="Information" />
+				<ObjectStatus text="{session>/userName}" state="Information" visible="{= !${ui>/isInLaunchpad} }" />
 				<Button
 					icon="{= ${ui>/isDarkTheme} ? 'sap-icon://light-mode' : 'sap-icon://dark-mode' }"
 					tooltip="{= ${ui>/isDarkTheme} ? 'Switch to light theme' : 'Switch to dark theme' }"
 					press=".onToggleTheme"
-					type="Transparent" />
-				<Button icon="sap-icon://log" text="Logout" press=".onLogout" type="Transparent" />
-			</OverflowToolbar>
+					type="Transparent"
+					visible="{= !${ui>/isInLaunchpad} }" />
+				<Button
+					icon="sap-icon://log"
+					text="Logout"
+					press=".onLogout"
+					type="Transparent"
+					visible="{= !${ui>/isInLaunchpad} }" />
+			</tnt:ToolHeader>
 		</tnt:header>
 		<tnt:sideContent>
 			<tnt:SideNavigation expanded="true" visible="{ui>/permissionsLoaded}">

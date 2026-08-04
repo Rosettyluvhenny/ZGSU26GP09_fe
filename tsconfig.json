@@ -9,10 +9,11 @@
 		"strictNullChecks": false,
 		"strictPropertyInitialization": false,
 		"rootDir": "./webapp",
-		"types": ["@sapui5/types"],
+		"types": ["@sapui5/ts-types-esm"],
 		"paths": {
 			"com/zgp9/fe/*": ["./webapp/*"]
 		}
 	},
+	"exclude": ["./webapp/test/**/*"],
 	"include": ["./webapp/**/*"]
 }

@@ -39,7 +39,7 @@ export default class VersionCompare extends BaseController {
 		this.setModel(model, 'versionCompare');
 		this.getRouter()
 			.getRoute("versionCompare")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}

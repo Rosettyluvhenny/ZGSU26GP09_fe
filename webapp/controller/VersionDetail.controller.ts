@@ -51,7 +51,7 @@ export default class VersionDetail extends BaseController {
 		this.setModel(new JSONModel([]), 'treeModel');
 		this.getRouter()
 			.getRoute("versionDetail")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}

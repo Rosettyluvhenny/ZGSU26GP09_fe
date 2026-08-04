@@ -2,6 +2,7 @@ import Device from 'sap/ui/Device';
 import BindingMode from 'sap/ui/model/BindingMode';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
+import { isInLaunchpad } from '../services/Launchpad';
 import { readSessionStorage, readThemePreference } from '../services/SessionStorage';
 import type { SessionData } from './types';
 
@@ -41,7 +42,12 @@ export default {
 			canExecuteScanJob: false,
 			canCreate: false,
 			canUpdate: false,
-			permissionsLoaded: false
+			permissionsLoaded: false,
+			// Whether the app is embedded in a Fiori Launchpad. Read once here rather than
+			// per view: the shell bootstraps before the app Component, so this cannot change
+			// during the session, and a model flag keeps the views free of sap.ushell checks.
+			// Drives the shell header (MainShell.view.xml) — see FLP_MIGRATION.md 3.3.
+			isInLaunchpad: isInLaunchpad()
 		});
 		model.setDefaultBindingMode(BindingMode.TwoWay);
 		return model;
