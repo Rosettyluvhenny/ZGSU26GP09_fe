@@ -20,18 +20,21 @@
 
 				Embedded in a launchpad, the FLP shell bar already carries the app title, the
 				user, the theme switch and logout, so showing them again is duplication; theme
-				in particular belongs to FLP user settings, not to the app. Bound rather than
-				deleted, because the standalone hosts (BTP, ABAP direct URL) have no shell bar
-				and still need the full header.
+				in particular belongs to FLP user settings, not to the app. Each of those four
+				is therefore hidden individually on `isInLaunchpad`, rather than deleted — the
+				standalone hosts (BTP, ABAP direct URL) have no shell bar and still need them.
 
-				The phone-width exception is NOT in the original plan. The menu button below is
-				the only way to reopen the side navigation once it collapses to an overlay
-				(<600px — see MainShell.onInit), so hiding the whole header there would leave
-				an embedded phone user with no navigation at all. On phone the header therefore
-				stays and carries the menu button alone; every duplicated control is hidden
-				individually rather than by dropping the toolbar.
+				The toolbar itself is unconditionally visible, because the menu button is the
+				one control the FLP shell bar does NOT duplicate: it toggles this app's side
+				navigation, which the shell knows nothing about. 3.3 originally dropped the
+				whole toolbar when embedded and re-added it below 600px, where the side nav
+				collapses to an overlay and the button is the only way back. That left the
+				button — and so any way to collapse the nav — missing on embedded desktop while
+				present on embedded phone, which reads as a bug rather than as the "convenience,
+				not a function" trade-off 3.3 accepted. Embedded desktop now pays a one-button
+				toolbar strip under the shell bar in exchange for consistent behaviour.
 			-->
-			<tnt:ToolHeader visible="{= !${ui>/isInLaunchpad} || ${ui>/isPhoneWidth} }">
+			<tnt:ToolHeader>
 				<Button
 					icon="sap-icon://menu2"
 					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"

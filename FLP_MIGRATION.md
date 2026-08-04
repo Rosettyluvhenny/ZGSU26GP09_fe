@@ -612,6 +612,21 @@ Static checks were green throughout: `ts-typecheck` clean, `lint` at the 1 pre-e
 - [x] 3.3 ✅ **COMPLETE — both widths verified in FLP.** Desktop 2026-07-27 (app header entirely
       absent, side navigation working); **phone at 400px on 2026-07-28** (header reappears with
       only the menu button, side nav collapsed, tiles stacked). See 7.2. Original text follows.
+
+      ⚠️ **REVISED 2026-08-04 — the accepted consequence below was rejected on review.** Binding
+      the whole `ToolHeader` to `!isInLaunchpad || isPhoneWidth` made the menu button, and so any
+      way to collapse the side nav, **present on embedded phone but missing on embedded desktop**.
+      Reported as a bug, and it reads as one: the same control appears and disappears with window
+      width for no reason the user can see. The "convenience, not a function" argument holds for
+      *one* consistent behaviour, not for a width-dependent one.
+      The toolbar is now **unconditionally visible**; only the four duplicated controls stay bound
+      to `!isInLaunchpad`. The menu button is not duplicated by the shell bar — it drives this
+      app's side nav, which the shell knows nothing about — so it has no reason to be conditional.
+      Cost, accepted knowingly: embedded desktop now carries a one-button toolbar strip under the
+      FLP shell bar. **Not yet re-verified in a real launchpad** — `isInLaunchpad()` cannot return
+      true locally (3.0, 7.1), so this was proven by forcing `ui>/isInLaunchpad` to `true` at
+      1280px in the running app and confirming the header renders with the menu button as its only
+      visible control. Re-check on the next deploy; 7.2 is reopened for that.
       ✅ **Desktop verified in FLP 2026-07-27** — the app header is entirely absent and the
       side navigation (Home / Registry Management / Logs) works. ~~**Phone width below 600px is
       still unverified in FLP**~~ — that is 7.2, and it is the half of this item where the
@@ -1276,7 +1291,11 @@ FLP resolved the component without complaint.
         looks broken when it is working.
       - ~~Flip 3.1–3.6 from `[~]` to `[x]` only once this passes.~~ Done for 3.1, 3.2, 3.5 and 3.6.
         3.3 stays `[~]` pending 7.2's phone check; 3.4 is `[!]` — a finding, not a pass.
-- [x] 7.2 ✅ **CLOSED 2026-07-28.** Desktop confirmed 2026-07-27 (shell bar with the app title,
+- [~] 7.2 ⚠️ **REOPENED 2026-08-04** by the 3.3 revision — what was verified below is no longer
+      what the code does. On the next deploy, confirm **both** widths now show the app header
+      carrying only the menu button, and that the side nav is collapsible on embedded desktop.
+      The closure below described the old, width-dependent behaviour and is kept for history.
+      ✅ ~~**CLOSED 2026-07-28.**~~ Desktop confirmed 2026-07-27 (shell bar with the app title,
       app header entirely absent, side navigation working). **Phone width confirmed 2026-07-28 at
       400px inside FLP:** the app header reappears carrying **only the menu button**, the side nav
       is collapsed, and the KPI tiles stack — exactly the deliberate departure recorded in 3.3.
