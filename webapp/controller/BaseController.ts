@@ -13,6 +13,7 @@ import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
 import AiChatService, { AI_MODEL_AUTO, type AiChatMessage, type AiModelOption } from '../services/AiChatService';
+import { writeSideNavPreference } from '../services/SessionStorage';
 import { highlightXmlLine } from '../services/XmlNodeUtils';
 
 export interface AiChatContext {
@@ -432,6 +433,21 @@ export default abstract class BaseController extends Controller {
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Toggles the shell's side navigation.
+	 *
+	 * Lives here, not on MainShell, because the button was moved out of the shell header
+	 * into each routed page's title bar (NavToggleButton.fragment.xml) — so the press is
+	 * handled by whichever page controller is showing, not by the shell. Only the model is
+	 * written; MainShell watches `/sideNavVisible` and applies the shell's CSS class.
+	 */
+	public onToggleSideNav(): void {
+		const ui = this.getUiModel();
+		const visible = !(ui.getProperty('/sideNavVisible') as boolean);
+		ui.setProperty('/sideNavVisible', visible);
+		writeSideNavPreference(visible);
+	}
 
 	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();
