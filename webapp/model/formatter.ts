@@ -1,4 +1,4 @@
-import type { Job, Registry } from "./types";
+import type { job, registry } from "./types";
 
 export default {
 	formatUpperCase: (value: string): string => {
@@ -27,15 +27,15 @@ export default {
 		return `${minutes}m ${seconds}s`;
 	},
 
-	formatRegistryStatus: (status: Registry['status']): string => {
+	formatRegistryStatus: (status: registry['status']): string => {
 		return status ?? '';
 	},
 
-	formatJobStatus: (status: Job['status']): string => {
+	formatJobStatus: (status: job['status']): string => {
 		return status ?? '';
 	},
 
-	formatStatusState: (status: Registry['status'] | Job['status']): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' => {
+	formatStatusState: (status: registry['status'] | job['status']): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' => {
 		switch (status) {
 			case 'Published':
 			case 'Completed':
