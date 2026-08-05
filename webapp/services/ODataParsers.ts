@@ -1,8 +1,8 @@
-import type { Job, LogEntry, MetadataDetails, Registry, RegistryDetail, RegistryVersion } from "../model/types";
+import type { job, logEntry, metadataDetails, registry, registryDetail, registryVersion } from "../model/types";
 
 type ODataRecord = Record<string, unknown>;
 
-export function emptyMetadata(): MetadataDetails {
+export function emptyMetadata(): metadataDetails {
 	return {
 		entityTypes: [],
 		entitySets: [],
@@ -77,7 +77,7 @@ function asIsoDate(value: unknown): string {
 	return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
-function mapRegistryStatus(code: unknown, text: unknown): Registry["status"] {
+function mapRegistryStatus(code: unknown, text: unknown): registry["status"] {
 	const normalizedText = asString(text).toLowerCase();
 	if (normalizedText.includes("unpublish") || normalizedText.includes("inactive") || normalizedText.includes("unassigned")) {
 		return "Unpublished";
@@ -102,7 +102,7 @@ function mapRegistryStatus(code: unknown, text: unknown): Registry["status"] {
 	}
 }
 
-function mapJobStatus(code: unknown, text: unknown, fallback: Job["status"]): Job["status"] {
+function mapJobStatus(code: unknown, text: unknown, fallback: job["status"]): job["status"] {
 	const normalizedText = asString(text).toLowerCase();
 	if (normalizedText.includes("running")) {
 		return "Running";
@@ -164,7 +164,7 @@ function pushUnique(target: string[], value: unknown): void {
 	}
 }
 
-export function parseMetadataXml(xml: string): MetadataDetails {
+export function parseMetadataXml(xml: string): metadataDetails {
 	if (!xml || !xml.includes("<")) {
 		return emptyMetadata();
 	}
@@ -209,63 +209,63 @@ export function parseMetadataXml(xml: string): MetadataDetails {
 	}
 }
 
-export function mapRegistryEntity(entity: ODataRecord, options: { versions?: RegistryVersion[]; serviceDefinition?: string } = {}): Registry {
+export function mapRegistryEntity(entity: ODataRecord, options: { versions?: registryVersion[]; serviceDefinition?: string } = {}): registry {
 	const status = mapRegistryStatus(entity.Status, entity.StatusText);
-	const serviceType = asString(entity.GroupTypeText) || asString(entity.GroupType);
-	const registryName = asString(entity.GroupName) || asString(entity.registryName) || asString(entity.Name) || asString(entity.GroupId);
+	const groupType = asString(entity.GroupTypeText) || asString(entity.GroupType);
+	const groupName = asString(entity.GroupName) || asString(entity.registryName) || asString(entity.Name) || asString(entity.GroupId);
 
 	return {
-		id: asString(entity.GroupId) || asString(entity.id),
-		registryName,
-		serviceName: registryName,
-		serviceType: serviceType || "RAP",
+		groupId: asString(entity.GroupId) || asString(entity.id),
+		groupName,
+		serviceName: groupName,
+		groupType: groupType || "RAP",
 		etag: asString(entity["@odata.etag"]),
 		versionNo: asString(entity.VersionNo) || asString(entity.versionNo) || "",
 		status,
 		statusText: asString(entity.StatusText) || status,
 		description: asString(entity.Description),
-		createdBy: asString(entity.RegisteredBy) || asString(entity.CreatedBy) || "",
-		createdAt: asIsoDate(entity.RegisteredAt ?? entity.CreatedAt),
+		registeredBy: asString(entity.RegisteredBy) || asString(entity.CreatedBy) || "",
+		registeredAt: asIsoDate(entity.RegisteredAt ?? entity.CreatedAt),
 		lastChangedBy: asString(entity.LastChangedBy) || asString(entity.RegisteredBy) || asString(entity.CreatedBy) || "",
-		lastChangedAt: asIsoDate(entity.LastChangeAt ?? entity.TotalLastChangeAt ?? entity.RegisteredAt ?? entity.CreatedAt),
+		lastChangeAt: asIsoDate(entity.LastChangeAt ?? entity.TotalLastChangeAt ?? entity.RegisteredAt ?? entity.CreatedAt),
 		serviceDefinition: options.serviceDefinition ?? asString(entity.ServiceDefId) ?? "",
 		versions: options.versions ?? []
 	};
 }
 
-export function mapVersionEntity(entity: ODataRecord, detailEntity?: ODataRecord): RegistryVersion {
-	const xml = getMetadataXml(detailEntity);
-	const metadata = xml ? parseMetadataXml(xml) : emptyMetadata();
+export function mapVersionEntity(entity: ODataRecord, detailEntity?: ODataRecord): registryVersion {
+	const metadataXml = getMetadataXml(detailEntity);
+	const metadata = metadataXml ? parseMetadataXml(metadataXml) : emptyMetadata();
 	const comment = asString(entity.TriggerText) || asString(entity.StatusText) || asString(entity.GroupHash);
 
 	return {
-		id: asString(entity.VersionId) || asString(entity.id),
+		versionId: asString(entity.VersionId) || asString(entity.id),
 		groupId: asString(entity.GroupId),
-		versionNumber: asString(entity.VersionNo) || asString(entity.versionNumber) || "1.0.0",
+		versionNo: asString(entity.VersionNo) || asString(entity.versionNumber) || "1.0.0",
 		createdBy: asString(entity.CreatedBy) || "",
 		createdAt: asIsoDate(entity.CreatedAt ?? entity.LastChangeAt),
 		comment,
 		metadata,
-		xml
+		metadataXml
 	};
 }
 
-export function mapDetailEntity(entity: ODataRecord): RegistryDetail {
+export function mapDetailEntity(entity: ODataRecord): registryDetail {
 	return {
-		id: asString(entity.DetailId) || asString(entity.id),
+		detailId: asString(entity.DetailId) || asString(entity.id),
 		versionId: asString(entity.VersionId),
 		groupId: asString(entity.GroupId),
-		serviceDefinition: asString(entity.ServiceDefId),
+		serviceDefId: asString(entity.ServiceDefId),
 		serviceHash: asString(entity.ServiceHash),
-		lastChangedAt: asIsoDate(entity.LastChangeAt),
-		xml: getMetadataXml(entity)
+		lastChangeAt: asIsoDate(entity.LastChangeAt),
+		metadataXml: getMetadataXml(entity)
 	};
 }
 
-export function mapLogEntity(entity: ODataRecord): LogEntry {
+export function mapLogEntity(entity: ODataRecord): logEntry {
 	const actionType = asString(entity.ActionType);
 	return {
-		id: asString(entity.LogId) || asString(entity.id),
+		logId: asString(entity.LogId) || asString(entity.id),
 		actionType,
 		actionText: asString(entity.ActionText) || actionType,
 		actor: asString(entity.Actor),
@@ -279,18 +279,18 @@ export function mapLogEntity(entity: ODataRecord): LogEntry {
 	};
 }
 
-export function mapJobEntity(entity: ODataRecord): Job {
+export function mapJobEntity(entity: ODataRecord): job {
 	const startedAt = asIsoDate(entity.StartedAt);
 	const finishedAtValue = entity.FinishedAt ? asIsoDate(entity.FinishedAt) : null;
 	const status = mapJobStatus(entity.Status, entity.StatusText, "Completed");
 
 	return {
-		id: asString(entity.ScanJobId) || asString(entity.id),
+		scanJobId: asString(entity.ScanJobId) || asString(entity.id),
 		status,
 		startedAt,
 		finishedAt: finishedAtValue,
 		durationMs: finishedAtValue ? new Date(finishedAtValue).getTime() - new Date(startedAt).getTime() : null,
-		executedBy: asString(entity.TriggeredBy) || "",
+		triggeredBy: asString(entity.TriggeredBy) || "",
 		triggerType: asString(entity.TriggerType) || "",
 		triggerText: asString(entity.TriggerText) || asString(entity.TriggerType) || "",
 		totalRegistry: Number(entity.TotalRegistry) || 0,

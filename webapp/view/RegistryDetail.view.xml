@@ -11,7 +11,7 @@
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="{registryDetail>/registry/registryName}" level="H1" />
+					<Title text="{registryDetail>/registry/groupName}" level="H1" />
 				</f:heading>
 				<f:snappedContent>
 					<ObjectStatus text="{registryDetail>/registry/statusText}" state="{path: 'registryDetail>/registry/status', formatter: '.formatStatusState'}" />
@@ -37,16 +37,16 @@
 						<form:SimpleForm layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
 							<form:content>
 							<Label text="ID" />
-    <Text text="{registryDetail>/registry/id}" />
+    <Text text="{registryDetail>/registry/groupId}" />
 
     <Label text="Registry Name" />
-    <Text text="{registryDetail>/registry/registryName}" />
+    <Text text="{registryDetail>/registry/groupName}" />
 
     <Label text="Service Name" />
     <Text text="{registryDetail>/registry/serviceName}" />
 
     <Label text="Service Type" />
-    <Text text="{registryDetail>/registry/serviceType}" />
+    <Text text="{registryDetail>/registry/groupType}" />
 
     <Label text="Status Code" />
     <Text text="{registryDetail>/registry/status}" />
@@ -55,16 +55,16 @@
     <Text text="{registryDetail>/registry/versionNo}" />
 
     <Label text="Created By" />
-    <Text text="{registryDetail>/registry/createdBy}" />
+    <Text text="{registryDetail>/registry/registeredBy}" />
 
     <Label text="Created At" />
-    <Text text="{path: 'registryDetail>/registry/createdAt', formatter: '.formatDateTime'}" />
+    <Text text="{path: 'registryDetail>/registry/registeredAt', formatter: '.formatDateTime'}" />
 
     <Label text="Last Changed By" />
     <Text text="{registryDetail>/registry/lastChangedBy}" />
 
     <Label text="Last Changed At" />
-    <Text text="{path: 'registryDetail>/registry/lastChangedAt', formatter: '.formatDateTime'}" />
+    <Text text="{path: 'registryDetail>/registry/lastChangeAt', formatter: '.formatDateTime'}" />
 
     <Label text="Description" />
     <Text text="{registryDetail>/registry/description}" wrapping="true" />
@@ -85,7 +85,7 @@
 							<items>
 								<ColumnListItem>
 									<cells>
-										<Link text="{registryDetail>versionNumber}" press=".onVersionPress" />
+										<Link text="{registryDetail>versionNo}" press=".onVersionPress" />
 										<Text text="{registryDetail>createdBy}" />
 										<Text text="{path: 'registryDetail>createdAt', formatter: '.formatDateTime'}" />
 										<Text text="{registryDetail>comment}" />

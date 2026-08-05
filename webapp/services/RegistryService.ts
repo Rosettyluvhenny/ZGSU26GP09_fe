@@ -1,7 +1,7 @@
-﻿import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
+import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
 import ServiceError from './ServiceError';
 
-import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem } from '../model/types';
+import type { registry, registryCreateInput, registryUpdateInput, registryValueHelpItem } from '../model/types';
 import { mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
@@ -33,7 +33,7 @@ function asString(value: unknown): string {
 	return String(primitive);
 }
 
-function toValueHelpItems(payload: unknown, keyFields: string[]): RegistryValueHelpItem[] {
+function toValueHelpItems(payload: unknown, keyFields: string[]): registryValueHelpItem[] {
 	return normalizeODataCollection(payload)
 		.map((entity) => {
 			const key = keyFields.map((field) => asString(entity[field])).find((value) => Boolean(value)) ?? '';
@@ -179,24 +179,24 @@ export default class RegistryService {
 		return delay(permissions);
 	}
 
-	public async getGroupTypes(): Promise<RegistryValueHelpItem[]> {
+	public async getGroupTypes(): Promise<registryValueHelpItem[]> {
 		const payload = await readJson('/ZI_GRP_TYPE_VH');
 		const items = toValueHelpItems(payload, ['TypeId']);
 		return delay(items);
 	}
 
-	public async getStatuses(): Promise<RegistryValueHelpItem[]> {
+	public async getStatuses(): Promise<registryValueHelpItem[]> {
 		const payload = await readJson('/ZI_GRP_STAT_VH');
 		const items = toValueHelpItems(payload, ['StatusId']);
 		return delay(items);
 	}
 
-	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string; searchField: string }): Promise<Registry[]> {
+	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string; searchField: string }): Promise<registry[]> {
 		const backendRegistries = await this.loadRegistriesFromBackend(filter);
 		return delay(this.filterRegistries(backendRegistries, filter));
 	}
 
-	public async getRegistry(registryId: string): Promise<Registry> {
+	public async getRegistry(registryId: string): Promise<registry> {
 		const backendRegistry = await this.loadRegistryFromBackend(registryId);
 		if (!backendRegistry) {
 			throw new ServiceError(404, 'Registry not found.');
@@ -204,7 +204,7 @@ export default class RegistryService {
 		return delay(backendRegistry);
 	}
 
-	public async createRegistry(input: RegistryCreateInput): Promise<Registry> {
+	public async createRegistry(input: registryCreateInput): Promise<registry> {
 		const validationMessages = this.validateCreateInput(input);
 		if (validationMessages.length > 0) {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
@@ -223,7 +223,7 @@ export default class RegistryService {
 		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
-	public async updateRegistry(registryId: string, input: RegistryUpdateInput): Promise<Registry> {
+	public async updateRegistry(registryId: string, input: registryUpdateInput): Promise<registry> {
 		const validationMessages = this.validateUpdateInput(input);
 		if (validationMessages.length > 0) {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
@@ -240,11 +240,11 @@ export default class RegistryService {
 		await delay(undefined);
 	}
 
-	public async activateRegistry(registryId: string, changedBy = 'demo.user'): Promise<Registry> {
+	public async activateRegistry(registryId: string, changedBy = 'demo.user'): Promise<registry> {
 		return this.changeStatus(registryId, 'Published', changedBy);
 	}
 
-	public async deactivateRegistry(registryId: string, changedBy = 'demo.user'): Promise<Registry> {
+	public async deactivateRegistry(registryId: string, changedBy = 'demo.user'): Promise<registry> {
 		return this.changeStatus(registryId, 'Unpublished', changedBy);
 	}
 
@@ -264,25 +264,25 @@ export default class RegistryService {
 		return delay(payload, 350);
 	}
 
-	private filterRegistries(registries: Registry[], filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): Registry[] {
+	private filterRegistries(registries: registry[], filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): registry[] {
 		const normalizedSearch = filter.search.trim().toLowerCase();
 
 		return registries.filter((registry) => {
 			const matchesSearch =
 				!normalizedSearch ||
 				[
-					registry.id,
-					registry.registryName,
+					registry.groupId,
+					registry.groupName,
 					registry.serviceName,
-					registry.serviceType,
+					registry.groupType,
 					registry.versionNo,
 					registry.status,
 					registry.statusText,
 					registry.description,
-					registry.createdBy,
-					registry.createdAt,
+					registry.registeredBy,
+					registry.registeredAt,
 					registry.lastChangedBy,
-					registry.lastChangedAt
+					registry.lastChangeAt
 				]
 					.join(' ')
 					.toLowerCase()
@@ -292,7 +292,7 @@ export default class RegistryService {
 		});
 	}
 
-	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string, searchField: string }): Promise<Registry[]> {
+	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string, searchField: string }): Promise<registry[]> {
 		let url = '/Registry?$orderby=LastChangeAt desc';
 		const filterParts: string[] = [];
 		if (filter) {
@@ -342,7 +342,7 @@ export default class RegistryService {
 		return registries.map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
-	private async loadRegistryFromBackend(registryId: string): Promise<Registry | null> {
+	private async loadRegistryFromBackend(registryId: string): Promise<registry | null> {
 		const payload = await readJson(`/Registry/${formatGuidLiteral(registryId)}`);
 		const entity = normalizeODataEntity(payload);
 		if (!Object.keys(entity).length) {
@@ -352,13 +352,13 @@ export default class RegistryService {
 		return mapRegistryEntity(entity, { serviceDefinition: '' });
 	}
 
-	private async changeStatus(registryId: string, status: Registry['status'], _changedBy: string): Promise<Registry> {
+	private async changeStatus(registryId: string, status: registry['status'], _changedBy: string): Promise<registry> {
 		const headers = await this.client.ensureWriteHeaders('PATCH');
 		const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: status }, headers));
 		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
 	}
 
-	private validateCreateInput(input: RegistryCreateInput): string[] {
+	private validateCreateInput(input: registryCreateInput): string[] {
 		const messages: string[] = [];
 		if (!input.groupName.trim()) {
 			messages.push('Group Name is required.');
@@ -372,7 +372,7 @@ export default class RegistryService {
 		return messages;
 	}
 
-	private validateUpdateInput(input: RegistryUpdateInput): string[] {
+	private validateUpdateInput(input: registryUpdateInput): string[] {
 		const messages: string[] = [];
 		if (!input.status.trim()) {
 			messages.push('Status is required.');
@@ -380,7 +380,7 @@ export default class RegistryService {
 		return messages;
 	}
 
-	private statusTextFromId(statusId: string): Registry['status'] {
+	private statusTextFromId(statusId: string): registry['status'] {
 		switch (statusId.trim().toUpperCase()) {
 			case 'P':
 				return 'Published';

@@ -1,999 +1,1540 @@
-<?xml version="1.0" encoding="utf-8"?>
-<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" xmlns="http://docs.oasis-open.org/odata/ns/edm">
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMUNICATION',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.Communication.v1" Alias="Communication"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_PERSONALDATA',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.PersonalData.v1" Alias="PersonalData"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_ANALYTICS',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.Analytics.v1" Alias="Analytics"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="SAP__common"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_MEASURES',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="Org.OData.Measures.V1" Alias="SAP__measures"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CORE',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="Org.OData.Core.V1" Alias="SAP__core"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CAPABILITIES',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="Org.OData.Capabilities.V1" Alias="SAP__capabilities"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_AGGREGATION',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="Org.OData.Aggregation.V1" Alias="SAP__aggregation"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_VALIDATION',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="Org.OData.Validation.V1" Alias="SAP__validation"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CODELIST',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.CodeList.v1" Alias="SAP__CodeList"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_UI',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="SAP__UI"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_HTML5',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.HTML5.v1" Alias="SAP__HTML5"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_PDF',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.PDF.v1" Alias="SAP__PDF"/>
-    </edmx:Reference>
-    <edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_SESSION',Version='0001',SAP__Origin='LOCAL')/$value">
-        <edmx:Include Namespace="com.sap.vocabularies.Session.v1" Alias="SAP__session"/>
-    </edmx:Reference>
-    <edmx:DataServices>
-        <Schema Namespace="com.sap.gateway.srvd_a2x.zsr_registry.v0001" Alias="SAP__self">
-            <Annotation Term="SAP__core.SchemaVersion" String="1.0.0"/>
-            <EntityType Name="ScanJobType">
-                <Key>
-                    <PropertyRef Name="ScanJobId"/>
-                </Key>
-                <Property Name="ScanJobId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="TriggerType" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="StartedAt" Type="Edm.DateTimeOffset"/>
-                <Property Name="FinishedAt" Type="Edm.DateTimeOffset"/>
-                <Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="TotalRegistry" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="ChangeCount" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="NewVersionCount" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="TriggeredBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
-                <Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
-            </EntityType>
-            <EntityType Name="VersionType">
-                <Key>
-                    <PropertyRef Name="VersionId"/>
-                </Key>
-                <Property Name="VersionId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="GroupId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="6"/>
-                <Property Name="GroupHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
-                <Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="StatusText" Type="Edm.String" Nullable="false" MaxLength="20"/>
-                <Property Name="CreatedBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
-                <Property Name="CreatedAt" Type="Edm.DateTimeOffset"/>
-                <Property Name="TriggerType" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="TriggerText" Type="Edm.String" Nullable="false" MaxLength="20"/>
-                <Property Name="LatestVersion" Type="Edm.Boolean" Nullable="false"/>
-                <Property Name="LastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
-                <Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
-                <NavigationProperty Name="_Detail" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Partner="_Version">
-                    <OnDelete Action="Cascade"/>
-                </NavigationProperty>
-                <NavigationProperty Name="_Registry" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType" Nullable="false" Partner="_Version">
-                    <ReferentialConstraint Property="GroupId" ReferencedProperty="GroupId"/>
-                </NavigationProperty>
-                <NavigationProperty Name="_Status" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_VRS_STAT_VHType"/>
-            </EntityType>
-            <EntityType Name="ZI_GRP_TYPE_VHType">
-                <Key>
-                    <PropertyRef Name="TypeId"/>
-                </Key>
-                <Property Name="TypeId" Type="Edm.String" Nullable="false" MaxLength="4"/>
-                <Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
-            </EntityType>
-            <EntityType Name="DetailType">
-                <Key>
-                    <PropertyRef Name="DetailId"/>
-                </Key>
-                <Property Name="DetailId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="VersionId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="ServiceDefId" Type="Edm.String" Nullable="false" MaxLength="30"/>
-                <Property Name="GroupId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="ServiceHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
-                <Property Name="LastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
-                <Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
-                <NavigationProperty Name="_Registry" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType"/>
-                <NavigationProperty Name="_Version" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType" Nullable="false" Partner="_Detail">
-                    <ReferentialConstraint Property="VersionId" ReferencedProperty="VersionId"/>
-                </NavigationProperty>
-            </EntityType>
-            <EntityType Name="RegistryType">
-                <Key>
-                    <PropertyRef Name="GroupId"/>
-                </Key>
-                <Property Name="GroupId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="GroupName" Type="Edm.String" Nullable="false" MaxLength="36"/>
-                <Property Name="GroupType" Type="Edm.String" Nullable="false" MaxLength="4"/>
-                <Property Name="GroupTypeText" Type="Edm.String" Nullable="false" MaxLength="20"/>
-                <Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="4"/>
-                <Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="StatusText" Type="Edm.String" Nullable="false" MaxLength="20"/>
-                <Property Name="RegisteredBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
-                <Property Name="RegisteredAt" Type="Edm.DateTimeOffset"/>
-                <Property Name="LastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
-                <Property Name="TotalLastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
-                <Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="255"/>
-                <Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
-                <NavigationProperty Name="_Detail" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)"/>
-                <NavigationProperty Name="_GroupType" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_TYPE_VHType"/>
-                <NavigationProperty Name="_Status" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_STAT_VHType"/>
-                <NavigationProperty Name="_Version" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType)" Partner="_Registry">
-                    <OnDelete Action="Cascade"/>
-                </NavigationProperty>
-            </EntityType>
-            <EntityType Name="ZI_TRGR_TYPE_VHType">
-                <Key>
-                    <PropertyRef Name="TypeId"/>
-                </Key>
-                <Property Name="TypeId" Type="Edm.String" Nullable="false" MaxLength="4"/>
-                <Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
-            </EntityType>
-            <EntityType Name="LogType">
-                <Key>
-                    <PropertyRef Name="LogId"/>
-                </Key>
-                <Property Name="LogId" Type="Edm.Guid" Nullable="false"/>
-                <Property Name="ActionType" Type="Edm.String" Nullable="false" MaxLength="2"/>
-                <Property Name="ActionText" Type="Edm.String" Nullable="false" MaxLength="20"/>
-                <Property Name="Actor" Type="Edm.String" Nullable="false" MaxLength="12"/>
-                <Property Name="ActionAt" Type="Edm.DateTimeOffset"/>
-                <Property Name="IpAddress" Type="Edm.String" Nullable="false" MaxLength="45"/>
-                <Property Name="Remarks" Type="Edm.String" Nullable="false" MaxLength="255"/>
-                <Property Name="LogResult" Type="Edm.String" Nullable="false" MaxLength="10"/>
-                <Property Name="ObjectId" Type="Edm.Guid"/>
-                <Property Name="objectIdType" Type="Edm.String" Nullable="false" MaxLength="10"/>
-            </EntityType>
-            <EntityType Name="ZI_GRP_STAT_VHType">
-                <Key>
-                    <PropertyRef Name="StatusId"/>
-                </Key>
-                <Property Name="StatusId" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
-            </EntityType>
-            <EntityType Name="ZI_VRS_STAT_VHType">
-                <Key>
-                    <PropertyRef Name="StatusId"/>
-                </Key>
-                <Property Name="StatusId" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
-            </EntityType>
-            <ComplexType Name="ZDATTRIBUTEDIFF">
-                <Property Name="SEMANTIC_ID" Type="Edm.String" Nullable="false"/>
-                <Property Name="NAME" Type="Edm.String" Nullable="false"/>
-                <Property Name="STATUS" Type="Edm.String" Nullable="false" MaxLength="10"/>
-                <Property Name="OLD_VALUE" Type="Edm.String" Nullable="false"/>
-                <Property Name="NEW_VALUE" Type="Edm.String" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZI_PERMISSION">
-                <Property Name="Permission" Type="Edm.String" Nullable="false" MaxLength="50"/>
-            </ComplexType>
-            <ComplexType Name="ZDATTRIBUTE">
-                <Property Name="NAME" Type="Edm.String" Nullable="false"/>
-                <Property Name="VALUE" Type="Edm.String" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZI_VERSION_RESULT">
-                <Property Name="CreatedAt" Type="Edm.DateTimeOffset"/>
-                <Property Name="CreatedBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
-                <Property Name="GroupHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
-                <Property Name="GroupId" Type="Edm.Guid"/>
-                <Property Name="LatestVersion" Type="Edm.Boolean" Nullable="false"/>
-                <Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="TriggerType" Type="Edm.String" Nullable="false" MaxLength="1"/>
-                <Property Name="VersionId" Type="Edm.Guid"/>
-                <Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="6"/>
-            </ComplexType>
-            <ComplexType Name="ZDNODEDIFFRESULT">
-                <Property Name="NODEDIFF" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDNODEDIFF)" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZI_DETAIL_RESULT">
-                <Property Name="GroupId" Type="Edm.Guid"/>
-                <Property Name="MetadataXml" Type="Edm.Binary" Nullable="false"/>
-                <Property Name="ServiceDefId" Type="Edm.String" Nullable="false" MaxLength="30"/>
-                <Property Name="ServiceHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
-                <Property Name="VersionId" Type="Edm.Guid"/>
-            </ComplexType>
-            <ComplexType Name="ZDNODETREE">
-                <Property Name="NODE_ID" Type="Edm.String" Nullable="false"/>
-                <Property Name="SEMANTIC_ID" Type="Edm.String" Nullable="false"/>
-                <Property Name="PARENT_ID" Type="Edm.String" Nullable="false"/>
-                <Property Name="NODE_PATH" Type="Edm.String" Nullable="false"/>
-                <Property Name="NODE_TYPE" Type="Edm.String" Nullable="false"/>
-                <Property Name="NODE_NAME" Type="Edm.String" Nullable="false"/>
-                <Property Name="NODE_ALIAS" Type="Edm.String" Nullable="false"/>
-                <Property Name="OFFSET_START" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="OFFSET_END" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="SEQ" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="DEPTH" Type="Edm.Int32" Nullable="false"/>
-                <Property Name="ATTRIBUTES" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDATTRIBUTE)" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZI_METADATA_RESULT">
-                <Property Name="DetailId" Type="Edm.Guid"/>
-                <Property Name="MetadataXml" Type="Edm.String" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZDVRSDIFF">
-                <Property Name="SERVICEDEFID" Type="Edm.String" Nullable="false" MaxLength="36"/>
-                <Property Name="BASEDETAILID" Type="Edm.Guid"/>
-                <Property Name="COMPAREDETAILID" Type="Edm.Guid"/>
-                <Property Name="CHANGETYPE" Type="Edm.String" Nullable="false" MaxLength="10"/>
-            </ComplexType>
-            <ComplexType Name="ZDNODEDIFF">
-                <Property Name="SEMANTIC_ID" Type="Edm.String" Nullable="false"/>
-                <Property Name="STATUS" Type="Edm.String" Nullable="false" MaxLength="10"/>
-                <Property Name="ATTRIBUTEDIFF" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDATTRIBUTEDIFF)" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZDVRSDIFFRESULT">
-                <Property Name="BASEVERSIONID" Type="Edm.Guid"/>
-                <Property Name="COMPAREVERSIONID" Type="Edm.Guid"/>
-                <Property Name="CHANGE" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFF)" Nullable="false"/>
-                <Property Name="DIFFER" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFF)" Nullable="false"/>
-                <Property Name="UNCHANGE" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFF)" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="ZNODETREERESULT">
-                <Property Name="NODETREE" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDNODETREE)" Nullable="false"/>
-            </ComplexType>
-            <ComplexType Name="SAP__Message">
-                <Property Name="code" Type="Edm.String" Nullable="false"/>
-                <Property Name="message" Type="Edm.String" Nullable="false"/>
-                <Property Name="target" Type="Edm.String"/>
-                <Property Name="additionalTargets" Type="Collection(Edm.String)" Nullable="false"/>
-                <Property Name="transition" Type="Edm.Boolean" Nullable="false"/>
-                <Property Name="numericSeverity" Type="Edm.Byte" Nullable="false"/>
-                <Property Name="longtextUrl" Type="Edm.String"/>
-            </ComplexType>
-            <Action Name="runScan" EntitySetPath="_it" IsBound="true">
-                <Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ScanJobType)" Nullable="false"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ScanJobType" Nullable="false"/>
-            </Action>
-            <Action Name="getNodeTree" IsBound="true">
-                <Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
-                <Parameter Name="DetailId" Type="Edm.Guid" Nullable="true"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZNODETREERESULT" Nullable="false"/>
-            </Action>
-            <Action Name="generateDetail" IsBound="true">
-                <Parameter Name="_it" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType" Nullable="false"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_DETAIL_RESULT" Nullable="false"/>
-            </Action>
-            <Action Name="compareNodeTree" IsBound="true">
-                <Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
-                <Parameter Name="base_detail_id" Type="Edm.Guid" Nullable="true"/>
-                <Parameter Name="compare_detail_id" Type="Edm.Guid" Nullable="true"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDNODEDIFFRESULT" Nullable="false"/>
-            </Action>
-            <Action Name="getPermissions" IsBound="true">
-                <Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType)" Nullable="false"/>
-                <ReturnType Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_PERMISSION)" Nullable="true"/>
-            </Action>
-            <Action Name="generateVersion" IsBound="true">
-                <Parameter Name="_it" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType" Nullable="false"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_VERSION_RESULT" Nullable="false"/>
-            </Action>
-            <Action Name="getParseMetadata" IsBound="true">
-                <Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
-                <Parameter Name="DetailId" Type="Edm.Guid" Nullable="true"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_METADATA_RESULT" Nullable="false"/>
-            </Action>
-            <Action Name="compareVersion" IsBound="true">
-                <Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType)" Nullable="false"/>
-                <Parameter Name="base_vrs_id" Type="Edm.Guid" Nullable="true"/>
-                <Parameter Name="compare_vrs_id" Type="Edm.Guid" Nullable="true"/>
-                <ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFFRESULT" Nullable="false"/>
-            </Action>
-            <EntityContainer Name="Container">
-                <EntitySet Name="Detail" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType">
-                    <NavigationPropertyBinding Path="_Registry" Target="Registry"/>
-                    <NavigationPropertyBinding Path="_Version" Target="Version"/>
-                </EntitySet>
-                <EntitySet Name="Log" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.LogType"/>
-                <EntitySet Name="Registry" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType">
-                    <NavigationPropertyBinding Path="_Detail" Target="Detail"/>
-                    <NavigationPropertyBinding Path="_GroupType" Target="ZI_GRP_TYPE_VH"/>
-                    <NavigationPropertyBinding Path="_Status" Target="ZI_GRP_STAT_VH"/>
-                    <NavigationPropertyBinding Path="_Version" Target="Version"/>
-                </EntitySet>
-                <EntitySet Name="ScanJob" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ScanJobType"/>
-                <EntitySet Name="Version" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType">
-                    <NavigationPropertyBinding Path="_Detail" Target="Detail"/>
-                    <NavigationPropertyBinding Path="_Registry" Target="Registry"/>
-                    <NavigationPropertyBinding Path="_Status" Target="ZI_VRS_STAT_VH"/>
-                </EntitySet>
-                <EntitySet Name="ZI_GRP_STAT_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_STAT_VHType"/>
-                <EntitySet Name="ZI_GRP_TYPE_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_TYPE_VHType"/>
-                <EntitySet Name="ZI_TRGR_TYPE_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_TRGR_TYPE_VHType"/>
-                <EntitySet Name="ZI_VRS_STAT_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_VRS_STAT_VHType"/>
-            </EntityContainer>
-            <Annotations Target="SAP__self.ScanJobType/TriggerType">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="Trigger type"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Triiger type DataElement"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ScanJobType/Status">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="Job status"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ScanJobType/TriggeredBy">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="User Name"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ScanJobType">
-                <Annotation Term="SAP__common.Label" String="Scan job projection View"/>
-                <Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/ScanJob">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.FilterRestrictions">
-                    <Record>
-                        <PropertyValue Property="FilterExpressionRestrictions">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="TriggerType"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="Status"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="TriggeredBy"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/VersionId">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="UUID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/GroupId">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="GROUP ID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Group ID Data Element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/VersionNo">
-                <Annotation Term="SAP__common.IsDigitSequence"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/Status">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="VERSION STATUS"/>
-                <Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/CreatedBy">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="User Name"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/LatestVersion">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="Checkbox"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/_Detail">
-                <Annotation Term="SAP__common.Composition"/>
-            </Annotations>
-            <Annotations Target="SAP__self.compareVersion(Collection(SAP__self.VersionType))/base_vrs_id">
-                <Annotation Term="SAP__common.Label" String="Version ID to compare"/>
-            </Annotations>
-            <Annotations Target="SAP__self.compareVersion(Collection(SAP__self.VersionType))/compare_vrs_id">
-                <Annotation Term="SAP__common.Label" String="Version ID to compare against"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType">
-                <Annotation Term="SAP__common.Label" String="Consumption View - Version"/>
-                <Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/Version">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="true"/>
-                        <PropertyValue Property="UnsupportedExpressions" EnumMember="SAP__capabilities.SearchExpressions/AND SAP__capabilities.SearchExpressions/OR SAP__capabilities.SearchExpressions/NOT SAP__capabilities.SearchExpressions/group SAP__capabilities.SearchExpressions/phrase"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection>
-                        <PropertyPath>LastChangeAt</PropertyPath>
-                    </Collection>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.FilterRestrictions">
-                    <Record>
-                        <PropertyValue Property="FilterExpressionRestrictions">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="Status"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="CreatedBy"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="LatestVersion"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_GRP_TYPE_VHType/TypeId">
-                <Annotation Term="SAP__common.Text" Path="Description"/>
-                <Annotation Term="SAP__common.IsDigitSequence"/>
-                <Annotation Term="SAP__common.Label" String="GROUP TYPE"/>
-                <Annotation Term="SAP__common.QuickInfo" String="SERVICE TYPE DATA Element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_GRP_TYPE_VHType">
-                <Annotation Term="SAP__common.Label" String="Service Type Value Help"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/ZI_GRP_TYPE_VH">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.DetailType/DetailId">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="UUID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.DetailType/VersionId">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="UUID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.DetailType/GroupId">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="GROUP ID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Group ID Data Element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.compareNodeTree(Collection(SAP__self.DetailType))/base_detail_id">
-                <Annotation Term="SAP__common.Label" String="Detail ID to compare against"/>
-            </Annotations>
-            <Annotations Target="SAP__self.compareNodeTree(Collection(SAP__self.DetailType))/compare_detail_id">
-                <Annotation Term="SAP__common.Label" String="Detail ID to compare against"/>
-            </Annotations>
-            <Annotations Target="SAP__self.DetailType">
-                <Annotation Term="SAP__common.Label" String="OData Structural Analysis"/>
-                <Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/Detail">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/GroupId">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="GROUP ID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Group ID Data Element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/GroupName">
-                <Annotation Term="SAP__core.Immutable"/>
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="GROUP NAME"/>
-                <Annotation Term="SAP__common.QuickInfo" String="group name"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/GroupType">
-                <Annotation Term="SAP__common.Text" Path="GroupTypeText"/>
-                <Annotation Term="SAP__core.Immutable"/>
-                <Annotation Term="SAP__common.IsDigitSequence"/>
-                <Annotation Term="SAP__common.Label" String="GROUP TYPE"/>
-                <Annotation Term="SAP__common.QuickInfo" String="SERVICE TYPE DATA Element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/VersionNo">
-                <Annotation Term="SAP__common.IsDigitSequence"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/Status">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="GROUP STATUS"/>
-                <Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/RegisteredBy">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="User Name"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/RegisteredAt">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="Time Stamp"/>
-                <Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/LastChangeAt">
-                <Annotation Term="SAP__core.Computed"/>
-                <Annotation Term="SAP__common.Label" String="Changed On"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/_Version">
-                <Annotation Term="SAP__common.Composition"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/Registry">
-                <Annotation Term="SAP__capabilities.NavigationRestrictions">
-                    <Record>
-                        <PropertyValue Property="RestrictedProperties">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="NavigationProperty" NavigationPropertyPath="_Version"/>
-                                    <PropertyValue Property="InsertRestrictions">
-                                        <Record>
-                                            <PropertyValue Property="Insertable" Bool="true"/>
-                                        </Record>
-                                    </PropertyValue>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="true"/>
-                        <PropertyValue Property="UnsupportedExpressions" EnumMember="SAP__capabilities.SearchExpressions/AND SAP__capabilities.SearchExpressions/OR SAP__capabilities.SearchExpressions/NOT SAP__capabilities.SearchExpressions/group SAP__capabilities.SearchExpressions/phrase"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="RequiredProperties">
-                            <Collection>
-                                <PropertyPath>GroupName</PropertyPath>
-                                <PropertyPath>GroupType</PropertyPath>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection>
-                        <PropertyPath>LastChangeAt</PropertyPath>
-                    </Collection>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.FilterRestrictions">
-                    <Record>
-                        <PropertyValue Property="FilterExpressionRestrictions">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="GroupName"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="Status"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="RegisteredBy"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType">
-                <Annotation Term="SAP__common.Label" String="OData Service Registry"/>
-                <Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_TRGR_TYPE_VHType/TypeId">
-                <Annotation Term="SAP__common.Text" Path="Description"/>
-                <Annotation Term="SAP__common.IsDigitSequence"/>
-                <Annotation Term="SAP__common.Label" String="GROUP TYPE"/>
-                <Annotation Term="SAP__common.QuickInfo" String="SERVICE TYPE DATA Element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_TRGR_TYPE_VHType">
-                <Annotation Term="SAP__common.Label" String="Trigger Type Value Help"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/ZI_TRGR_TYPE_VH">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/ActionType">
-                <Annotation Term="SAP__common.Text" Path="ActionText"/>
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="Action"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Action data element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/ActionText">
-                <Annotation Term="SAP__common.Label" String="Action Text"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/Actor">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="User Name"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/LogResult">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="Log Result"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Log result data element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/objectIdType">
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="Id Type"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Log reference Id data element"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType">
-                <Annotation Term="SAP__common.Label" String="Audit Log"/>
-                <Annotation Term="Communication.Contact">
-                    <Record/>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/Log">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.FilterRestrictions">
-                    <Record>
-                        <PropertyValue Property="FilterExpressionRestrictions">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="ActionType"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="Actor"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="LogResult"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="objectIdType"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_GRP_STAT_VHType/StatusId">
-                <Annotation Term="SAP__common.Text" Path="Description"/>
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="GROUP STATUS"/>
-                <Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_GRP_STAT_VHType">
-                <Annotation Term="SAP__common.Label" String="value help interface for group status"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/ZI_GRP_STAT_VH">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.FilterRestrictions">
-                    <Record>
-                        <PropertyValue Property="FilterExpressionRestrictions">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="StatusId"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_VRS_STAT_VHType/StatusId">
-                <Annotation Term="SAP__common.Text" Path="Description"/>
-                <Annotation Term="SAP__common.IsUpperCase"/>
-                <Annotation Term="SAP__common.Label" String="VERSION STATUS"/>
-                <Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ZI_VRS_STAT_VHType">
-                <Annotation Term="SAP__common.Label" String="Status Value Help"/>
-            </Annotations>
-            <Annotations Target="SAP__self.Container/ZI_VRS_STAT_VH">
-                <Annotation Term="SAP__capabilities.SearchRestrictions">
-                    <Record>
-                        <PropertyValue Property="Searchable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.InsertRestrictions">
-                    <Record>
-                        <PropertyValue Property="Insertable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.DeleteRestrictions">
-                    <Record>
-                        <PropertyValue Property="Deletable" Bool="false"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.UpdateRestrictions">
-                    <Record>
-                        <PropertyValue Property="Updatable" Bool="false"/>
-                        <PropertyValue Property="QueryOptions">
-                            <Record>
-                                <PropertyValue Property="SelectSupported" Bool="true"/>
-                            </Record>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__core.OptimisticConcurrency">
-                    <Collection/>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.FilterRestrictions">
-                    <Record>
-                        <PropertyValue Property="FilterExpressionRestrictions">
-                            <Collection>
-                                <Record>
-                                    <PropertyValue Property="Property" PropertyPath="StatusId"/>
-                                    <PropertyValue Property="AllowedExpressions" String="MultiValue"/>
-                                </Record>
-                            </Collection>
-                        </PropertyValue>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.Container">
-                <Annotation Term="SAP__aggregation.ApplySupported">
-                    <Record>
-                        <PropertyValue Property="Transformations">
-                            <Collection>
-                                <String>aggregate</String>
-                                <String>groupby</String>
-                                <String>filter</String>
-                            </Collection>
-                        </PropertyValue>
-                        <PropertyValue Property="Rollup" EnumMember="SAP__aggregation.RollupType/None"/>
-                    </Record>
-                </Annotation>
-                <Annotation Term="SAP__common.ApplyMultiUnitBehaviorForSortingAndFiltering" Bool="true"/>
-                <Annotation Term="SAP__capabilities.FilterFunctions">
-                    <Collection>
-                        <String>eq</String>
-                        <String>ne</String>
-                        <String>gt</String>
-                        <String>ge</String>
-                        <String>lt</String>
-                        <String>le</String>
-                        <String>and</String>
-                        <String>or</String>
-                        <String>contains</String>
-                        <String>startswith</String>
-                        <String>endswith</String>
-                        <String>any</String>
-                        <String>all</String>
-                    </Collection>
-                </Annotation>
-                <Annotation Term="SAP__capabilities.SupportedFormats">
-                    <Collection>
-                        <String>application/json</String>
-                        <String>application/pdf</String>
-                    </Collection>
-                </Annotation>
-                <Annotation Term="SAP__PDF.Features">
-                    <Record>
-                        <PropertyValue Property="DocumentDescriptionReference" String="../../../../default/iwbep/common/0001/$metadata"/>
-                        <PropertyValue Property="DocumentDescriptionCollection" String="MyDocumentDescriptions"/>
-                        <PropertyValue Property="ArchiveFormat" Bool="true"/>
-                        <PropertyValue Property="Border" Bool="true"/>
-                        <PropertyValue Property="CoverPage" Bool="true"/>
-                        <PropertyValue Property="FitToPage" Bool="true"/>
-                        <PropertyValue Property="FontName" Bool="true"/>
-                        <PropertyValue Property="FontSize" Bool="true"/>
-                        <PropertyValue Property="Margin" Bool="true"/>
-                        <PropertyValue Property="Signature" Bool="true"/>
-                        <PropertyValue Property="ResultSizeDefault" Int="20000"/>
-                        <PropertyValue Property="ResultSizeMaximum" Int="20000"/>
-                    </Record>
-                </Annotation>
-            </Annotations>
-            <Annotations Target="SAP__self.ScanJobType/ScanJobId">
-                <Annotation Term="SAP__common.Label" String="UUID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ScanJobType/StartedAt">
-                <Annotation Term="SAP__common.Label" String="Time Stamp"/>
-                <Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.ScanJobType/FinishedAt">
-                <Annotation Term="SAP__common.Label" String="Time Stamp"/>
-                <Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/CreatedAt">
-                <Annotation Term="SAP__common.Label" String="Time Stamp"/>
-                <Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.VersionType/LastChangeAt">
-                <Annotation Term="SAP__common.Label" String="Changed On"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
-            </Annotations>
-            <Annotations Target="SAP__self.DetailType/LastChangeAt">
-                <Annotation Term="SAP__common.Label" String="Changed On"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
-            </Annotations>
-            <Annotations Target="SAP__self.RegistryType/TotalLastChangeAt">
-                <Annotation Term="SAP__common.Label" String="Changed On"/>
-                <Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/LogId">
-                <Annotation Term="SAP__common.Label" String="UUID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/ActionAt">
-                <Annotation Term="SAP__common.Label" String="Time Stamp"/>
-                <Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
-            </Annotations>
-            <Annotations Target="SAP__self.LogType/ObjectId">
-                <Annotation Term="SAP__common.Label" String="UUID"/>
-                <Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
-            </Annotations>
-        </Schema>
-    </edmx:DataServices>
+<edmx:Edmx xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx" xmlns="http://docs.oasis-open.org/odata/ns/edm" Version="4.0">
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMUNICATION',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.Communication.v1" Alias="Communication"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_PERSONALDATA',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.PersonalData.v1" Alias="PersonalData"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_ANALYTICS',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.Analytics.v1" Alias="Analytics"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="SAP__common"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_MEASURES',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="Org.OData.Measures.V1" Alias="SAP__measures"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CORE',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="Org.OData.Core.V1" Alias="SAP__core"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CAPABILITIES',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="Org.OData.Capabilities.V1" Alias="SAP__capabilities"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_AGGREGATION',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="Org.OData.Aggregation.V1" Alias="SAP__aggregation"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_VALIDATION',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="Org.OData.Validation.V1" Alias="SAP__validation"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_CODELIST',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.CodeList.v1" Alias="SAP__CodeList"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_UI',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.UI.v1" Alias="SAP__UI"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_HTML5',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.HTML5.v1" Alias="SAP__HTML5"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_PDF',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.PDF.v1" Alias="SAP__PDF"/>
+</edmx:Reference>
+<edmx:Reference Uri="/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_SESSION',Version='0001',SAP__Origin='LOCAL')/$value">
+<edmx:Include Namespace="com.sap.vocabularies.Session.v1" Alias="SAP__session"/>
+</edmx:Reference>
+<edmx:DataServices>
+<Schema Namespace="com.sap.gateway.srvd_a2x.zsr_registry.v0001" Alias="SAP__self">
+<Annotation Term="SAP__core.SchemaVersion" String="1.0.0"/>
+<EntityType Name="ServiceMetadataFullV2Type">
+<Key>
+<PropertyRef Name="ServiceId"/>
+</Key>
+<Property Name="ServiceId" Type="Edm.String" Nullable="false" MaxLength="80"/>
+<Property Name="MetadataXml" Type="Edm.String" Nullable="false"/>
+<Property Name="Message" Type="Edm.String" Nullable="false"/>
+<NavigationProperty Name="Parameters" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV2Parameters" Nullable="false"/>
+</EntityType>
+<EntityType Name="ScanJobType">
+<Key>
+<PropertyRef Name="ScanJobId"/>
+</Key>
+<Property Name="ScanJobId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="TriggerType" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="TriggerText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="StartedAt" Type="Edm.DateTimeOffset"/>
+<Property Name="FinishedAt" Type="Edm.DateTimeOffset"/>
+<Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="StatusText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="TotalRegistry" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ChangeCount" Type="Edm.Int32" Nullable="false"/>
+<Property Name="NewVersionCount" Type="Edm.Int32" Nullable="false"/>
+<Property Name="TriggeredBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
+<Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
+</EntityType>
+<EntityType Name="VersionType">
+<Key>
+<PropertyRef Name="VersionId"/>
+</Key>
+<Property Name="VersionId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="GroupId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="6"/>
+<Property Name="GroupHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
+<Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="StatusText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="CreatedBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
+<Property Name="CreatedAt" Type="Edm.DateTimeOffset"/>
+<Property Name="TriggerType" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="TriggerText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="LatestVersion" Type="Edm.Boolean" Nullable="false"/>
+<Property Name="LastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
+<Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
+<NavigationProperty Name="_Detail" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Partner="_Version">
+<OnDelete Action="Cascade"/>
+</NavigationProperty>
+<NavigationProperty Name="_Registry" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType" Nullable="false" Partner="_Version">
+<ReferentialConstraint Property="GroupId" ReferencedProperty="GroupId"/>
+</NavigationProperty>
+<NavigationProperty Name="_Status" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_VRS_STAT_VHType"/>
+</EntityType>
+<EntityType Name="ServiceMetadataFullV4Parameters">
+<Key>
+<PropertyRef Name="p_group_id"/>
+<PropertyRef Name="p_service_id"/>
+<PropertyRef Name="p_repository_id"/>
+<PropertyRef Name="p_service_version"/>
+<PropertyRef Name="p_system_alias"/>
+</Key>
+<Property Name="p_group_id" Type="Edm.String" Nullable="false" MaxLength="36"/>
+<Property Name="p_service_id" Type="Edm.String" Nullable="false" MaxLength="36"/>
+<Property Name="p_repository_id" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="p_service_version" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="p_system_alias" Type="Edm.String" Nullable="false" MaxLength="16"/>
+<NavigationProperty Name="Set" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV4Type)" Partner="Parameters" ContainsTarget="true"/>
+</EntityType>
+<EntityType Name="ZI_GRP_TYPE_VHType">
+<Key>
+<PropertyRef Name="TypeId"/>
+</Key>
+<Property Name="TypeId" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
+</EntityType>
+<EntityType Name="DetailType">
+<Key>
+<PropertyRef Name="DetailId"/>
+</Key>
+<Property Name="DetailId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="VersionId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="ServiceDefId" Type="Edm.String" Nullable="false" MaxLength="30"/>
+<Property Name="GroupId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="ServiceHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
+<Property Name="LastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
+<Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
+<NavigationProperty Name="_Registry" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType"/>
+<NavigationProperty Name="_Version" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType" Nullable="false" Partner="_Detail">
+<ReferentialConstraint Property="VersionId" ReferencedProperty="VersionId"/>
+</NavigationProperty>
+</EntityType>
+<EntityType Name="ServiceDefinitionType">
+<Key>
+<PropertyRef Name="ServiceId"/>
+</Key>
+<Property Name="ServiceId" Type="Edm.String" Nullable="false" MaxLength="80"/>
+<Property Name="GroupId" Type="Edm.String" Nullable="false" MaxLength="80"/>
+<Property Name="RepositoryId" Type="Edm.String" Nullable="false" MaxLength="80"/>
+<Property Name="ServiceVersion" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="SystemAlias" Type="Edm.String" Nullable="false" MaxLength="40"/>
+<NavigationProperty Name="Parameters" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceDefinitionParameters" Nullable="false"/>
+</EntityType>
+<EntityType Name="RegistryType">
+<Key>
+<PropertyRef Name="GroupId"/>
+</Key>
+<Property Name="GroupId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="GroupName" Type="Edm.String" Nullable="false" MaxLength="36"/>
+<Property Name="GroupType" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="GroupTypeText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="StatusText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="RegisteredBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
+<Property Name="RegisteredAt" Type="Edm.DateTimeOffset"/>
+<Property Name="LastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
+<Property Name="TotalLastChangeAt" Type="Edm.DateTimeOffset" Precision="7"/>
+<Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="255"/>
+<Property Name="Namespace" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="SAP__Messages" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)" Nullable="false"/>
+<NavigationProperty Name="_Detail" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)"/>
+<NavigationProperty Name="_GroupType" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_TYPE_VHType"/>
+<NavigationProperty Name="_Status" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_STAT_VHType"/>
+<NavigationProperty Name="_Version" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType)" Partner="_Registry">
+<OnDelete Action="Cascade"/>
+</NavigationProperty>
+</EntityType>
+<EntityType Name="ServiceMetadataFullV2Parameters">
+<Key>
+<PropertyRef Name="p_group_id"/>
+<PropertyRef Name="p_service_version"/>
+<PropertyRef Name="p_namespace"/>
+</Key>
+<Property Name="p_group_id" Type="Edm.String" Nullable="false" MaxLength="36"/>
+<Property Name="p_service_version" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="p_namespace" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<NavigationProperty Name="Set" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV2Type)" Partner="Parameters" ContainsTarget="true"/>
+</EntityType>
+<EntityType Name="ServiceMetadataFullV4Type">
+<Key>
+<PropertyRef Name="ServiceId"/>
+</Key>
+<Property Name="ServiceId" Type="Edm.String" Nullable="false" MaxLength="80"/>
+<Property Name="MetadataXml" Type="Edm.String" Nullable="false"/>
+<Property Name="Message" Type="Edm.String" Nullable="false"/>
+<NavigationProperty Name="Parameters" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV4Parameters" Nullable="false"/>
+</EntityType>
+<EntityType Name="PublishedServiceType">
+<Key>
+<PropertyRef Name="ServiceName"/>
+</Key>
+<Property Name="ServiceName" Type="Edm.String" Nullable="false" MaxLength="30"/>
+<Property Name="ODataVersion" Type="Edm.String" Nullable="false" MaxLength="2"/>
+<Property Name="Version" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="CreatedBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
+<Property Name="CreatedAt" Type="Edm.DateTimeOffset"/>
+<Property Name="ChangedAt" Type="Edm.DateTimeOffset"/>
+</EntityType>
+<EntityType Name="ServiceDefinitionParameters">
+<Key>
+<PropertyRef Name="p_group_id"/>
+</Key>
+<Property Name="p_group_id" Type="Edm.String" Nullable="false" MaxLength="36"/>
+<NavigationProperty Name="Set" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceDefinitionType)" Partner="Parameters" ContainsTarget="true"/>
+</EntityType>
+<EntityType Name="ZI_TRGR_TYPE_VHType">
+<Key>
+<PropertyRef Name="TypeId"/>
+</Key>
+<Property Name="TypeId" Type="Edm.String" Nullable="false" MaxLength="4"/>
+<Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
+</EntityType>
+<EntityType Name="LogType">
+<Key>
+<PropertyRef Name="LogId"/>
+</Key>
+<Property Name="LogId" Type="Edm.Guid" Nullable="false"/>
+<Property Name="ActionType" Type="Edm.String" Nullable="false" MaxLength="2"/>
+<Property Name="ActionText" Type="Edm.String" Nullable="false" MaxLength="20"/>
+<Property Name="Actor" Type="Edm.String" Nullable="false" MaxLength="12"/>
+<Property Name="ActionAt" Type="Edm.DateTimeOffset"/>
+<Property Name="IpAddress" Type="Edm.String" Nullable="false" MaxLength="45"/>
+<Property Name="Remarks" Type="Edm.String" Nullable="false" MaxLength="255"/>
+<Property Name="LogResult" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="ObjectId" Type="Edm.Guid"/>
+<Property Name="objectIdType" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="JobId" Type="Edm.Guid"/>
+<NavigationProperty Name="_Action" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_LOG_ACT_TYPE_VHType"/>
+</EntityType>
+<EntityType Name="ZI_LOG_ACT_TYPE_VHType">
+<Key>
+<PropertyRef Name="ActionId"/>
+</Key>
+<Property Name="ActionId" Type="Edm.String" Nullable="false" MaxLength="2"/>
+<Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
+</EntityType>
+<EntityType Name="ZI_GRP_STAT_VHType">
+<Key>
+<PropertyRef Name="StatusId"/>
+</Key>
+<Property Name="StatusId" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
+</EntityType>
+<EntityType Name="ZI_VRS_STAT_VHType">
+<Key>
+<PropertyRef Name="StatusId"/>
+</Key>
+<Property Name="StatusId" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="Description" Type="Edm.String" Nullable="false" MaxLength="20"/>
+</EntityType>
+<ComplexType Name="ZI_EMAIL_SEND_RESULT">
+<Property Name="FailedRecip" Type="Edm.String" Nullable="false" MaxLength="500"/>
+<Property Name="Message" Type="Edm.String" Nullable="false" MaxLength="500"/>
+<Property Name="RecipientDetail" Type="Edm.String" Nullable="false" MaxLength="1000"/>
+<Property Name="Success" Type="Edm.Boolean" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZDATTRIBUTEDIFF">
+<Property Name="SEMANTIC_ID" Type="Edm.String" Nullable="false"/>
+<Property Name="NAME" Type="Edm.String" Nullable="false"/>
+<Property Name="STATUS" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="OLD_VALUE" Type="Edm.String" Nullable="false"/>
+<Property Name="NEW_VALUE" Type="Edm.String" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZI_PERMISSION">
+<Property Name="Permission" Type="Edm.String" Nullable="false" MaxLength="50"/>
+</ComplexType>
+<ComplexType Name="ZDATTRIBUTE">
+<Property Name="NAME" Type="Edm.String" Nullable="false"/>
+<Property Name="VALUE" Type="Edm.String" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZI_VERSION_RESULT">
+<Property Name="CreatedAt" Type="Edm.DateTimeOffset"/>
+<Property Name="CreatedBy" Type="Edm.String" Nullable="false" MaxLength="12"/>
+<Property Name="GroupHash" Type="Edm.String" Nullable="false" MaxLength="64"/>
+<Property Name="GroupId" Type="Edm.Guid"/>
+<Property Name="LatestVersion" Type="Edm.Boolean" Nullable="false"/>
+<Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="TriggerType" Type="Edm.String" Nullable="false" MaxLength="1"/>
+<Property Name="VersionId" Type="Edm.Guid"/>
+<Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="6"/>
+</ComplexType>
+<ComplexType Name="ZDNODEDIFFRESULT">
+<Property Name="NODEDIFF" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDNODEDIFF)" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZDNODETREE">
+<Property Name="NODE_ID" Type="Edm.String" Nullable="false"/>
+<Property Name="SEMANTIC_ID" Type="Edm.String" Nullable="false"/>
+<Property Name="PARENT_ID" Type="Edm.String" Nullable="false"/>
+<Property Name="NODE_PATH" Type="Edm.String" Nullable="false"/>
+<Property Name="NODE_TYPE" Type="Edm.String" Nullable="false"/>
+<Property Name="NODE_NAME" Type="Edm.String" Nullable="false"/>
+<Property Name="NODE_ALIAS" Type="Edm.String" Nullable="false"/>
+<Property Name="OFFSET_START" Type="Edm.Int32" Nullable="false"/>
+<Property Name="OFFSET_END" Type="Edm.Int32" Nullable="false"/>
+<Property Name="SEQ" Type="Edm.Int32" Nullable="false"/>
+<Property Name="DEPTH" Type="Edm.Int32" Nullable="false"/>
+<Property Name="ATTRIBUTES" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDATTRIBUTE)" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZI_METADATA_RESULT">
+<Property Name="DetailId" Type="Edm.Guid"/>
+<Property Name="MetadataXml" Type="Edm.String" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZDVRSDIFF">
+<Property Name="SERVICEDEFID" Type="Edm.String" Nullable="false" MaxLength="36"/>
+<Property Name="BASEDETAILID" Type="Edm.Guid"/>
+<Property Name="COMPAREDETAILID" Type="Edm.Guid"/>
+<Property Name="CHANGETYPE" Type="Edm.String" Nullable="false" MaxLength="10"/>
+</ComplexType>
+<ComplexType Name="ZDNODEDIFF">
+<Property Name="SEMANTIC_ID" Type="Edm.String" Nullable="false"/>
+<Property Name="STATUS" Type="Edm.String" Nullable="false" MaxLength="10"/>
+<Property Name="ATTRIBUTEDIFF" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDATTRIBUTEDIFF)" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZDVRSDIFFRESULT">
+<Property Name="BASEVERSIONID" Type="Edm.Guid"/>
+<Property Name="COMPAREVERSIONID" Type="Edm.Guid"/>
+<Property Name="CHANGE" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFF)" Nullable="false"/>
+<Property Name="DIFFER" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFF)" Nullable="false"/>
+<Property Name="UNCHANGE" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFF)" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="ZNODETREERESULT">
+<Property Name="NODETREE" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDNODETREE)" Nullable="false"/>
+</ComplexType>
+<ComplexType Name="SAP__Message">
+<Property Name="code" Type="Edm.String" Nullable="false"/>
+<Property Name="message" Type="Edm.String" Nullable="false"/>
+<Property Name="target" Type="Edm.String"/>
+<Property Name="additionalTargets" Type="Collection(Edm.String)" Nullable="false"/>
+<Property Name="transition" Type="Edm.Boolean" Nullable="false"/>
+<Property Name="numericSeverity" Type="Edm.Byte" Nullable="false"/>
+<Property Name="longtextUrl" Type="Edm.String"/>
+</ComplexType>
+<Action Name="runScan" EntitySetPath="_it" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ScanJobType)" Nullable="false"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ScanJobType" Nullable="false"/>
+</Action>
+<Action Name="getNodeTree" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
+<Parameter Name="DetailId" Type="Edm.Guid" Nullable="true"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZNODETREERESULT" Nullable="false"/>
+</Action>
+<Action Name="compareNodeTree" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
+<Parameter Name="BaseDetailId" Type="Edm.Guid" Nullable="true"/>
+<Parameter Name="CompareDetailId" Type="Edm.Guid" Nullable="true"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDNODEDIFFRESULT" Nullable="false"/>
+</Action>
+<Action Name="getPermissions" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType)" Nullable="false"/>
+<ReturnType Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_PERMISSION)" Nullable="true"/>
+</Action>
+<Action Name="sendEmail" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
+<Parameter Name="HtmlContent" Type="Edm.String" Nullable="false"/>
+<Parameter Name="Recipients" Type="Edm.String" Nullable="false"/>
+<Parameter Name="Subject" Type="Edm.String" Nullable="false"/>
+<Parameter Name="AttachVersionId" Type="Edm.Guid" Nullable="true"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_EMAIL_SEND_RESULT" Nullable="false"/>
+</Action>
+<Action Name="generateVersion" IsBound="true">
+<Parameter Name="_it" Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType" Nullable="false"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_VERSION_RESULT" Nullable="false"/>
+</Action>
+<Action Name="getParseMetadata" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType)" Nullable="false"/>
+<Parameter Name="DetailId" Type="Edm.Guid" Nullable="true"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_METADATA_RESULT" Nullable="false"/>
+</Action>
+<Action Name="compareVersion" IsBound="true">
+<Parameter Name="_it" Type="Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType)" Nullable="false"/>
+<Parameter Name="BaseVrsId" Type="Edm.Guid" Nullable="true"/>
+<Parameter Name="CompareVrsId" Type="Edm.Guid" Nullable="true"/>
+<ReturnType Type="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZDVRSDIFFRESULT" Nullable="false"/>
+</Action>
+<EntityContainer Name="Container">
+<EntitySet Name="Detail" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.DetailType">
+<NavigationPropertyBinding Path="_Registry" Target="Registry"/>
+<NavigationPropertyBinding Path="_Version" Target="Version"/>
+</EntitySet>
+<EntitySet Name="Log" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.LogType">
+<NavigationPropertyBinding Path="_Action" Target="ZI_LOG_ACT_TYPE_VH"/>
+</EntitySet>
+<EntitySet Name="PublishedService" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.PublishedServiceType"/>
+<EntitySet Name="Registry" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.RegistryType">
+<NavigationPropertyBinding Path="_Detail" Target="Detail"/>
+<NavigationPropertyBinding Path="_GroupType" Target="ZI_GRP_TYPE_VH"/>
+<NavigationPropertyBinding Path="_Status" Target="ZI_GRP_STAT_VH"/>
+<NavigationPropertyBinding Path="_Version" Target="Version"/>
+</EntitySet>
+<EntitySet Name="ScanJob" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ScanJobType"/>
+<EntitySet Name="ServiceDefinition" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceDefinitionParameters">
+<NavigationPropertyBinding Path="Set/Parameters" Target="ServiceDefinition"/>
+</EntitySet>
+<EntitySet Name="ServiceMetadataFullV2" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV2Parameters">
+<NavigationPropertyBinding Path="Set/Parameters" Target="ServiceMetadataFullV2"/>
+</EntitySet>
+<EntitySet Name="ServiceMetadataFullV4" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV4Parameters">
+<NavigationPropertyBinding Path="Set/Parameters" Target="ServiceMetadataFullV4"/>
+</EntitySet>
+<EntitySet Name="Version" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.VersionType">
+<NavigationPropertyBinding Path="_Detail" Target="Detail"/>
+<NavigationPropertyBinding Path="_Registry" Target="Registry"/>
+<NavigationPropertyBinding Path="_Status" Target="ZI_VRS_STAT_VH"/>
+</EntitySet>
+<EntitySet Name="ZI_GRP_STAT_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_STAT_VHType"/>
+<EntitySet Name="ZI_GRP_TYPE_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_GRP_TYPE_VHType"/>
+<EntitySet Name="ZI_LOG_ACT_TYPE_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_LOG_ACT_TYPE_VHType"/>
+<EntitySet Name="ZI_TRGR_TYPE_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_TRGR_TYPE_VHType"/>
+<EntitySet Name="ZI_VRS_STAT_VH" EntityType="com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_VRS_STAT_VHType"/>
+</EntityContainer>
+<Annotations Target="SAP__self.ServiceMetadataFullV2Type">
+<Annotation Term="SAP__common.Label" String="Service Metadata Full XML"/>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType/TriggerType">
+<Annotation Term="SAP__common.Text" Path="TriggerText"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Trigger type"/>
+<Annotation Term="SAP__common.QuickInfo" String="Triiger type DataElement"/>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType/Status">
+<Annotation Term="SAP__common.Text" Path="StatusText"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Job status"/>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType/TriggeredBy">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="User Name"/>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType">
+<Annotation Term="SAP__common.Label" String="Scan job projection View"/>
+<Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ScanJob">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="TriggerType"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="Status"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="TriggeredBy"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/VersionId">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/GroupId">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="GROUP ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="Group ID Data Element"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/VersionNo">
+<Annotation Term="SAP__common.IsDigitSequence"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/Status">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="VERSION STATUS"/>
+<Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/CreatedBy">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="User Name"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/LatestVersion">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Checkbox"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/_Detail">
+<Annotation Term="SAP__common.Composition"/>
+</Annotations>
+<Annotations Target="SAP__self.compareVersion(Collection(SAP__self.VersionType))/BaseVrsId">
+<Annotation Term="SAP__common.Label" String="Version ID to compare"/>
+</Annotations>
+<Annotations Target="SAP__self.compareVersion(Collection(SAP__self.VersionType))/CompareVrsId">
+<Annotation Term="SAP__common.Label" String="Version ID to compare against"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType">
+<Annotation Term="SAP__common.Label" String="Consumption View - Version"/>
+<Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/Version">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="true"/>
+<PropertyValue Property="UnsupportedExpressions" EnumMember="SAP__capabilities.SearchExpressions/AND SAP__capabilities.SearchExpressions/OR SAP__capabilities.SearchExpressions/NOT SAP__capabilities.SearchExpressions/group SAP__capabilities.SearchExpressions/phrase"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection>
+<PropertyPath>LastChangeAt</PropertyPath>
+</Collection>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="Status"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="CreatedBy"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="LatestVersion"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Parameters/p_group_id">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Group ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="OData V4 Group ID"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Parameters/p_service_id">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Service ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="OData V4 Service ID"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Parameters/p_repository_id">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Repository ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="OData V4 Repository ID"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Parameters/p_service_version">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsDigitSequence"/>
+<Annotation Term="SAP__common.Label" String="Service Version"/>
+<Annotation Term="SAP__common.Heading" String="Version"/>
+<Annotation Term="SAP__common.QuickInfo" String="OData V4 Service Version"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Parameters/p_system_alias">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="SAP System Alias"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ServiceMetadataFullV4">
+<Annotation Term="SAP__capabilities.NavigationRestrictions">
+<Record>
+<PropertyValue Property="RestrictedProperties">
+<Collection>
+<Record>
+<PropertyValue Property="NavigationProperty" NavigationPropertyPath="Set"/>
+<PropertyValue Property="InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</PropertyValue>
+<PropertyValue Property="UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+</Record>
+</PropertyValue>
+<PropertyValue Property="DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</PropertyValue>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="NonFilterableProperties">
+<Collection>
+<PropertyPath>p_group_id</PropertyPath>
+<PropertyPath>p_service_id</PropertyPath>
+<PropertyPath>p_repository_id</PropertyPath>
+<PropertyPath>p_service_version</PropertyPath>
+<PropertyPath>p_system_alias</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SortRestrictions">
+<Record>
+<PropertyValue Property="NonSortableProperties">
+<Collection>
+<PropertyPath>p_group_id</PropertyPath>
+<PropertyPath>p_service_id</PropertyPath>
+<PropertyPath>p_repository_id</PropertyPath>
+<PropertyPath>p_service_version</PropertyPath>
+<PropertyPath>p_system_alias</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.ReadRestrictions">
+<Record>
+<PropertyValue Property="Readable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Parameters">
+<Annotation Term="SAP__common.ResultContext"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_GRP_TYPE_VHType/TypeId">
+<Annotation Term="SAP__common.Text" Path="Description"/>
+<Annotation Term="SAP__common.IsDigitSequence"/>
+<Annotation Term="SAP__common.Label" String="GROUP TYPE"/>
+<Annotation Term="SAP__common.QuickInfo" String="SERVICE TYPE DATA Element"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_GRP_TYPE_VHType">
+<Annotation Term="SAP__common.Label" String="Service Type Value Help"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ZI_GRP_TYPE_VH">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.DetailType/DetailId">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+<Annotations Target="SAP__self.DetailType/VersionId">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+<Annotations Target="SAP__self.DetailType/GroupId">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="GROUP ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="Group ID Data Element"/>
+</Annotations>
+<Annotations Target="SAP__self.compareNodeTree(Collection(SAP__self.DetailType))/BaseDetailId">
+<Annotation Term="SAP__common.Label" String="Detail ID to compare against"/>
+</Annotations>
+<Annotations Target="SAP__self.compareNodeTree(Collection(SAP__self.DetailType))/CompareDetailId">
+<Annotation Term="SAP__common.Label" String="Detail ID to compare against"/>
+</Annotations>
+<Annotations Target="SAP__self.DetailType">
+<Annotation Term="SAP__common.Label" String="OData Structural Analysis"/>
+<Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/Detail">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ServiceDefinitionType">
+<Annotation Term="SAP__common.Label" String="Published Service"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/GroupId">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="GROUP ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="Group ID Data Element"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/GroupName">
+<Annotation Term="SAP__core.Immutable"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="GROUP NAME"/>
+<Annotation Term="SAP__common.QuickInfo" String="group name"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/GroupType">
+<Annotation Term="SAP__common.Text" Path="GroupTypeText"/>
+<Annotation Term="SAP__core.Immutable"/>
+<Annotation Term="SAP__common.IsDigitSequence"/>
+<Annotation Term="SAP__common.Label" String="GROUP TYPE"/>
+<Annotation Term="SAP__common.QuickInfo" String="SERVICE TYPE DATA Element"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/VersionNo">
+<Annotation Term="SAP__core.Immutable"/>
+<Annotation Term="SAP__common.IsDigitSequence"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/Status">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="GROUP STATUS"/>
+<Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/RegisteredBy">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="User Name"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/RegisteredAt">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/LastChangeAt">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.Label" String="Changed On"/>
+<Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/Namespace">
+<Annotation Term="SAP__core.Immutable"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Namespace"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/_Version">
+<Annotation Term="SAP__common.Composition"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/Registry">
+<Annotation Term="SAP__capabilities.NavigationRestrictions">
+<Record>
+<PropertyValue Property="RestrictedProperties">
+<Collection>
+<Record>
+<PropertyValue Property="NavigationProperty" NavigationPropertyPath="_Version"/>
+<PropertyValue Property="InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="true"/>
+<PropertyValue Property="UnsupportedExpressions" EnumMember="SAP__capabilities.SearchExpressions/AND SAP__capabilities.SearchExpressions/OR SAP__capabilities.SearchExpressions/NOT SAP__capabilities.SearchExpressions/group SAP__capabilities.SearchExpressions/phrase"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="RequiredProperties">
+<Collection>
+<PropertyPath>GroupName</PropertyPath>
+<PropertyPath>GroupType</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection>
+<PropertyPath>LastChangeAt</PropertyPath>
+</Collection>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="GroupName"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="Status"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="RegisteredBy"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="Namespace"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType">
+<Annotation Term="SAP__common.Label" String="OData Service Registry"/>
+<Annotation Term="SAP__common.Messages" Path="SAP__Messages"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV2Parameters/p_group_id">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Text with 36 characters"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV2Parameters/p_service_version">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsDigitSequence"/>
+<Annotation Term="SAP__common.Label" String="Counter"/>
+<Annotation Term="SAP__common.QuickInfo" String="Count parameters"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV2Parameters/p_namespace">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Character Field with Length 10"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ServiceMetadataFullV2">
+<Annotation Term="SAP__capabilities.NavigationRestrictions">
+<Record>
+<PropertyValue Property="RestrictedProperties">
+<Collection>
+<Record>
+<PropertyValue Property="NavigationProperty" NavigationPropertyPath="Set"/>
+<PropertyValue Property="InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</PropertyValue>
+<PropertyValue Property="UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+</Record>
+</PropertyValue>
+<PropertyValue Property="DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</PropertyValue>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="NonFilterableProperties">
+<Collection>
+<PropertyPath>p_group_id</PropertyPath>
+<PropertyPath>p_service_version</PropertyPath>
+<PropertyPath>p_namespace</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SortRestrictions">
+<Record>
+<PropertyValue Property="NonSortableProperties">
+<Collection>
+<PropertyPath>p_group_id</PropertyPath>
+<PropertyPath>p_service_version</PropertyPath>
+<PropertyPath>p_namespace</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.ReadRestrictions">
+<Record>
+<PropertyValue Property="Readable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV2Parameters">
+<Annotation Term="SAP__common.ResultContext"/>
+</Annotations>
+<Annotations Target="SAP__self.ServiceMetadataFullV4Type">
+<Annotation Term="SAP__common.Label" String="Service Metadata Full XML"/>
+</Annotations>
+<Annotations Target="SAP__self.PublishedServiceType/CreatedBy">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="User Name"/>
+</Annotations>
+<Annotations Target="SAP__self.PublishedServiceType">
+<Annotation Term="SAP__common.Label" String="Published Service"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/PublishedService">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="CreatedBy"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ServiceDefinitionParameters/p_group_id">
+<Annotation Term="SAP__core.Computed"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Group ID"/>
+<Annotation Term="SAP__common.QuickInfo" String="OData V4 Group ID"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ServiceDefinition">
+<Annotation Term="SAP__capabilities.NavigationRestrictions">
+<Record>
+<PropertyValue Property="RestrictedProperties">
+<Collection>
+<Record>
+<PropertyValue Property="NavigationProperty" NavigationPropertyPath="Set"/>
+<PropertyValue Property="InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</PropertyValue>
+<PropertyValue Property="UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+</Record>
+</PropertyValue>
+<PropertyValue Property="DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</PropertyValue>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="NonFilterableProperties">
+<Collection>
+<PropertyPath>p_group_id</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.SortRestrictions">
+<Record>
+<PropertyValue Property="NonSortableProperties">
+<Collection>
+<PropertyPath>p_group_id</PropertyPath>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.ReadRestrictions">
+<Record>
+<PropertyValue Property="Readable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ServiceDefinitionParameters">
+<Annotation Term="SAP__common.ResultContext"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_TRGR_TYPE_VHType/TypeId">
+<Annotation Term="SAP__common.Text" Path="Description"/>
+<Annotation Term="SAP__common.IsDigitSequence"/>
+<Annotation Term="SAP__common.Label" String="GROUP TYPE"/>
+<Annotation Term="SAP__common.QuickInfo" String="SERVICE TYPE DATA Element"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_TRGR_TYPE_VHType">
+<Annotation Term="SAP__common.Label" String="Trigger Type Value Help"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ZI_TRGR_TYPE_VH">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.LogType/ActionType">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Action"/>
+<Annotation Term="SAP__common.QuickInfo" String="Action data element"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/Actor">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="User Name"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/LogResult">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Log Result"/>
+<Annotation Term="SAP__common.QuickInfo" String="Log result data element"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/objectIdType">
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Id Type"/>
+<Annotation Term="SAP__common.QuickInfo" String="Log reference Id data element"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType">
+<Annotation Term="SAP__common.Label" String="Audit Log"/>
+<Annotation Term="Communication.Contact">
+<Record/>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.Container/Log">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="ActionType"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="Actor"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="LogResult"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+<Record>
+<PropertyValue Property="Property" PropertyPath="objectIdType"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ZI_LOG_ACT_TYPE_VHType/ActionId">
+<Annotation Term="SAP__common.Text" Path="Description"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="Action"/>
+<Annotation Term="SAP__common.QuickInfo" String="Action data element"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_LOG_ACT_TYPE_VHType">
+<Annotation Term="SAP__common.Label" String="Trigger Type Value Help"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ZI_LOG_ACT_TYPE_VH">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="ActionId"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ZI_GRP_STAT_VHType/StatusId">
+<Annotation Term="SAP__common.Text" Path="Description"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="GROUP STATUS"/>
+<Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_GRP_STAT_VHType">
+<Annotation Term="SAP__common.Label" String="value help interface for group status"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ZI_GRP_STAT_VH">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="StatusId"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ZI_VRS_STAT_VHType/StatusId">
+<Annotation Term="SAP__common.Text" Path="Description"/>
+<Annotation Term="SAP__common.IsUpperCase"/>
+<Annotation Term="SAP__common.Label" String="VERSION STATUS"/>
+<Annotation Term="SAP__common.QuickInfo" String="VERSION STATUS DATA ELEMENT"/>
+</Annotations>
+<Annotations Target="SAP__self.ZI_VRS_STAT_VHType">
+<Annotation Term="SAP__common.Label" String="Status Value Help"/>
+</Annotations>
+<Annotations Target="SAP__self.Container/ZI_VRS_STAT_VH">
+<Annotation Term="SAP__capabilities.SearchRestrictions">
+<Record>
+<PropertyValue Property="Searchable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.InsertRestrictions">
+<Record>
+<PropertyValue Property="Insertable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.DeleteRestrictions">
+<Record>
+<PropertyValue Property="Deletable" Bool="false"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__capabilities.UpdateRestrictions">
+<Record>
+<PropertyValue Property="Updatable" Bool="false"/>
+<PropertyValue Property="QueryOptions">
+<Record>
+<PropertyValue Property="SelectSupported" Bool="true"/>
+</Record>
+</PropertyValue>
+</Record>
+</Annotation>
+<Annotation Term="SAP__core.OptimisticConcurrency">
+<Collection/>
+</Annotation>
+<Annotation Term="SAP__capabilities.FilterRestrictions">
+<Record>
+<PropertyValue Property="FilterExpressionRestrictions">
+<Collection>
+<Record>
+<PropertyValue Property="Property" PropertyPath="StatusId"/>
+<PropertyValue Property="AllowedExpressions" String="MultiValue"/>
+</Record>
+</Collection>
+</PropertyValue>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.Container">
+<Annotation Term="SAP__aggregation.ApplySupported">
+<Record>
+<PropertyValue Property="Transformations">
+<Collection>
+<String>aggregate</String>
+<String>groupby</String>
+<String>filter</String>
+</Collection>
+</PropertyValue>
+<PropertyValue Property="Rollup" EnumMember="SAP__aggregation.RollupType/None"/>
+</Record>
+</Annotation>
+<Annotation Term="SAP__common.ApplyMultiUnitBehaviorForSortingAndFiltering" Bool="true"/>
+<Annotation Term="SAP__capabilities.FilterFunctions">
+<Collection>
+<String>eq</String>
+<String>ne</String>
+<String>gt</String>
+<String>ge</String>
+<String>lt</String>
+<String>le</String>
+<String>and</String>
+<String>or</String>
+<String>contains</String>
+<String>startswith</String>
+<String>endswith</String>
+<String>any</String>
+<String>all</String>
+</Collection>
+</Annotation>
+<Annotation Term="SAP__capabilities.SupportedFormats">
+<Collection>
+<String>application/json</String>
+<String>application/pdf</String>
+</Collection>
+</Annotation>
+<Annotation Term="SAP__PDF.Features">
+<Record>
+<PropertyValue Property="DocumentDescriptionReference" String="../../../../default/iwbep/common/0001/$metadata"/>
+<PropertyValue Property="DocumentDescriptionCollection" String="MyDocumentDescriptions"/>
+<PropertyValue Property="ArchiveFormat" Bool="true"/>
+<PropertyValue Property="Border" Bool="true"/>
+<PropertyValue Property="CoverPage" Bool="true"/>
+<PropertyValue Property="FitToPage" Bool="true"/>
+<PropertyValue Property="FontName" Bool="true"/>
+<PropertyValue Property="FontSize" Bool="true"/>
+<PropertyValue Property="Margin" Bool="true"/>
+<PropertyValue Property="Signature" Bool="true"/>
+<PropertyValue Property="ResultSizeDefault" Int="20000"/>
+<PropertyValue Property="ResultSizeMaximum" Int="20000"/>
+</Record>
+</Annotation>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType/ScanJobId">
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType/StartedAt">
+<Annotation Term="SAP__common.Label" String="Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.ScanJobType/FinishedAt">
+<Annotation Term="SAP__common.Label" String="Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/CreatedAt">
+<Annotation Term="SAP__common.Label" String="Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.VersionType/LastChangeAt">
+<Annotation Term="SAP__common.Label" String="Changed On"/>
+<Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
+</Annotations>
+<Annotations Target="SAP__self.DetailType/LastChangeAt">
+<Annotation Term="SAP__common.Label" String="Changed On"/>
+<Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
+</Annotations>
+<Annotations Target="SAP__self.RegistryType/TotalLastChangeAt">
+<Annotation Term="SAP__common.Label" String="Changed On"/>
+<Annotation Term="SAP__common.QuickInfo" String="Local Instance Last Change Date Time"/>
+</Annotations>
+<Annotations Target="SAP__self.PublishedServiceType/CreatedAt">
+<Annotation Term="SAP__common.Label" String="Short Time Stamp"/>
+<Annotation Term="SAP__common.Heading" String="Short Form of Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.PublishedServiceType/ChangedAt">
+<Annotation Term="SAP__common.Label" String="Short Time Stamp"/>
+<Annotation Term="SAP__common.Heading" String="Short Form of Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/LogId">
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/ActionAt">
+<Annotation Term="SAP__common.Label" String="Time Stamp"/>
+<Annotation Term="SAP__common.QuickInfo" String="UTC Time Stamp in Short Form (YYYYMMDDhhmmss)"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/ObjectId">
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+<Annotations Target="SAP__self.LogType/JobId">
+<Annotation Term="SAP__common.Label" String="UUID"/>
+<Annotation Term="SAP__common.QuickInfo" String="16 Byte UUID in 16 Bytes (Raw Format)"/>
+</Annotations>
+</Schema>
+</edmx:DataServices>
 </edmx:Edmx>

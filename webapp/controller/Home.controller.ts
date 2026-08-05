@@ -3,7 +3,7 @@ import type UI5Event from 'sap/ui/base/Event';
 import type { Router$RouteMatchedEvent } from 'sap/ui/core/routing/Router';
 
 import BaseController from './BaseController';
-import type { Job, LogEntry, MetadataDetails, Registry, RegistryVersion } from '../model/types';
+import type { job, logEntry, metadataDetails, registry, registryVersion } from '../model/types';
 
 interface RegistryStats {
 	total: number;
@@ -75,7 +75,7 @@ interface RegistryChangeSummary {
 }
 
 /** Registry enriched with a change summary derived from its two most recent versions. */
-type RegistryCard = Registry & { changeSummary: RegistryChangeSummary };
+type RegistryCard = registry & { changeSummary: RegistryChangeSummary };
 
 interface ChangeGroup {
 	noun: string;
@@ -84,7 +84,7 @@ interface ChangeGroup {
 }
 
 /** Metadata categories diffed to build a change summary; entityTypes/entitySets are merged separately into "entity". */
-const DIFF_CATEGORIES: Array<{ key: keyof MetadataDetails; noun: string }> = [
+const DIFF_CATEGORIES: Array<{ key: keyof metadataDetails; noun: string }> = [
 	{ key: 'properties', noun: 'property' },
 	{ key: 'navigationProperties', noun: 'navigation property' },
 	{ key: 'functionImports', noun: 'function import' },
@@ -187,12 +187,12 @@ export default class Home extends BaseController {
 	}
 
 	public onRegistryPress(event: UI5Event): void {
-		const registry = this.getEntityFromEvent<Registry>(event);
+		const registry = this.getEntityFromEvent<registry>(event);
 		if (!registry) {
 			return;
 		}
 
-		this.navTo('registryDetail', { registryId: registry.id });
+		this.navTo('registryDetail', { registryId: registry.groupId });
 	}
 
 	public onAttentionItemPress(event: UI5Event): void {
@@ -238,14 +238,14 @@ export default class Home extends BaseController {
 		return this.formatDateTime(value);
 	}
 
-	public formatJobTitle(job: Job | undefined): string {
+	public formatJobTitle(job: job | undefined): string {
 		if (!job) {
 			return '';
 		}
 		return `${this.formatTriggerLabel(job)} scan`;
 	}
 
-	public formatJobSubtitle(job: Job | undefined): string {
+	public formatJobSubtitle(job: job | undefined): string {
 		if (!job) {
 			return '';
 		}
@@ -259,7 +259,7 @@ export default class Home extends BaseController {
 		return `${registriesLabel} · ${completionPhrase} · ${changesLabel} · ${relativeTime}${errorSuffix}`;
 	}
 
-	private formatTriggerLabel(job: Job): string {
+	private formatTriggerLabel(job: job): string {
 		switch ((job.triggerType || '').toUpperCase()) {
 			case 'SCHEDULE':
 			case 'SCHEDULED':
@@ -273,7 +273,7 @@ export default class Home extends BaseController {
 		}
 	}
 
-	private formatCompletionPhrase(job: Job): string {
+	private formatCompletionPhrase(job: job): string {
 		const duration = this.formatDuration(job.durationMs);
 		switch (job.status) {
 			case 'Running':
@@ -287,7 +287,7 @@ export default class Home extends BaseController {
 		}
 	}
 
-	private formatChangesLabel(job: Job): string {
+	private formatChangesLabel(job: job): string {
 		if (job.changeCount <= 0 && job.newVersionCount <= 0) {
 			return 'No changes detected';
 		}
@@ -335,7 +335,7 @@ export default class Home extends BaseController {
 				this.loadRecentLogs()
 			]);
 
-			const recentRegistries = this.sortByDateDesc(registries, (registry) => registry.lastChangedAt).slice(0, RECENT_LIMIT);
+			const recentRegistries = this.sortByDateDesc(registries, (registry) => registry.lastChangeAt.slice(0, RECENT_LIMIT));
 			const recentRegistryCards = await this.attachChangeSummaries(recentRegistries);
 			const attentionItems = this.computeAttentionItems(registries, jobs);
 
@@ -362,7 +362,7 @@ export default class Home extends BaseController {
 	}
 
 	/** Logs are supplementary — a failure here must not blank out the whole dashboard. */
-	private async loadRecentLogs(): Promise<LogEntry[]> {
+	private async loadRecentLogs(): Promise<logEntry[]> {
 		try {
 			const page = await this.getOwnerComponent().getLogService().getLogs({ top: ACTIVITY_LOG_FETCH });
 			return page.items;
@@ -371,7 +371,7 @@ export default class Home extends BaseController {
 		}
 	}
 
-	private computeKpiDelta(registries: Registry[]): KpiDelta {
+	private computeKpiDelta(registries: registry[]): KpiDelta {
 		const now = Date.now();
 		const withinWindow = (value: string): boolean => {
 			const time = new Date(value).getTime();
@@ -380,10 +380,10 @@ export default class Home extends BaseController {
 
 		return registries.reduce<KpiDelta>(
 			(delta, registry) => {
-				if (withinWindow(registry.createdAt)) {
+				if (withinWindow(registry.registeredAt)) {
 					delta.totalNew += 1;
 				}
-				if (withinWindow(registry.lastChangedAt)) {
+				if (withinWindow(registry.lastChangeAt)) {
 					if (registry.status === 'Published') {
 						delta.publishedChanged += 1;
 					} else if (registry.status === 'Unpublished') {
@@ -399,12 +399,12 @@ export default class Home extends BaseController {
 	}
 
 	/** Merges scan jobs and audit logs into one time-ordered feed, de-duping scan-job log rows. */
-	private buildActivity(jobs: Job[], logs: LogEntry[]): ActivityItem[] {
+	private buildActivity(jobs: job[], logs: logEntry[]): ActivityItem[] {
 		const rows: Array<{ ts: number; item: ActivityItem }> = [];
 		const jobIds = new Set<string>();
 
 		for (const job of jobs) {
-			jobIds.add(this.normalizeId(job.id));
+			jobIds.add(this.normalizeId(job.scanJobId));
 			rows.push({
 				ts: new Date(job.startedAt).getTime(),
 				item: {
@@ -415,7 +415,7 @@ export default class Home extends BaseController {
 					state: this.formatStatusState(job.status),
 					kind: 'job',
 					objectIdType: 'SCANJOB',
-					objectId: job.id
+					objectId: job.scanJobId
 				}
 			});
 		}
@@ -494,7 +494,7 @@ export default class Home extends BaseController {
 	}
 
 	/** 14 daily buckets (oldest → newest) of scan-job counts, plus summary stats, for the activity chart. */
-	private bucketScanTrend(jobs: Job[]): { points: ScanTrendPoint[]; summary: ScanTrendSummary } {
+	private bucketScanTrend(jobs: job[]): { points: ScanTrendPoint[]; summary: ScanTrendSummary } {
 		const now = new Date();
 		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 		const counts = new Array<number>(SCAN_TREND_DAYS).fill(0);
@@ -559,7 +559,7 @@ export default class Home extends BaseController {
 		return (value || '').replace(/[{}]/g, '').trim().toLowerCase();
 	}
 
-	private buildLogSubtitle(log: LogEntry): string {
+	private buildLogSubtitle(log: logEntry): string {
 		const actor = log.actor || 'system';
 		const scope = (log.objectIdType || '').trim();
 		const base = scope ? `${actor} · ${this.capitalize(scope.toLowerCase())}` : actor;
@@ -593,7 +593,7 @@ export default class Home extends BaseController {
 		return 'None';
 	}
 
-	private computeRegistryStats(registries: Registry[]): RegistryStats {
+	private computeRegistryStats(registries: registry[]): RegistryStats {
 		return registries.reduce<RegistryStats>(
 			(stats, registry) => {
 				stats.total += 1;
@@ -610,7 +610,7 @@ export default class Home extends BaseController {
 		);
 	}
 
-	private computeAttentionItems(registries: Registry[], jobs: Job[]): AttentionItem[] {
+	private computeAttentionItems(registries: registry[], jobs: job[]): AttentionItem[] {
 		const items: AttentionItem[] = [];
 		const now = Date.now();
 
@@ -618,7 +618,7 @@ export default class Home extends BaseController {
 			if (registry.status === 'Archive') {
 				return false;
 			}
-			const lastChanged = new Date(registry.lastChangedAt).getTime();
+			const lastChanged = new Date(registry.lastChangeAt).getTime();
 			return Number.isFinite(lastChanged) && now - lastChanged > STALE_THRESHOLD_MS;
 		});
 		if (staleRegistries.length > 0) {
@@ -667,18 +667,19 @@ export default class Home extends BaseController {
 	 * cached summary is reused whenever the registry's lastChangedAt is unchanged;
 	 * only genuinely-changed registries trigger a fresh getVersions call.
 	 */
-	private async attachChangeSummaries(registries: Registry[]): Promise<RegistryCard[]> {
+	private async attachChangeSummaries(registries: registry[]): Promise<RegistryCard[]> {
 		const versionService = this.getOwnerComponent().getVersionService();
 		const cards = await Promise.all(
 			registries.map(async (registry) => {
-				const cached = this.summaryCache.get(registry.id);
-				if (cached && cached.lastChangedAt === registry.lastChangedAt) {
+				const cached = this.summaryCache.get(registry.groupId);
+				if (cached && cached.lastChangedAt === registry.lastChangeAt) {
 					return { ...registry, changeSummary: cached.summary };
 				}
+
 				try {
-					const versions = await versionService.getVersions(registry.id);
+					const versions = await versionService.getVersions(registry.groupId);
 					const summary = this.buildChangeSummary(versions);
-					this.summaryCache.set(registry.id, { lastChangedAt: registry.lastChangedAt, summary });
+					this.summaryCache.set(registry.groupId, { lastChangedAt: registry.lastChangeAt, summary });
 					return { ...registry, changeSummary: summary };
 				} catch {
 					return { ...registry, changeSummary: this.emptyChangeSummary() };
@@ -687,7 +688,7 @@ export default class Home extends BaseController {
 		);
 
 		// Bound cache memory to the registries currently on screen.
-		const visibleIds = new Set(registries.map((registry) => registry.id));
+		const visibleIds = new Set(registries.map((registry) => registry.groupId));
 		for (const id of [...this.summaryCache.keys()]) {
 			if (!visibleIds.has(id)) {
 				this.summaryCache.delete(id);
@@ -701,7 +702,7 @@ export default class Home extends BaseController {
 	}
 
 	/** Diffs the two most recent versions' metadata (name-level only — no type/annotation detail is captured here). */
-	private buildChangeSummary(versions: RegistryVersion[]): RegistryChangeSummary {
+	private buildChangeSummary(versions: registryVersion[]): RegistryChangeSummary {
 		const sorted = [...versions].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 		const [latest, previous] = sorted;
 
@@ -727,10 +728,10 @@ export default class Home extends BaseController {
 			groups.length === 0
 				? 'No structural changes since last scan'
 				: [...groups]
-						.sort((left, right) => right.count - left.count)
-						.slice(0, 3)
-						.map((group) => `${group.count} ${this.pluralizeNoun(group.noun, group.count)} ${group.verb}`)
-						.join(' · ');
+					.sort((left, right) => right.count - left.count)
+					.slice(0, 3)
+					.map((group) => `${group.count} ${this.pluralizeNoun(group.noun, group.count)} ${group.verb}`)
+					.join(' · ');
 
 		return { headline, breaking, hasBaseline: true, details };
 	}

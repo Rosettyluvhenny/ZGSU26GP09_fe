@@ -1,8 +1,8 @@
-export type RegistryStatus = 'Published' | 'Unpublished' | 'Archive';
+export type registryStatus = 'Published' | 'Unpublished' | 'Archive';
 
-export type JobStatus = 'Completed' | 'Running' | 'Failed' | 'Queued';
+export type jobStatus = 'Completed' | 'Running' | 'Failed' | 'Queued';
 
-export interface MetadataDetails {
+export interface metadataDetails {
 	entityTypes: string[];
 	entitySets: string[];
 	properties: string[];
@@ -12,59 +12,63 @@ export interface MetadataDetails {
 	complexTypes: string[];
 }
 
-export interface VersionDifference {
+export interface versionDifference {
 	added: string[];
 	removed: string[];
 	modified: string[];
 	unchanged: string[];
 }
 
-export interface RegistryVersion {
-	id: string;
+/** Maps to VersionType */
+export interface registryVersion {
+	versionId: string;
 	groupId?: string;
-	versionNumber: string;
+	versionNo: string;
 	createdBy: string;
 	createdAt: string;
 	comment: string;
-	metadata: MetadataDetails;
-	xml: string;
+	metadata: metadataDetails;
+	metadataXml: string;
 }
 
-export interface RegistryDetail {
-	id: string;
+/** Maps to DetailType */
+export interface registryDetail {
+	detailId: string;
 	versionId: string;
 	groupId: string;
-	serviceDefinition: string;
+	serviceDefId: string;
 	serviceHash: string;
-	lastChangedAt: string;
-	xml: string;
+	lastChangeAt: string;
+	metadataXml: string;
 }
 
-export interface Registry {
-	id: string;
-	registryName: string;
+/** Maps to RegistryType */
+export interface registry {
+	groupId: string;
+	groupName: string;
 	serviceName: string;
-	serviceType: string;
+	groupType: string;
 	etag?: string;
 	versionNo?: string;
-	status: RegistryStatus;
+	status: registryStatus;
 	statusText: string;
 	description: string;
-	createdBy: string;
-	createdAt: string;
+	registeredBy: string;
+	registeredAt: string;
 	lastChangedBy: string;
-	lastChangedAt: string;
+	lastChangeAt: string;
 	serviceDefinition: string;
-	versions: RegistryVersion[];
+	versions: registryVersion[];
 }
 
-export interface Job {
-	id: string;
-	status: JobStatus;
+/** Maps to ScanJobType */
+export interface job {
+	scanJobId: string;
+	status: jobStatus;
 	startedAt: string;
 	finishedAt: string | null;
 	durationMs: number | null;
-	executedBy: string;
+	triggeredBy: string;
 
 	triggerType: string;
 	triggerText: string;
@@ -77,8 +81,9 @@ export interface Job {
 	summary: string;
 }
 
-export interface LogEntry {
-	id: string;
+/** Maps to LogType */
+export interface logEntry {
+	logId: string;
 	actionType: string;
 	/** Human-readable action label from BE (ActionText); fall back to actionType if missing. */
 	actionText: string;
@@ -92,59 +97,60 @@ export interface LogEntry {
 	jobId: string;
 }
 
-export interface SessionData {
+export interface sessionData {
 	authenticated: boolean;
 	userName: string;
 	csrfToken: string;
 	loginAt: string | null;
 }
 
-export interface RegistryInput {
-	registryName: string;
+export interface registryInput {
+	groupName: string;
 	serviceDefinition: string;
-	serviceType: string;
+	groupType: string;
 	description: string;
 }
 
-export interface RegistryCreateInput {
+export interface registryCreateInput {
 	groupName: string;
 	groupType: string;
 	versionNo: string;
 }
 
-export interface RegistryUpdateInput {
+export interface registryUpdateInput {
 	status: string;
 }
 
-export interface RegistryValueHelpItem {
+export interface registryValueHelpItem {
 	key: string;
 	text: string;
 }
 
-export interface JobRunInput {
-	registryId: string;
+export interface jobRunInput {
+	groupId: string;
 }
 
-export interface RegistryFilterState {
+export interface registryFilterState {
 	search: string;
 	searchField: string;
 	status: string;
 	groupType: string;
-	registryName: string;
-	createdBy: string;
+	groupName: string;
+	registeredBy: string;
 }
 
-export interface MetadataSearchResult {
-	category: keyof MetadataDetails;
+export interface metadataSearchResult {
+	category: keyof metadataDetails;
 	label: string;
 }
 
-export interface DetailMetadataResult {
+/** Maps to ZI_METADATA_RESULT */
+export interface detailMetadataResult {
 	detailId: string;
 	metadataXml: string;
 }
 
-export interface XmlLineEntry {
+export interface xmlLineEntry {
 	lineNo: number;   // 0 = empty/padding row (no matching line on this side)
 	text: string;
 	isWhitespace: boolean;
@@ -152,39 +158,44 @@ export interface XmlLineEntry {
 	lineType?: 'same' | 'del' | 'ins' | 'mod' | 'empty';
 }
 
-export interface VersionActionResult {
-	CreatedAt: string | null;
-	CreatedBy: string;
-	GroupHash: string;
-	GroupId: string;
-	LatestVersion: boolean;
-	Status: string;
-	TriggerType: string;
-	VersionId: string;
-	VersionNo: string;
+/** Maps to ZI_VERSION_RESULT */
+export interface versionActionResult {
+	createdAt: string | null;
+	createdBy: string;
+	groupHash: string;
+	groupId: string;
+	latestVersion: boolean;
+	status: string;
+	triggerType: string;
+	versionId: string;
+	versionNo: string;
 }
 
-export interface VersionCompareActionEntry {
-	SERVICEDEFID: string;
-	BASEDETAILID: string;
-	COMPAREDETAILID: string;
-	CHANGETYPE: string;
+/** Maps to ZDVRSDIFF */
+export interface versionCompareActionEntry {
+	serviceDefId: string;
+	baseDetailId: string;
+	compareDetailId: string;
+	changeType: string;
 }
 
-export interface VersionCompareActionResult {
-	BASEVERSIONID: string;
-	COMPAREVERSIONID: string;
-	CHANGE: VersionCompareActionEntry[];
-	DIFFER: VersionCompareActionEntry[];
-	UNCHANGE: VersionCompareActionEntry[];
+/** Maps to ZDVRSDIFFRESULT */
+export interface versionCompareActionResult {
+	baseVersionId: string;
+	compareVersionId: string;
+	change: versionCompareActionEntry[];
+	differ: versionCompareActionEntry[];
+	unchange: versionCompareActionEntry[];
 }
 
-export interface NodeTreeAttribute {
+/** Maps to ZDATTRIBUTE */
+export interface nodeTreeAttribute {
 	name: string;
 	value: string;
 }
 
-export interface NodeTreeResponseItem {
+/** Maps to ZDNODETREE */
+export interface nodeTreeResponseItem {
 	nodeId: string;
 	semanticId: string;
 	parentId: string;
@@ -196,12 +207,12 @@ export interface NodeTreeResponseItem {
 	offsetEnd: number;
 	seq: number;
 	depth: number;
-	attributes: NodeTreeAttribute[];
+	attributes: nodeTreeAttribute[];
 }
 
-export interface NodeTreeViewItem extends NodeTreeResponseItem {
+export interface nodeTreeViewItem extends nodeTreeResponseItem {
 	label: string;
-	children: NodeTreeViewItem[];
+	children: nodeTreeViewItem[];
 	lineStart: number;
 	lineEnd: number;
 	diffStatus?: string;
@@ -212,54 +223,63 @@ export interface NodeTreeViewItem extends NodeTreeResponseItem {
 	shouldExpand?: boolean;
 }
 
-export interface NodeTreeActionResult {
-	NODETREE: Record<string, unknown>[];
+/** Maps to ZNODETREERESULT */
+export interface nodeTreeActionResult {
+	nodeTree: Record<string, unknown>[];
 }
 
-export interface NodeDiffAttribute {
-	SEMANTIC_ID: string;
-	NAME: string;
-	STATUS: string;
-	OLD_VALUE: string;
-	NEW_VALUE: string;
+/** Maps to ZDATTRIBUTEDIFF */
+export interface nodeDiffAttribute {
+	semanticId: string;
+	name: string;
+	status: string;
+	oldValue: string;
+	newValue: string;
 }
 
-export interface NodeDiffEntry {
-	SEMANTIC_ID: string;
-	STATUS: string;
-	ATTRIBUTEDIFF: NodeDiffAttribute[];
+/** Maps to ZDNODEDIFF */
+export interface nodeDiffEntry {
+	semanticId: string;
+	status: string;
+	attributeDiff: nodeDiffAttribute[];
 }
 
-export interface NodeDiffActionResult {
-	NODEDIFF: Record<string, unknown>[];
+/** Maps to ZDNODEDIFFRESULT */
+export interface nodeDiffActionResult {
+	nodeDiff: Record<string, unknown>[];
 }
 
-export interface CompareVersionEntry {
+/** Maps to ZDVRSDIFF */
+export interface compareVersionEntry {
 	serviceDefId: string;
 	baseDetailId: string;
 	compareDetailId: string;
 	changeType: 'CHANGED' | 'ADDED' | 'DELETED' | 'UNCHANGED';
 }
 
-export interface CompareVersionResult {
+/** Maps to ZDVRSDIFFRESULT */
+export interface compareVersionResult {
 	baseVersionId: string;
 	compareVersionId: string;
-	change: CompareVersionEntry[];
-	differ: CompareVersionEntry[];
-	unchange: CompareVersionEntry[];
+	change: compareVersionEntry[];
+	differ: compareVersionEntry[];
+	unchange: compareVersionEntry[];
 }
 
-export interface DetailId {
-	DetailId: string;
+/** Maps to ZI_METADATA_RESULT */
+export interface detailId {
+	detailId: string;
 }
 
-export interface SendMailParams {
+/** Maps to DetailType_sendEmailParams */
+export interface sendMailParams {
 	htmlContent: string;
 	recipients: string;
 	subject: string;
 }
 
-export interface SendMailResult {
+/** Maps to ZI_EMAIL_SEND_RESULT */
+export interface sendMailResult {
 	success: boolean;
 	message: string;
 	failedRecip: string;

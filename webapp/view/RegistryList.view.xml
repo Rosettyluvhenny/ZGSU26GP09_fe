@@ -24,7 +24,7 @@
 						<ToolbarSpacer />
 						<Select selectedKey="{registryList>/searchField}" change=".onFilterChange" class="sapUiTinyMarginEnd">
 							<core:Item key="all" text="All Fields" />
-							<core:Item key="registryName" text="Registry Name" />
+							<core:Item key="groupName" text="Registry Name" />
 							<core:Item key="registryId" text="Registry ID" />
 						</Select>
 						<SearchField width="15rem" placeholder="Global search" value="{registryList>/search}" search=".onFilterChange" />
@@ -44,11 +44,11 @@
 						</VBox>
 						<VBox class="sapUiSmallMarginEnd">
 							<Label text="Registry Name" />
-							<Input width="12rem" value="{registryList>/registryName}" placeholder="Filter by Name" submit=".onFilterChange" />
+							<Input width="12rem" value="{registryList>/groupName}" placeholder="Filter by Name" submit=".onFilterChange" />
 						</VBox>
 						<VBox>
 							<Label text="Created By" />
-							<Input width="12rem" value="{registryList>/createdBy}" placeholder="Filter by User" submit=".onFilterChange" />
+							<Input width="12rem" value="{registryList>/registeredBy}" placeholder="Filter by User" submit=".onFilterChange" />
 						</VBox>
 					</HBox>
 				</VBox>
@@ -80,15 +80,15 @@
 					<items>
 						<ColumnListItem type="Navigation" press=".onRowPress">
 							<cells>
-								<ObjectIdentifier title="{registryList>registryName}" text="{registryList>description}" />
+								<ObjectIdentifier title="{registryList>groupName}" text="{registryList>description}" />
 								<Text text="{registryList>serviceName}" />
-								<ObjectStatus text="{registryList>serviceType}" />
+								<ObjectStatus text="{registryList>groupType}" />
 								<Text text="{registryList>versionNo}" />
 								<ObjectStatus text="{registryList>statusText}" state="{path: 'registryList>status', formatter: '.formatStatusState'}" />
-								<Text text="{registryList>createdBy}" />
-								<Text text="{path: 'registryList>createdAt', formatter: '.formatDateTime'}" />
+								<Text text="{registryList>registeredBy}" />
+								<Text text="{path: 'registryList>registeredAt', formatter: '.formatDateTime'}" />
 								<Text text="{registryList>lastChangedBy}" />
-								<Text text="{path: 'registryList>lastChangedAt', formatter: '.formatDateTime'}" />
+								<Text text="{path: 'registryList>lastChangeAt', formatter: '.formatDateTime'}" />
 								<HBox wrap="Wrap" renderType="Bare" justifyContent="Start" visible="{ui>/canUpdate}">
 									<Button text="Edit" type="Transparent" press=".onEditRegistry" visible="{ui>/canUpdate}" />
 								</HBox>

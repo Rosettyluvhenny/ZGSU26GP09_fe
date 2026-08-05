@@ -1,5 +1,54 @@
 // @ts-nocheck
 
+export interface ServiceMetadataFullV2Type {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ServiceId` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ServiceId: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `MetadataXml` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    MetadataXml: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Message` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    Message: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Parameters` |
+     * | Type | `com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV2Parameters` |
+     * | Nullable | `false` |
+     */
+    Parameters?: ServiceMetadataFullV2Parameters;
+}
+
+export type ServiceMetadataFullV2TypeId = string | {ServiceId: string};
+
+export interface EditableServiceMetadataFullV2Type extends Pick<ServiceMetadataFullV2Type, "MetadataXml" | "Message"> {
+}
+
 export interface ScanJobType {
     /**
      * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
@@ -22,6 +71,16 @@ export interface ScanJobType {
      * | Nullable | `false` |
      */
     TriggerType: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `TriggerText` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    TriggerText: string;
     /**
      *
      * OData Attributes:
@@ -50,6 +109,16 @@ export interface ScanJobType {
      * | Nullable | `false` |
      */
     Status: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `StatusText` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    StatusText: string;
     /**
      *
      * OData Attributes:
@@ -102,9 +171,9 @@ export interface ScanJobType {
     SAP__Messages: Array<SAP__Message>;
 }
 
-export type ScanJobTypeId = string | { ScanJobId: string };
+export type ScanJobTypeId = string | {ScanJobId: string};
 
-export interface EditableScanJobType extends Pick<ScanJobType, "TriggerType" | "Status" | "TotalRegistry" | "ChangeCount" | "NewVersionCount" | "TriggeredBy">, Partial<Pick<ScanJobType, "StartedAt" | "FinishedAt">> {
+export interface EditableScanJobType extends Pick<ScanJobType, "TriggerType" | "TriggerText" | "Status" | "StatusText" | "TotalRegistry" | "ChangeCount" | "NewVersionCount" | "TriggeredBy">, Partial<Pick<ScanJobType, "StartedAt" | "FinishedAt">> {
     SAP__Messages: Array<EditableSAP__Message>;
 }
 
@@ -268,15 +337,87 @@ export interface VersionType {
     _Status?: ZI_VRS_STAT_VHType | null;
 }
 
-export type VersionTypeId = string | { VersionId: string };
+export type VersionTypeId = string | {VersionId: string};
 
 export interface EditableVersionType extends Pick<VersionType, "GroupId" | "VersionNo" | "GroupHash" | "Status" | "StatusText" | "CreatedBy" | "TriggerType" | "TriggerText" | "LatestVersion">, Partial<Pick<VersionType, "CreatedAt" | "LastChangeAt">> {
     SAP__Messages: Array<EditableSAP__Message>;
 }
 
 export interface VersionType_compareVersionParams {
-    base_vrs_id?: string | null;
-    compare_vrs_id?: string | null;
+    BaseVrsId?: string | null;
+    CompareVrsId?: string | null;
+}
+
+export interface ServiceMetadataFullV4Parameters {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_group_id` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_group_id: string;
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_service_id` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_service_id: string;
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_repository_id` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_repository_id: string;
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_service_version` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_service_version: string;
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_system_alias` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_system_alias: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Set` |
+     * | Type | `Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV4Type)` |
+     */
+    Set?: Array<ServiceMetadataFullV4Type>;
+}
+
+export type ServiceMetadataFullV4ParametersId = {p_group_id: string,p_service_id: string,p_repository_id: string,p_service_version: string,p_system_alias: string};
+
+export interface EditableServiceMetadataFullV4Parameters extends Pick<ServiceMetadataFullV4Parameters, "p_group_id" | "p_service_id" | "p_repository_id" | "p_service_version" | "p_system_alias"> {
 }
 
 export interface ZI_GRP_TYPE_VHType {
@@ -303,7 +444,7 @@ export interface ZI_GRP_TYPE_VHType {
     Description: string;
 }
 
-export type ZI_GRP_TYPE_VHTypeId = string | { TypeId: string };
+export type ZI_GRP_TYPE_VHTypeId = string | {TypeId: string};
 
 export interface EditableZI_GRP_TYPE_VHType extends Pick<ZI_GRP_TYPE_VHType, "Description"> {
 }
@@ -400,7 +541,7 @@ export interface DetailType {
     _Version?: VersionType;
 }
 
-export type DetailTypeId = string | { DetailId: string };
+export type DetailTypeId = string | {DetailId: string};
 
 export interface EditableDetailType extends Pick<DetailType, "VersionId" | "ServiceDefId" | "GroupId" | "ServiceHash">, Partial<Pick<DetailType, "LastChangeAt">> {
     SAP__Messages: Array<EditableSAP__Message>;
@@ -411,12 +552,88 @@ export interface DetailType_getNodeTreeParams {
 }
 
 export interface DetailType_compareNodeTreeParams {
-    base_detail_id?: string | null;
-    compare_detail_id?: string | null;
+    BaseDetailId?: string | null;
+    CompareDetailId?: string | null;
+}
+
+export interface DetailType_sendEmailParams {
+    HtmlContent: string;
+    Recipients: string;
+    Subject: string;
+    AttachVersionId?: string | null;
 }
 
 export interface DetailType_getParseMetadataParams {
     DetailId?: string | null;
+}
+
+export interface ServiceDefinitionType {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ServiceId` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ServiceId: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `GroupId` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    GroupId: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `RepositoryId` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    RepositoryId: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ServiceVersion` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ServiceVersion: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `SystemAlias` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    SystemAlias: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Parameters` |
+     * | Type | `com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceDefinitionParameters` |
+     * | Nullable | `false` |
+     */
+    Parameters?: ServiceDefinitionParameters;
+}
+
+export type ServiceDefinitionTypeId = string | {ServiceId: string};
+
+export interface EditableServiceDefinitionType extends Pick<ServiceDefinitionType, "GroupId" | "RepositoryId" | "ServiceVersion" | "SystemAlias"> {
 }
 
 export interface RegistryType {
@@ -543,6 +760,16 @@ export interface RegistryType {
      * OData Attributes:
      * |Attribute Name | Attribute Value |
      * | --- | ---|
+     * | Name | `Namespace` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    Namespace: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
      * | Name | `SAP__Messages` |
      * | Type | `Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.SAP__Message)` |
      * | Nullable | `false` |
@@ -586,10 +813,204 @@ export interface RegistryType {
     _Version?: Array<VersionType>;
 }
 
-export type RegistryTypeId = string | { GroupId: string };
+export type RegistryTypeId = string | {GroupId: string};
 
-export interface EditableRegistryType extends Pick<RegistryType, "GroupName" | "GroupType" | "GroupTypeText" | "VersionNo" | "Status" | "StatusText" | "RegisteredBy" | "Description">, Partial<Pick<RegistryType, "RegisteredAt" | "LastChangeAt" | "TotalLastChangeAt">> {
+export interface EditableRegistryType extends Pick<RegistryType, "GroupName" | "GroupType" | "GroupTypeText" | "VersionNo" | "Status" | "StatusText" | "RegisteredBy" | "Description" | "Namespace">, Partial<Pick<RegistryType, "RegisteredAt" | "LastChangeAt" | "TotalLastChangeAt">> {
     SAP__Messages: Array<EditableSAP__Message>;
+}
+
+export interface ServiceMetadataFullV2Parameters {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_group_id` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_group_id: string;
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_service_version` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_service_version: string;
+    /**
+     * **Key Property**: This is a key property used to identify the entity.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_namespace` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_namespace: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Set` |
+     * | Type | `Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV2Type)` |
+     */
+    Set?: Array<ServiceMetadataFullV2Type>;
+}
+
+export type ServiceMetadataFullV2ParametersId = {p_group_id: string,p_service_version: string,p_namespace: string};
+
+export interface EditableServiceMetadataFullV2Parameters extends Pick<ServiceMetadataFullV2Parameters, "p_group_id" | "p_service_version" | "p_namespace"> {
+}
+
+export interface ServiceMetadataFullV4Type {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ServiceId` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ServiceId: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `MetadataXml` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    MetadataXml: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Message` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    Message: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Parameters` |
+     * | Type | `com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceMetadataFullV4Parameters` |
+     * | Nullable | `false` |
+     */
+    Parameters?: ServiceMetadataFullV4Parameters;
+}
+
+export type ServiceMetadataFullV4TypeId = string | {ServiceId: string};
+
+export interface EditableServiceMetadataFullV4Type extends Pick<ServiceMetadataFullV4Type, "MetadataXml" | "Message"> {
+}
+
+export interface PublishedServiceType {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ServiceName` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ServiceName: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ODataVersion` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ODataVersion: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Version` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    Version: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `CreatedBy` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    CreatedBy: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `CreatedAt` |
+     * | Type | `Edm.DateTimeOffset` |
+     */
+    CreatedAt: string | null;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ChangedAt` |
+     * | Type | `Edm.DateTimeOffset` |
+     */
+    ChangedAt: string | null;
+}
+
+export type PublishedServiceTypeId = string | {ServiceName: string};
+
+export interface EditablePublishedServiceType extends Pick<PublishedServiceType, "ODataVersion" | "Version" | "CreatedBy">, Partial<Pick<PublishedServiceType, "CreatedAt" | "ChangedAt">> {
+}
+
+export interface ServiceDefinitionParameters {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `p_group_id` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    p_group_id: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Set` |
+     * | Type | `Collection(com.sap.gateway.srvd_a2x.zsr_registry.v0001.ServiceDefinitionType)` |
+     */
+    Set?: Array<ServiceDefinitionType>;
+}
+
+export type ServiceDefinitionParametersId = string | {p_group_id: string};
+
+export interface EditableServiceDefinitionParameters {
 }
 
 export interface ZI_TRGR_TYPE_VHType {
@@ -616,7 +1037,7 @@ export interface ZI_TRGR_TYPE_VHType {
     Description: string;
 }
 
-export type ZI_TRGR_TYPE_VHTypeId = string | { TypeId: string };
+export type ZI_TRGR_TYPE_VHTypeId = string | {TypeId: string};
 
 export interface EditableZI_TRGR_TYPE_VHType extends Pick<ZI_TRGR_TYPE_VHType, "Description"> {
 }
@@ -721,11 +1142,58 @@ export interface LogType {
      * | Nullable | `false` |
      */
     objectIdType: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `JobId` |
+     * | Type | `Edm.Guid` |
+     */
+    JobId: string | null;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `_Action` |
+     * | Type | `com.sap.gateway.srvd_a2x.zsr_registry.v0001.ZI_LOG_ACT_TYPE_VHType` |
+     */
+    _Action?: ZI_LOG_ACT_TYPE_VHType | null;
 }
 
-export type LogTypeId = string | { LogId: string };
+export type LogTypeId = string | {LogId: string};
 
-export interface EditableLogType extends Pick<LogType, "ActionType" | "ActionText" | "Actor" | "IpAddress" | "Remarks" | "LogResult" | "objectIdType">, Partial<Pick<LogType, "ActionAt" | "ObjectId">> {
+export interface EditableLogType extends Pick<LogType, "ActionType" | "ActionText" | "Actor" | "IpAddress" | "Remarks" | "LogResult" | "objectIdType">, Partial<Pick<LogType, "ActionAt" | "ObjectId" | "JobId">> {
+}
+
+export interface ZI_LOG_ACT_TYPE_VHType {
+    /**
+     * **Key Property**: This is a key property used to identify the entity.<br/>**Managed**: This property is managed on the server side and cannot be edited.
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `ActionId` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    ActionId: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Description` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    Description: string;
+}
+
+export type ZI_LOG_ACT_TYPE_VHTypeId = string | {ActionId: string};
+
+export interface EditableZI_LOG_ACT_TYPE_VHType extends Pick<ZI_LOG_ACT_TYPE_VHType, "Description"> {
 }
 
 export interface ZI_GRP_STAT_VHType {
@@ -752,7 +1220,7 @@ export interface ZI_GRP_STAT_VHType {
     Description: string;
 }
 
-export type ZI_GRP_STAT_VHTypeId = string | { StatusId: string };
+export type ZI_GRP_STAT_VHTypeId = string | {StatusId: string};
 
 export interface EditableZI_GRP_STAT_VHType extends Pick<ZI_GRP_STAT_VHType, "Description"> {
 }
@@ -781,9 +1249,55 @@ export interface ZI_VRS_STAT_VHType {
     Description: string;
 }
 
-export type ZI_VRS_STAT_VHTypeId = string | { StatusId: string };
+export type ZI_VRS_STAT_VHTypeId = string | {StatusId: string};
 
 export interface EditableZI_VRS_STAT_VHType extends Pick<ZI_VRS_STAT_VHType, "Description"> {
+}
+
+export interface ZI_EMAIL_SEND_RESULT {
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `FailedRecip` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    FailedRecip: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Message` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    Message: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `RecipientDetail` |
+     * | Type | `Edm.String` |
+     * | Nullable | `false` |
+     */
+    RecipientDetail: string;
+    /**
+     *
+     * OData Attributes:
+     * |Attribute Name | Attribute Value |
+     * | --- | ---|
+     * | Name | `Success` |
+     * | Type | `Edm.Boolean` |
+     * | Nullable | `false` |
+     */
+    Success: boolean;
+}
+
+export interface EditableZI_EMAIL_SEND_RESULT extends Pick<ZI_EMAIL_SEND_RESULT, "FailedRecip" | "Message" | "RecipientDetail" | "Success"> {
 }
 
 export interface ZDATTRIBUTEDIFF {
@@ -992,60 +1506,6 @@ export interface ZDNODEDIFFRESULT {
 
 export interface EditableZDNODEDIFFRESULT {
     NODEDIFF: Array<EditableZDNODEDIFF>;
-}
-
-export interface ZI_DETAIL_RESULT {
-    /**
-     *
-     * OData Attributes:
-     * |Attribute Name | Attribute Value |
-     * | --- | ---|
-     * | Name | `GroupId` |
-     * | Type | `Edm.Guid` |
-     */
-    GroupId: string | null;
-    /**
-     *
-     * OData Attributes:
-     * |Attribute Name | Attribute Value |
-     * | --- | ---|
-     * | Name | `MetadataXml` |
-     * | Type | `Edm.Binary` |
-     * | Nullable | `false` |
-     */
-    MetadataXml: string;
-    /**
-     *
-     * OData Attributes:
-     * |Attribute Name | Attribute Value |
-     * | --- | ---|
-     * | Name | `ServiceDefId` |
-     * | Type | `Edm.String` |
-     * | Nullable | `false` |
-     */
-    ServiceDefId: string;
-    /**
-     *
-     * OData Attributes:
-     * |Attribute Name | Attribute Value |
-     * | --- | ---|
-     * | Name | `ServiceHash` |
-     * | Type | `Edm.String` |
-     * | Nullable | `false` |
-     */
-    ServiceHash: string;
-    /**
-     *
-     * OData Attributes:
-     * |Attribute Name | Attribute Value |
-     * | --- | ---|
-     * | Name | `VersionId` |
-     * | Type | `Edm.Guid` |
-     */
-    VersionId: string | null;
-}
-
-export interface EditableZI_DETAIL_RESULT extends Pick<ZI_DETAIL_RESULT, "MetadataXml" | "ServiceDefId" | "ServiceHash">, Partial<Pick<ZI_DETAIL_RESULT, "GroupId" | "VersionId">> {
 }
 
 export interface ZDNODETREE {

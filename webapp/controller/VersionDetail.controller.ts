@@ -12,7 +12,7 @@ import type Table from 'sap/m/Table';
 import type Tree from 'sap/m/Tree';
 
 import BaseController, { type AiChatContext } from './BaseController';
-import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
+import type { nodeTreeViewItem, registryDetail, xmlLineEntry } from '../model/types';
 import { buildNodeTree, filterNodeTree, flattenNodeTree, highlightXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 
 interface ExtendedTreeBinding {
@@ -27,7 +27,7 @@ interface ExtendedTreeBinding {
 export default class VersionDetail extends BaseController {
 	private registryId: string | null = null;
 	private versionId: string | null = null;
-	private fullTree: NodeTreeViewItem[] = [];
+	private fullTree: nodeTreeViewItem[] = [];
 	private _sendMailDialog: Dialog | null = null;
 	private highlightClearTimer: number | null = null;
 
@@ -42,7 +42,7 @@ export default class VersionDetail extends BaseController {
 				selectedDetailBusy: false,
 				selectedNodeLine: 1,
 				selectedDetailLineStarts: [],
-				selectedDetailLines: [] as XmlLineEntry[],
+				selectedDetailLines: [] as xmlLineEntry[],
 				treeSearch: '',
 				treeSearchMatchCount: 0
 			}),
@@ -76,16 +76,16 @@ export default class VersionDetail extends BaseController {
 		if (!this.registryId || !this.versionId) {
 			return;
 		}
-		const detail = (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetail') as RegistryDetail | null;
+		const detail = (this.getModel('versionDetail') as JSONModel).getProperty('/selectedDetail') as registryDetail | null;
 		this.getRouter().navTo('modelExplorer', {
 			registryId: this.registryId,
 			versionId: this.versionId,
-			query: detail ? { detailId: detail.id } : {}
+			query: detail ? { detailId: detail.detailId } : {}
 		});
 	}
 
 	public async onDetailChange(event: UI5Event): Promise<void> {
-		const source = event.getSource() as unknown as { getSelectedItem: () => { getBindingContext: (name?: string) => { getObject: () => RegistryDetail } | null } | null };
+		const source = event.getSource() as unknown as { getSelectedItem: () => { getBindingContext: (name?: string) => { getObject: () => registryDetail } | null } | null };
 		const selectedItem = source.getSelectedItem();
 		const context = selectedItem?.getBindingContext('versionDetail');
 		const detail = context?.getObject();
@@ -97,7 +97,7 @@ export default class VersionDetail extends BaseController {
 	}
 
 	public onNodeSelectionChange(event: UI5Event): void {
-		const listItem = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
+		const listItem = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => nodeTreeViewItem } | null } | null;
 		const context = listItem?.getBindingContext('treeModel');
 		const node = context?.getObject();
 		if (!node) {
@@ -122,7 +122,7 @@ export default class VersionDetail extends BaseController {
 			return;
 		}
 
-		const matchesQuery = (node: NodeTreeViewItem): boolean =>
+		const matchesQuery = (node: nodeTreeViewItem): boolean =>
 			node.nodeName.toLowerCase().includes(query) || node.nodeType.toLowerCase().includes(query);
 
 		const filteredTree = filterNodeTree(this.fullTree, matchesQuery);
@@ -140,11 +140,11 @@ export default class VersionDetail extends BaseController {
 			return null;
 		}
 
-		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+		const detail = model.getProperty('/selectedDetail') as registryDetail | null;
 		return {
-			label: detail?.serviceDefinition || 'Version metadata XML',
+			label: detail?.serviceDefId || 'Version metadata XML',
 			xml,
-			storageKey: detail ? `detail.${detail.id}` : undefined
+			storageKey: detail ? `detail.${detail.detailId}` : undefined
 		};
 	}
 
@@ -168,8 +168,8 @@ export default class VersionDetail extends BaseController {
 			return;
 		}
 
-		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
-		const baseName = (detail?.serviceDefinition || detail?.id || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
+		const detail = model.getProperty('/selectedDetail') as registryDetail | null;
+		const baseName = (detail?.serviceDefId || detail?.detailId || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
 		this.downloadTextFile(`${baseName}.xml`, xml);
 	}
 
@@ -177,7 +177,7 @@ export default class VersionDetail extends BaseController {
 		const source = event.getSource() as unknown as Table;
 		const selectedItem = source.getSelectedItem();
 		const context = selectedItem?.getBindingContext('versionDetail');
-		const line = context?.getObject() as XmlLineEntry | undefined;
+		const line = context?.getObject() as xmlLineEntry | undefined;
 		if (!line) {
 			return;
 		}
@@ -190,9 +190,9 @@ export default class VersionDetail extends BaseController {
 
 	public onSendMail(): void {
 		const model = this.getModel('versionDetail') as JSONModel;
-		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
-		const defaultSubject = detail?.serviceDefinition
-			? `Version XML: ${detail.serviceDefinition}`
+		const detail = model.getProperty('/selectedDetail') as registryDetail | null;
+		const defaultSubject = detail?.serviceDefId
+			? `Version XML: ${detail.serviceDefId}`
 			: 'Version XML Report';
 
 		this.setModel(
@@ -274,7 +274,7 @@ export default class VersionDetail extends BaseController {
 
 		const model = this.getModel('versionDetail') as JSONModel;
 		const prettyXml = (model.getProperty('/selectedDetailXml') as string) ?? '';
-		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+		const detail = model.getProperty('/selectedDetail') as registryDetail | null;
 
 		if (!prettyXml) {
 			MessageBox.error('XML data is not loaded yet. Please wait and try again.');
@@ -331,14 +331,14 @@ export default class VersionDetail extends BaseController {
 		return html;
 	}
 
-	private buildVersionHtml(prettyXml: string, title: string, detail: RegistryDetail | null): string {
+	private buildVersionHtml(prettyXml: string, title: string, detail: registryDetail | null): string {
 		const escHtml = (s: string) =>
 			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 		const lines = prettyXml.split('\n');
 
 		const metaRows = detail
-			? `<tr><td>Service Definition</td><td>${escHtml(detail.serviceDefinition || '-')}</td></tr>` +
+			? `<tr><td>Service Definition</td><td>${escHtml(detail.serviceDefId || '-')}</td></tr>` +
 			  `<tr><td>Version Id</td><td>${escHtml(detail.versionId || '-')}</td></tr>` +
 			  `<tr><td>Service Hash</td><td>${escHtml(detail.serviceHash || '-')}</td></tr>`
 			: '';
@@ -400,7 +400,7 @@ export default class VersionDetail extends BaseController {
 			this.fullTree = [];
 			(this.getModel('treeModel') as JSONModel).setData([]);
 			if (details.length > 0) {
-				const detailToLoad = queryDetailId ? details.find(d => d.id === queryDetailId) || details[0] : details[0];
+				const detailToLoad = queryDetailId ? details.find(d => d.detailId === queryDetailId) || details[0] : details[0];
 				await this.loadDetailWorkspace(detailToLoad);
 			}
 		} catch (error) {
@@ -410,7 +410,7 @@ export default class VersionDetail extends BaseController {
 		}
 	}
 
-	private async loadDetailWorkspace(detail: RegistryDetail): Promise<void> {
+	private async loadDetailWorkspace(detail: registryDetail): Promise<void> {
 		const model = this.getModel('versionDetail') as JSONModel;
 		model.setProperty('/selectedDetailBusy', true);
 		model.setProperty('/selectedDetail', detail);
@@ -423,11 +423,11 @@ export default class VersionDetail extends BaseController {
 		model.setProperty('/selectedDetailLines', []);
 		try {
 			const [loadedDetail, parsedDetail, nodeTree] = await Promise.all([
-				this.getOwnerComponent().getDetailService().getDetail(detail.id),
-				this.getOwnerComponent().getDetailService().getParsedDetail(detail.id),
-				this.getOwnerComponent().getDetailService().getNodeTree(detail.id)
+				this.getOwnerComponent().getDetailService().getDetail(detail.detailId),
+				this.getOwnerComponent().getDetailService().getParsedDetail(detail.detailId),
+				this.getOwnerComponent().getDetailService().getNodeTree(detail.detailId)
 			]);
-			let rawXml = parsedDetail.metadataXml || loadedDetail.xml || '';
+			let rawXml = parsedDetail.metadataXml || loadedDetail.metadataXml || '';
 			// Filter out XML declaration because the backend offsets do not include it
 			rawXml = rawXml.replace(/<\?xml[^>]*\?>\s*/gi, '');
 			const { prettyXml, rawOffsets } = prettyPrintXml(rawXml);
@@ -510,18 +510,18 @@ export default class VersionDetail extends BaseController {
 		URL.revokeObjectURL(url);
 	}
 
-	private createFallbackNodeTree(detail: RegistryDetail): NodeTreeViewItem[] {
+	private createFallbackNodeTree(detail: registryDetail): nodeTreeViewItem[] {
 		return buildNodeTree([
 			{
-				nodeId: detail.id,
-				semanticId: detail.serviceDefinition || detail.id,
+				nodeId: detail.detailId,
+				semanticId: detail.serviceDefId || detail.detailId,
 				parentId: '',
 				nodePath: '1',
 				nodeType: 'Detail',
-				nodeName: detail.serviceDefinition || 'Detail',
+				nodeName: detail.serviceDefId || 'Detail',
 				nodeAlias: '',
 				offsetStart: 0,
-				offsetEnd: detail.xml.length,
+				offsetEnd: detail.metadataXml.length,
 				seq: 1,
 				depth: 0,
 				attributes: []
@@ -529,7 +529,7 @@ export default class VersionDetail extends BaseController {
 		]);
 	}
 
-	private applyLineNumbers(nodes: NodeTreeViewItem[], lineStarts: number[], xml: string): void {
+	private applyLineNumbers(nodes: nodeTreeViewItem[], lineStarts: number[], xml: string): void {
 		for (const node of nodes) {
 			node.lineStart = offsetToLine(node.offsetStart, lineStarts);
 			node.lineEnd = offsetToLine(node.offsetEnd, lineStarts);
@@ -542,7 +542,7 @@ export default class VersionDetail extends BaseController {
 		}
 	}
 
-	private buildXmlLines(xml: string): XmlLineEntry[] {
+	private buildXmlLines(xml: string): xmlLineEntry[] {
 		return xml.split('\n').map((text, index) => ({
 			lineNo: index + 1,
 			text,
@@ -600,7 +600,7 @@ export default class VersionDetail extends BaseController {
 
 		const item = table.getItems().find((listItem) => {
 			const context = listItem.getBindingContext('versionDetail');
-			return (context?.getObject() as XmlLineEntry | null)?.lineNo === lineNo;
+			return (context?.getObject() as xmlLineEntry | null)?.lineNo === lineNo;
 		});
 		if (item) {
 			item.addStyleClass('versionDetailXmlHighlighted');

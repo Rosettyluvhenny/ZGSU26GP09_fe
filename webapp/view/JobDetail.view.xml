@@ -9,7 +9,7 @@
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="{= 'Job ' + ${jobDetail>/job/id} }" level="H1" />
+					<Title text="{= 'Job ' + ${jobDetail>/job/scanJobId} }" level="H1" />
 				</f:heading>
 			</f:DynamicPageTitle>
 		</f:title>

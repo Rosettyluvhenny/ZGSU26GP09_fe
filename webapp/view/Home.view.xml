@@ -149,8 +149,8 @@
 								<Panel expandable="true" expanded="false" class="sapUiTinyMarginBottom">
 									<headerToolbar>
 										<OverflowToolbar>
-											<Title text="{home>registryName}" level="H5" />
-											<Label text="{home>serviceType}" class="sapUiTinyMarginBegin" />
+											<Title text="{home>groupName}" level="H5" />
+											<Label text="{home>groupType}" class="sapUiTinyMarginBegin" />
 											<ToolbarSpacer />
 											<ObjectStatus text="{home>statusText}" state="{path: 'home>status', formatter: '.formatStatusState'}" />
 											<ObjectStatus text="{= 'v' + ${home>versionNo} }" visible="{= !!${home>versionNo} }" class="sapUiTinyMarginBegin" />
@@ -159,7 +159,7 @@
 									<content>
 										<VBox class="sapUiSmallMarginBegin sapUiSmallMarginEnd sapUiTinyMarginBottom">
 											<Text text="{home>changeSummary/headline}" />
-											<Text text="{= 'Scanned ' + ${path: 'home>lastChangedAt', formatter: '.formatRelativeTime'} }" class="sapUiTinyMarginTop" />
+											<Text text="{= 'Scanned ' + ${path: 'home>lastChangeAt', formatter: '.formatRelativeTime'} }" class="sapUiTinyMarginTop" />
 											<Text text="{= 'Last changed by ' + (${home>lastChangedBy} || 'unknown') }" class="sapUiTinyMarginTop" />
 											<MessageStrip
 												text="Breaking change detected — one or more elements were removed since the last scan."

@@ -12,7 +12,7 @@
 		<f:title>
 			<f:DynamicPageTitle>
 				<f:heading>
-					<Title text="{= 'Version ' + ${versionDetail>/version/versionNumber} + ' Details' }" level="H1" />
+					<Title text="{= 'Version ' + ${versionDetail>/version/versionNo} + ' Details' }" level="H1" />
 				</f:heading>
 			</f:DynamicPageTitle>
 		</f:title>
@@ -37,7 +37,7 @@
 						<form:SimpleForm layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
 							<form:content>
 								<Label text="Version Number" />
-								<Text text="{versionDetail>/version/versionNumber}" />
+								<Text text="{versionDetail>/version/versionNo}" />
 								<Label text="Created By" />
 								<Text text="{versionDetail>/version/createdBy}" />
 								<Label text="Created At" />
@@ -53,15 +53,15 @@
 					<content>
 						<Select
 							width="100%"
-							selectedKey="{versionDetail>/selectedDetail/id}"
+							selectedKey="{versionDetail>/selectedDetail/detailId}"
 							change=".onDetailChange"
 							items="{versionDetail>/details}">
-								<core:Item width="100%" key="{versionDetail>id}" text="{= ${versionDetail>serviceDefinition} }" />
+								<core:Item width="100%" key="{versionDetail>detailId}" text="{= ${versionDetail>serviceDefinition} }" />
 						</Select>
 						<form:SimpleForm class="sapUiSmallMarginTop" layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
 							<form:content>
 								<Label text="DetailId" />
-								<Text text="{versionDetail>/selectedDetail/id}" wrapping="true" />
+								<Text text="{versionDetail>/selectedDetail/detailId}" wrapping="true" />
 								<Label text="ServiceDefId" />
 								<Text text="{versionDetail>/selectedDetail/serviceDefinition}" wrapping="true" />
 								<Label text="ServiceHash" />
@@ -71,7 +71,7 @@
 								<Label text="GroupId" />
 								<Text text="{versionDetail>/selectedDetail/groupId}" wrapping="true" />
 								<Label text="LastChangeAt" />
-								<Text text="{path: 'versionDetail>/selectedDetail/lastChangedAt', formatter: '.formatDateTime'}" wrapping="true" />
+								<Text text="{path: 'versionDetail>/selectedDetail/lastChangeAt', formatter: '.formatDateTime'}" wrapping="true" />
 							</form:content>
 						</form:SimpleForm>
 					</content>

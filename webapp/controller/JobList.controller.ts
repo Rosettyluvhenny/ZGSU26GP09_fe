@@ -6,7 +6,7 @@ import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
 
 import BaseController from './BaseController';
-import type { Job } from '../model/types';
+import type { job } from '../model/types';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -20,7 +20,7 @@ export default class JobList extends BaseController {
 				items: [],
 				busy: false,
 				search: '',
-				selectedJob: null as Job | null
+				selectedJob: null as job | null
 			}),
 			'jobList'
 		);
@@ -67,7 +67,7 @@ export default class JobList extends BaseController {
 	}
 
 	public onRowPress(event: UI5Event): void {
-		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => Job } | null };
+		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => job } | null };
 		const job = source.getBindingContext('jobList')?.getObject();
 		if (!job) {
 			return;
@@ -78,13 +78,13 @@ export default class JobList extends BaseController {
 	}
 
 	public onViewJobLogs(): void {
-		const job = (this.getModel('jobList') as JSONModel).getProperty('/selectedJob') as Job | null;
+		const job = (this.getModel('jobList') as JSONModel).getProperty('/selectedJob') as job | null;
 		if (!job) {
 			return;
 		}
 
 		this._jobDetailDialog?.close();
-		this.getRouter().navTo('logs', { '?query': { jobId: job.id } });
+		this.getRouter().navTo('logs', { '?query': { jobId: job.scanJobId } });
 	}
 
 	public onCloseJobDialog(): void {

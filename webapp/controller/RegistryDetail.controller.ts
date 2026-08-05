@@ -8,7 +8,7 @@ import type UI5Event from 'sap/ui/base/Event';
 import MessageToast from 'sap/m/MessageToast';
 
 import BaseController from './BaseController';
-import type { Registry, RegistryVersion } from '../model/types';
+import type { registry, registryVersion } from '../model/types';
 import { mapRegistryEntity } from '../services/ODataParsers';
 
 /**
@@ -68,7 +68,7 @@ export default class RegistryDetail extends BaseController {
 		}
 
 		const model = this.getModel('registryDetail') as JSONModel;
-		const registry = model.getProperty('/registry') as Registry;
+		const registry = model.getProperty('/registry') as registry;
 		model.setProperty('/generateBusy', true);
 		BusyIndicator.show(0);
 		try {
@@ -82,7 +82,7 @@ export default class RegistryDetail extends BaseController {
 				const mappedResponse = mapRegistryEntity(responseRecord);
 				// Update registry with all information except etag (which was removed)
 				const updatedRegistry = { ...registry };
-				(Object.keys(mappedResponse) as Array<keyof Registry>).forEach(key => {
+				(Object.keys(mappedResponse) as Array<keyof registry>).forEach(key => {
 					if (mappedResponse[key] !== undefined && mappedResponse[key] !== '') {
 					// @ts-expect-error – dynamic key assignment across typed Registry fields
 					updatedRegistry[key] = mappedResponse[key];
@@ -117,7 +117,7 @@ export default class RegistryDetail extends BaseController {
 
 		const selectedVersionIds = table.getSelectedItems().slice(0, 2).map((item) => {
 			const context = item.getBindingContext('registryDetail');
-			return (context?.getObject() as RegistryVersion | null)?.id ?? '';
+			return (context?.getObject() as registryVersion | null)?.versionId ?? '';
 		}).filter(Boolean);
 
 		model.setProperty('/selectedVersionIds', selectedVersionIds);
@@ -139,16 +139,16 @@ export default class RegistryDetail extends BaseController {
 		// Sort versions by createdAt ascending so that the OLDER version is always
 		// on the LEFT (Base) and the NEWER version is on the RIGHT (Compare).
 		// This follows the standard diff convention: left = before, right = after.
-		const allVersions = (model.getProperty('/versions') as RegistryVersion[]) ?? [];
+		const allVersions = (model.getProperty('/versions') as registryVersion[]) ?? [];
 		const selected = selectedVersionIds
-			.map(id => allVersions.find(v => v.id === id))
-			.filter((v): v is RegistryVersion => !!v);
+			.map(id => allVersions.find(v => v.versionId === id))
+			.filter((v): v is registryVersion => !!v);
 		selected.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
 		this.navTo('versionCompare', {
 			registryId: this.registryId,
-			leftVersionId: selected[0]?.id ?? selectedVersionIds[0],   // older → Base (left)
-			rightVersionId: selected[1]?.id ?? selectedVersionIds[1]   // newer → Compare (right)
+			leftVersionId: selected[0]?.versionId ?? selectedVersionIds[0],   // older → Base (left)
+			rightVersionId: selected[1]?.versionId ?? selectedVersionIds[1]   // newer → Compare (right)
 		});
 	}
 
@@ -158,7 +158,7 @@ export default class RegistryDetail extends BaseController {
 			return;
 		}
 
-		this.navTo('versionDetail', { registryId: this.registryId, versionId: version.id });
+		this.navTo('versionDetail', { registryId: this.registryId, versionId: version.versionId });
 	}
 
 	private async loadRegistry(): Promise<void> {
@@ -193,8 +193,8 @@ export default class RegistryDetail extends BaseController {
 		}
 	}
 
-	private getVersionFromEvent(event: UI5Event): RegistryVersion | null {
-		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => RegistryVersion } | null };
+	private getVersionFromEvent(event: UI5Event): registryVersion | null {
+		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => registryVersion } | null };
 		const context = source.getBindingContext('registryDetail');
 		return context?.getObject() ?? null;
 	}

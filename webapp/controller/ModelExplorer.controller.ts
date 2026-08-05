@@ -6,7 +6,7 @@ import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import History from 'sap/ui/core/routing/History';
 
 import BaseController, { type AiChatContext } from './BaseController';
-import type { RegistryDetail } from '../model/types';
+import type { registryDetail } from '../model/types';
 import {
 	parseEdmx,
 	type EdmComplexType,
@@ -37,7 +37,7 @@ export default class ModelExplorer extends BaseController {
 				serviceName: '',
 				version: '',
 				parseError: '',
-				details: [] as RegistryDetail[],
+				details: [] as registryDetail[],
 				selectedDetailId: '',
 				search: '',
 				counts: { entityTypes: 0, entitySets: 0, complexTypes: 0, enumTypes: 0, operations: 0 },
@@ -182,8 +182,8 @@ export default class ModelExplorer extends BaseController {
 			const details = await this.getOwnerComponent().getDetailService().getDetails(this.versionId);
 			model.setProperty('/details', details);
 
-			let target: RegistryDetail | undefined = this.detailId
-				? details.find((detail) => detail.id === this.detailId)
+			let target: registryDetail | undefined = this.detailId
+				? details.find((detail) => detail.detailId === this.detailId)
 				: undefined;
 			target = target ?? details[0];
 
@@ -195,12 +195,12 @@ export default class ModelExplorer extends BaseController {
 				return;
 			}
 
-			this.detailId = target.id;
-			model.setProperty('/selectedDetailId', target.id);
-			model.setProperty('/serviceName', target.serviceDefinition || target.id);
+			this.detailId = target.detailId;
+			model.setProperty('/selectedDetailId', target.detailId);
+			model.setProperty('/serviceName', target.serviceDefId || target.detailId);
 
-			const parsed = await this.getOwnerComponent().getDetailService().getParsedDetail(target.id);
-			this.rawXml = (parsed.metadataXml || target.xml || '').replace(/<\?xml[^>]*\?>\s*/gi, '');
+			const parsed = await this.getOwnerComponent().getDetailService().getParsedDetail(target.detailId);
+			this.rawXml = (parsed.metadataXml || target.metadataXml || '').replace(/<\?xml[^>]*\?>\s*/gi, '');
 			this.edm = parseEdmx(this.rawXml);
 			this.populateModelData(this.edm);
 		} catch (error) {

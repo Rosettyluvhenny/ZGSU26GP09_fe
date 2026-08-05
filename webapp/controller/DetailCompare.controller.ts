@@ -14,12 +14,12 @@ import BaseController, { type AiChatContext } from './BaseController';
 interface ExtendedTreeBinding {
 	expand(index: number): void;
 	getLength(): number;
-	getContextByIndex(index: number): { getObject: () => NodeTreeViewItem } | undefined;
+	getContextByIndex(index: number): { getObject: () => nodeTreeViewItem } | undefined;
 	isExpanded(index: number): boolean;
 	getMetadata?(): { getName(): string };
 }
 
-import type { NodeDiffEntry, NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
+import type { nodeDiffEntry, nodeTreeViewItem, registryDetail, xmlLineEntry } from '../model/types';
 import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, canMergeAsXmlModification, computeLineDiff, highlightXmlLine, normalizeXmlLine, offsetToLine, prettyPrintXml } from '../services/XmlNodeUtils';
 import { analyzeChanges, type ChangeRow, type ChangeSeverity } from '../services/ChangeAnalysis';
 
@@ -38,8 +38,8 @@ export default class DetailCompare extends BaseController {
 	private changeBlockStarts: number[] = [];
 	private changeBlockCursor = -1;
 	/** Full aligned line arrays kept so the "Changes only" filter can toggle without reloading. */
-	private baseXmlLinesAll: XmlLineEntry[] = [];
-	private compareXmlLinesAll: XmlLineEntry[] = [];
+	private baseXmlLinesAll: xmlLineEntry[] = [];
+	private compareXmlLinesAll: xmlLineEntry[] = [];
 	/** Rows of unchanged context kept around each change in "Changes only" mode. */
 	private static readonly CHANGES_CONTEXT = 3;
 	/** Full change list kept so the severity filter can toggle without re-analyzing. */
@@ -62,8 +62,8 @@ export default class DetailCompare extends BaseController {
 			compareDetail: null,
 			baseTree: [],
 			compareTree: [],
-			baseXmlLines: [] as XmlLineEntry[],
-			compareXmlLines: [] as XmlLineEntry[],
+			baseXmlLines: [] as xmlLineEntry[],
+			compareXmlLines: [] as xmlLineEntry[],
 			baseLineStarts: [],
 			compareLineStarts: [],
 			compareNodeDiff: [],
@@ -125,9 +125,9 @@ export default class DetailCompare extends BaseController {
 		const clip = (xml: string): string =>
 			xml.length > halfBudget ? xml.slice(0, halfBudget) + '\n<!-- ... truncated ... -->' : xml;
 
-		const baseDetail = model.getProperty('/baseDetail') as { serviceDefinition?: string } | null;
+		const baseDetail = model.getProperty('/baseDetail') as { serviceDefId?: string } | null;
 		return {
-			label: `Comparison of two versions of ${baseDetail?.serviceDefinition || 'a service'} (BASE vs COMPARE)`,
+			label: `Comparison of two versions of ${baseDetail?.serviceDefId || 'a service'} (BASE vs COMPARE)`,
 			xml: `<!-- BASE XML -->\n${clip(baseXml)}\n\n<!-- COMPARE XML -->\n${clip(compareXml)}`,
 			suggestions: ['Explain the differences', 'Any breaking changes?', 'Which entities were added or removed?'],
 			storageKey: this.baseDetailId && this.compareDetailId ? `compare.${this.baseDetailId}_${this.compareDetailId}` : undefined
@@ -138,9 +138,9 @@ export default class DetailCompare extends BaseController {
 
 	public onSendMail(): void {
 		const detailModel = this.getModel('detailCompare') as JSONModel;
-		const baseDetail = detailModel.getProperty('/baseDetail') as { serviceDefinition?: string } | null;
-		const defaultSubject = baseDetail?.serviceDefinition
-			? `XML Comparison: ${baseDetail.serviceDefinition}`
+		const baseDetail = detailModel.getProperty('/baseDetail') as { serviceDefId?: string } | null;
+		const defaultSubject = baseDetail?.serviceDefId
+			? `XML Comparison: ${baseDetail.serviceDefId}`
 			: 'XML Comparison Report';
 
 		this.setModel(
@@ -622,7 +622,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	/** Selecting a node in either tree scrolls both XML panes to that element. */
-	private revealTreeNode(node: NodeTreeViewItem, side: 'base' | 'compare'): void {
+	private revealTreeNode(node: nodeTreeViewItem, side: 'base' | 'compare'): void {
 		const fallbackLine = node.lineStart
 			|| offsetToLine(node.offsetStart, this.getLineStarts(side === 'base' ? '/baseLineStarts' : '/compareLineStarts'));
 		const lines = this.changeLineIndex.get(node.semanticId)
@@ -685,7 +685,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			this.applyLineNumbers(baseTree, baseLineStarts);
 			this.applyLineNumbers(compareTree, compareLineStarts);
 
-			const statusBySemanticId = new Map(compareNodeDiff.map((item) => [item.SEMANTIC_ID, item.STATUS]));
+			const statusBySemanticId = new Map(compareNodeDiff.map((item) => [item.semanticId, item.status]));
 			const compareTreeMapped = applyNodeDiffStatus(compareTree, statusBySemanticId);
 
 			const aligned = this.buildAlignedXmlLines(baseXml, compareXml);
@@ -738,13 +738,13 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	/** Apply node/attribute highlight + expand flags from a single compareNodeTree result. */
-	private applyDiffHighlights(diff: NodeDiffEntry[], baseTree: NodeTreeViewItem[], compareTree: NodeTreeViewItem[]): void {
+	private applyDiffHighlights(diff: nodeDiffEntry[], baseTree: nodeTreeViewItem[], compareTree: nodeTreeViewItem[]): void {
 		const statusByKey = new Map<string, string>();
 		diff.forEach((item) => {
-			statusByKey.set(item.SEMANTIC_ID, item.STATUS);
-			if (Array.isArray(item.ATTRIBUTEDIFF)) {
-				item.ATTRIBUTEDIFF.forEach((attr) => {
-					statusByKey.set(`${item.SEMANTIC_ID}/${attr.NAME}`, attr.STATUS);
+			statusByKey.set(item.semanticId, item.status);
+			if (Array.isArray(item.attributeDiff)) {
+				item.attributeDiff.forEach((attr) => {
+					statusByKey.set(`${item.semanticId}/${attr.name}`, attr.status);
 				});
 			}
 		});
@@ -762,7 +762,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			return 'None';
 		};
 
-		const applyHighlight = (nodes: NodeTreeViewItem[], parentStatus?: string, isParentHighlighted = false): boolean => {
+		const applyHighlight = (nodes: nodeTreeViewItem[], parentStatus?: string, isParentHighlighted = false): boolean => {
 			let anyExpanded = false;
 			for (const node of nodes) {
 				let status = statusByKey.get(node.semanticId);
@@ -801,7 +801,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 
 
 	/** Builds the reviewable change list and the summary counters from the node diff. */
-	private applyChangeAnalysis(diff: NodeDiffEntry[] | null, compareTree: NodeTreeViewItem[], baseTree: NodeTreeViewItem[]): void {
+	private applyChangeAnalysis(diff: nodeDiffEntry[] | null, compareTree: nodeTreeViewItem[], baseTree: nodeTreeViewItem[]): void {
 		const model = this.getModel('detailCompare') as JSONModel;
 		const analysis = analyzeChanges(diff, compareTree, baseTree);
 
@@ -830,10 +830,10 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	/** Records where each element sits in both pretty-printed documents. */
-	private indexChangeLines(baseTree: NodeTreeViewItem[], compareTree: NodeTreeViewItem[]): void {
+	private indexChangeLines(baseTree: nodeTreeViewItem[], compareTree: nodeTreeViewItem[]): void {
 		this.changeLineIndex.clear();
 
-		const walk = (nodes: NodeTreeViewItem[], side: 'base' | 'compare'): void => {
+		const walk = (nodes: nodeTreeViewItem[], side: 'base' | 'compare'): void => {
 			for (const node of nodes) {
 				if (node.semanticId) {
 					const entry = this.changeLineIndex.get(node.semanticId) ?? { baseLine: 0, compareLine: 0 };
@@ -895,8 +895,8 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	private findAlignedIndex(lines: { baseLine: number; compareLine: number }, prefer: 'base' | 'compare' = 'base'): number {
 		const model = this.getModel('detailCompare') as JSONModel;
 		const rows = {
-			base: { lines: (model.getProperty('/baseXmlLines') as XmlLineEntry[]) ?? [], lineNo: lines.baseLine },
-			compare: { lines: (model.getProperty('/compareXmlLines') as XmlLineEntry[]) ?? [], lineNo: lines.compareLine }
+			base: { lines: (model.getProperty('/baseXmlLines') as xmlLineEntry[]) ?? [], lineNo: lines.baseLine },
+			compare: { lines: (model.getProperty('/compareXmlLines') as xmlLineEntry[]) ?? [], lineNo: lines.compareLine }
 		};
 
 		// An element that moved sits at a different aligned row on each side, so
@@ -1198,13 +1198,13 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		return inner && scrolls(inner) ? inner : (domRef as HTMLElement);
 	}
 
-	private getNodeFromEvent(event: UI5Event): NodeTreeViewItem | null {
-		const item = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => NodeTreeViewItem } | null } | null;
+	private getNodeFromEvent(event: UI5Event): nodeTreeViewItem | null {
+		const item = (event as ListBase$ItemPressEvent).getParameter('listItem') as { getBindingContext: (name?: string) => { getObject: () => nodeTreeViewItem } | null } | null;
 		const context = item?.getBindingContext('detailCompare');
 		return context?.getObject() ?? null;
 	}
 
-	private applyLineNumbers(nodes: NodeTreeViewItem[], lineStarts: number[]): void {
+	private applyLineNumbers(nodes: nodeTreeViewItem[], lineStarts: number[]): void {
 		for (const node of nodes) {
 			node.lineStart = offsetToLine(node.offsetStart, lineStarts);
 			node.lineEnd = offsetToLine(node.offsetEnd, lineStarts);
@@ -1253,7 +1253,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		this.clearXmlHighlights(table);
 		const item = table.getItems().find((listItem) => {
 			const context = listItem.getBindingContext('detailCompare');
-			return (context?.getObject() as XmlLineEntry | null)?.lineNo === lineNo;
+			return (context?.getObject() as xmlLineEntry | null)?.lineNo === lineNo;
 		});
 		if (item) {
 			item.addStyleClass('versionDetailXmlHighlighted');
@@ -1265,7 +1265,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	// ── Change navigation (prev/next across the aligned XML panes) ────────────
 
 	/** Set the added/removed/changed totals from the full aligned diff (mode-independent). */
-	private computeDiffTotals(baseLines: XmlLineEntry[], compareLines: XmlLineEntry[]): void {
+	private computeDiffTotals(baseLines: xmlLineEntry[], compareLines: xmlLineEntry[]): void {
 		const model = this.getModel('detailCompare') as JSONModel;
 		let added = 0;
 		let removed = 0;
@@ -1296,7 +1296,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	 * prev/next navigation lands on the right item in either mode. A change block
 	 * is a maximal run of rows where either side is not a 'same' line.
 	 */
-	private indexChangeBlocks(baseLines: XmlLineEntry[], compareLines: XmlLineEntry[]): void {
+	private indexChangeBlocks(baseLines: xmlLineEntry[], compareLines: xmlLineEntry[]): void {
 		const model = this.getModel('detailCompare') as JSONModel;
 		const blockStarts: number[] = [];
 		let inBlock = false;
@@ -1353,7 +1353,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	 * separator row. Both panes are filtered by the same index set so they stay
 	 * aligned row-for-row (and the scroll-sync keeps working).
 	 */
-	private buildChangesOnlyView(baseAll: XmlLineEntry[], compareAll: XmlLineEntry[]): { base: XmlLineEntry[]; compare: XmlLineEntry[] } {
+	private buildChangesOnlyView(baseAll: xmlLineEntry[], compareAll: xmlLineEntry[]): { base: xmlLineEntry[]; compare: xmlLineEntry[] } {
 		const rowCount = Math.max(baseAll.length, compareAll.length);
 		const changed = new Set<number>();
 		for (let i = 0; i < rowCount; i++) {
@@ -1364,8 +1364,8 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			}
 		}
 
-		const base: XmlLineEntry[] = [];
-		const compare: XmlLineEntry[] = [];
+		const base: xmlLineEntry[] = [];
+		const compare: xmlLineEntry[] = [];
 		if (changed.size === 0) {
 			return { base, compare };
 		}
@@ -1379,7 +1379,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			}
 		}
 
-		const gapRow = (gap: number): XmlLineEntry => ({
+		const gapRow = (gap: number): xmlLineEntry => ({
 			lineNo: 0,
 			text: `··· ${gap} unchanged line(s) ···`,
 			isWhitespace: false,
@@ -1478,18 +1478,18 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		}, DetailCompare.HIGHLIGHT_MS);
 	}
 
-	private createFallbackNodeTree(detail: RegistryDetail): NodeTreeViewItem[] {
+	private createFallbackNodeTree(detail: registryDetail): nodeTreeViewItem[] {
 		return buildNodeTree([
 			{
-				nodeId: detail.id,
-				semanticId: detail.serviceDefinition || detail.id,
+				nodeId: detail.detailId,
+				semanticId: detail.serviceDefId || detail.detailId,
 				parentId: '',
 				nodePath: '1',
 				nodeType: 'Detail',
-				nodeName: detail.serviceDefinition || 'Detail',
+				nodeName: detail.serviceDefId || 'Detail',
 				nodeAlias: '',
 				offsetStart: 0,
-				offsetEnd: detail.xml.length,
+				offsetEnd: detail.metadataXml.length,
 				seq: 1,
 				depth: 0,
 				attributes: []
@@ -1497,7 +1497,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		]);
 	}
 
-	private buildXmlLines(xml: string): XmlLineEntry[] {
+	private buildXmlLines(xml: string): xmlLineEntry[] {
 		return xml.split('\n').map((text, index) => ({
 			lineNo: index + 1,
 			text,
@@ -1512,9 +1512,9 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	 * Deleted base line → empty row on compare (lineNo=0).
 	 * Inserted compare line → empty row on base (lineNo=0).
 	 */
-	private buildAlignedXmlLines(baseXml: string, compareXml: string): { base: XmlLineEntry[]; compare: XmlLineEntry[] } {
+	private buildAlignedXmlLines(baseXml: string, compareXml: string): { base: xmlLineEntry[]; compare: xmlLineEntry[] } {
 		const ops = computeLineDiff(baseXml.split('\n'), compareXml.split('\n'), normalizeXmlLine);
-		const emptyRow = (): XmlLineEntry => ({ lineNo: 0, text: '', isWhitespace: true, highlight: 'None', lineType: 'empty' });
+		const emptyRow = (): xmlLineEntry => ({ lineNo: 0, text: '', isWhitespace: true, highlight: 'None', lineType: 'empty' });
 
 		type MergedOp =
 			| { op: 'same'; baseLine: string; compareLine: string }
@@ -1536,8 +1536,8 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			}
 		}
 
-		const base: XmlLineEntry[] = [];
-		const compare: XmlLineEntry[] = [];
+		const base: xmlLineEntry[] = [];
+		const compare: xmlLineEntry[] = [];
 		let bNo = 1, cNo = 1;
 
 		for (const op of merged) {
@@ -1559,7 +1559,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 		return { base, compare };
 	}
 
-	private applyLineHighlights(lines: XmlLineEntry[], _lineHighlights: Map<number, string>): XmlLineEntry[] {
+	private applyLineHighlights(lines: xmlLineEntry[], _lineHighlights: Map<number, string>): xmlLineEntry[] {
 		// Backend node-diff paints the whole parent node range (not only changed lines).
 		// That causes false positives: every line in a MODIFIED node range turns yellow,
 		// including unchanged opening tags or siblings.

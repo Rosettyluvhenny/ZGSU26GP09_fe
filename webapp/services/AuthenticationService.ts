@@ -1,8 +1,8 @@
-﻿import { readSessionStorage } from './SessionStorage';
-import type { SessionData } from '../model/types';
+import { readSessionStorage } from './SessionStorage';
+import type { sessionData } from '../model/types';
 import ODataClient from './ODataClient';
 
-const EMPTY_SESSION: SessionData = {
+const EMPTY_SESSION: sessionData = {
 	authenticated: false,
 	userName: '',
 	csrfToken: '',
@@ -17,7 +17,7 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 
 export default class AuthenticationService {
 	constructor(private readonly model?: import("sap/ui/model/odata/v4/ODataModel").default) {}
-	public async getSession(): Promise<SessionData> {
+	public async getSession(): Promise<sessionData> {
 		return delay(readSessionStorage(EMPTY_SESSION), 50);
 	}
 

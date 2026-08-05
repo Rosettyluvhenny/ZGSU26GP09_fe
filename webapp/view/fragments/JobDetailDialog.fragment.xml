@@ -4,7 +4,7 @@
 			<form:SimpleForm layout="ResponsiveGridLayout" labelSpanL="4" labelSpanM="4" columnsL="1" columnsM="1" editable="false">
 				<form:content>
 					<Label text="Job ID" />
-					<Text text="{jobList>/selectedJob/id}" />
+					<Text text="{jobList>/selectedJob/scanJobId}" />
 
 					<Label text="Trigger Type" />
 					<Text text="{jobList>/selectedJob/triggerText}" />
@@ -15,7 +15,7 @@
 						state="{path: 'jobList>/selectedJob/status', formatter: '.formatStatusState'}" />
 
 					<Label text="Executed By" />
-					<Text text="{jobList>/selectedJob/executedBy}" />
+					<Text text="{jobList>/selectedJob/triggeredBy}" />
 
 					<Label text="Started At" />
 					<Text text="{path: 'jobList>/selectedJob/startedAt', formatter: '.formatDateTime'}" />

@@ -37,12 +37,12 @@
 				<items>
 					<ColumnListItem type="Navigation" press=".onRowPress">
 						<cells>
-							<Text text="{jobList>id}" />
+							<Text text="{jobList>scanJobId}" />
 							<Text text="{jobList>triggerText}" />
 							<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
 							<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
 							<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
-							<Text text="{jobList>executedBy}" />
+							<Text text="{jobList>triggeredBy}" />
 						</cells>
 					</ColumnListItem>
 				</items>

@@ -3,7 +3,7 @@ import type UI5Event from 'sap/ui/base/Event';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
 import BaseController from './BaseController';
-import type { CompareVersionEntry } from '../model/types';
+import type { compareVersionEntry } from '../model/types';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -138,8 +138,8 @@ export default class VersionCompare extends BaseController {
 		}
 	}
 
-	private getCompareEntryFromEvent(event: UI5Event): CompareVersionEntry | null {
-		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => CompareVersionEntry } | null };
+	private getCompareEntryFromEvent(event: UI5Event): compareVersionEntry | null {
+		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => compareVersionEntry } | null };
 		const context = source.getBindingContext('versionCompare');
 		return context?.getObject() ?? null;
 	}

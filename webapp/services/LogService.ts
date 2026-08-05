@@ -1,6 +1,6 @@
 ﻿import ODataClient from './ODataClient';
 
-import type { LogEntry } from '../model/types';
+import type { logEntry } from '../model/types';
 import { mapLogEntity, normalizeODataCollection } from './ODataParsers';
 
 export const LOG_PAGE_SIZE = 50;
@@ -18,7 +18,7 @@ export interface LogQueryFilter {
 }
 
 export interface LogPageResult {
-	items: LogEntry[];
+	items: logEntry[];
 	totalCount: number;
 	hasMore: boolean;
 }

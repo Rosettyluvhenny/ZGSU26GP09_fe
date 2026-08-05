@@ -13,7 +13,7 @@ import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 import Control from 'sap/ui/core/Control';
 
 import BaseController from './BaseController';
-import type { Registry, RegistryCreateInput, RegistryValueHelpItem } from '../model/types';
+import type { registry, registryCreateInput, registryValueHelpItem } from '../model/types';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -32,8 +32,8 @@ export default class RegistryList extends BaseController {
 				searchField: 'all',
 				status: 'All',
 				groupType: 'All',
-				registryName: '',
-				createdBy: '',
+				groupName: '',
+				registeredBy: '',
 				groupTypes: [],
 				statuses: []
 			}),
@@ -123,7 +123,7 @@ export default class RegistryList extends BaseController {
 			return;
 		}
 
-		this.navTo('registryDetail', { registryId: registry.id });
+		this.navTo('registryDetail', { registryId: registry.groupId });
 	}
 
 	public async onCreateRegistry(): Promise<void> {
@@ -143,9 +143,9 @@ export default class RegistryList extends BaseController {
 		}
 
 		this.dialogMode = 'edit';
-		this.currentRegistryId = registry.id;
+		this.currentRegistryId = registry.groupId;
 		await this.openRegistryDialog({
-			groupName: registry.registryName,
+			groupName: registry.groupName,
 			groupType: this.getGroupTypeIdFromRegistry(registry),
 			versionNo: this.getVersionNoFromRegistry(registry),
 			status: this.getStatusKeyFromRegistry(registry)
@@ -169,7 +169,7 @@ export default class RegistryList extends BaseController {
 					groupName: data.groupName ?? '',
 					groupType: data.groupType ?? '',
 					versionNo: data.groupType === '002' ? '' : data.versionNo ?? ''
-				} satisfies RegistryCreateInput);
+				} satisfies registryCreateInput);
 				MessageToast.show('Registry created.');
 			} else if (this.currentRegistryId) {
 				await this.getOwnerComponent().getRegistryService().updateRegistry(this.currentRegistryId, {
@@ -225,8 +225,8 @@ export default class RegistryList extends BaseController {
 				searchField: model.getProperty('/searchField') as string,
 				status: model.getProperty('/status') as string,
 				groupType: model.getProperty('/groupType') as string,
-				registryName: model.getProperty('/registryName') as string,
-				createdBy: model.getProperty('/createdBy') as string
+				groupName: model.getProperty('/groupName') as string,
+				registeredBy: model.getProperty('/registeredBy') as string
 			};
 			const data = await this.getOwnerComponent().getRegistryService().getRegistries(filterState);
 			model.setProperty('/items', data);
@@ -252,8 +252,8 @@ export default class RegistryList extends BaseController {
 			versionNo: initialData.versionNo,
 			status: initialData.status ?? '',
 			showVersionNo: initialData.groupType !== '002',
-			groupTypes: [] as RegistryValueHelpItem[],
-			statuses: [] as RegistryValueHelpItem[]
+			groupTypes: [] as registryValueHelpItem[],
+			statuses: [] as registryValueHelpItem[]
 		});
 		dialogModel.setDefaultBindingMode('TwoWay');
 		this.setModel(dialogModel, 'registryDialog');
@@ -261,12 +261,12 @@ export default class RegistryList extends BaseController {
 		await this.loadRegistryDialogValueHelp(dialogModel);
 
 		if (this.dialogMode === 'create' && !dialogModel.getProperty('/groupType')) {
-			const groupTypes = dialogModel.getProperty('/groupTypes') as RegistryValueHelpItem[];
+			const groupTypes = dialogModel.getProperty('/groupTypes') as registryValueHelpItem[];
 			dialogModel.setProperty('/groupType', groupTypes[0]?.key ?? '001');
 		}
 
 		if (this.dialogMode === 'edit' && !dialogModel.getProperty('/status')) {
-			const statuses = dialogModel.getProperty('/statuses') as RegistryValueHelpItem[];
+			const statuses = dialogModel.getProperty('/statuses') as registryValueHelpItem[];
 			dialogModel.setProperty('/status', statuses[0]?.key ?? 'P');
 		}
 
@@ -319,13 +319,13 @@ export default class RegistryList extends BaseController {
 		dialog.close();
 	}
 
-	private getRegistryFromEvent(event: UI5Event): Registry | null {
+	private getRegistryFromEvent(event: UI5Event): registry | null {
 		const source = event.getSource() as unknown as ListItemBase;
 		const context = source.getBindingContext('registryList');
-		return (context?.getObject() as Registry) ?? null;
+		return (context?.getObject() as registry) ?? null;
 	}
 
-	private getStatusKeyFromRegistry(registry: Registry): string {
+	private getStatusKeyFromRegistry(registry: registry): string {
 		const currentStatus = `${registry.statusText ?? registry.status}`.trim().toLowerCase();
 		switch (currentStatus) {
 			case 'publish':
@@ -335,21 +335,21 @@ export default class RegistryList extends BaseController {
 			case 'archive':
 				return 'A';
 			default: {
-				const options = this.getModel('registryDialog')?.getProperty('/statuses') as RegistryValueHelpItem[] | undefined;
+				const options = this.getModel('registryDialog')?.getProperty('/statuses') as registryValueHelpItem[] | undefined;
 				const matched = options?.find((item) => item.text.toLowerCase() === currentStatus);
 				return matched?.key ?? '';
 			}
 		}
 	}
 
-	private getGroupTypeIdFromRegistry(registry: Registry): string {
-		const options = this.getModel('registryDialog')?.getProperty('/groupTypes') as RegistryValueHelpItem[] | undefined;
-		const matched = options?.find((item) => item.text.toLowerCase() === registry.serviceType.toLowerCase());
+	private getGroupTypeIdFromRegistry(registry: registry): string {
+		const options = this.getModel('registryDialog')?.getProperty('/groupTypes') as registryValueHelpItem[] | undefined;
+		const matched = options?.find((item) => item.text.toLowerCase() === registry.groupType.toLowerCase());
 		return matched?.key ?? '';
 	}
 
-	private getVersionNoFromRegistry(registry: Registry): string {
+	private getVersionNoFromRegistry(registry: registry): string {
 		const latestVersion = registry.versions[registry.versions.length - 1];
-		return latestVersion?.versionNumber ?? '';
+		return latestVersion?.versionNo ?? '';
 	}
 }

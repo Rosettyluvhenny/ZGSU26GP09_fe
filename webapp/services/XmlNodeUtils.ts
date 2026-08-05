@@ -1,4 +1,4 @@
-import type { NodeTreeResponseItem, NodeTreeViewItem } from '../model/types';
+import type { nodeTreeResponseItem, nodeTreeViewItem } from '../model/types';
 
 export interface XmlLineMap {
 	lineStarts: number[];
@@ -38,16 +38,16 @@ function getLabelSuffix(value: string): string {
 	return lastSegment && lastSegment.length > 0 ? lastSegment : value;
 }
 
-function formatNodeLabel(item: NodeTreeResponseItem): string {
+function formatNodeLabel(item: nodeTreeResponseItem): string {
 	return `${getLabelSuffix(item.semanticId)}`;
 }
 
-function createAttributeNodes(item: NodeTreeResponseItem): NodeTreeViewItem[] {
+function createAttributeNodes(item: nodeTreeResponseItem): nodeTreeViewItem[] {
 	if (item.attributes.length === 0) {
 		return [];
 	}
 
-	const attributeGroup: NodeTreeViewItem = {
+	const attributeGroup: nodeTreeViewItem = {
 		nodeId: `${item.nodeId}-attrs`,
 		semanticId: `${item.semanticId}/@attributes`,
 		parentId: item.nodeId,
@@ -61,7 +61,7 @@ function createAttributeNodes(item: NodeTreeResponseItem): NodeTreeViewItem[] {
 		depth: item.depth + 1,
 		attributes: [],
 		label: 'Attributes',
-		children: [] as NodeTreeViewItem[],
+		children: [] as nodeTreeViewItem[],
 		lineStart: 0,
 		lineEnd: 0,
 		isAttributeGroup: true
@@ -79,9 +79,9 @@ function createAttributeNodes(item: NodeTreeResponseItem): NodeTreeViewItem[] {
 		offsetEnd: item.offsetEnd,
 		seq: index + 1,
 		depth: item.depth + 2,
-		attributes: [] as NodeTreeResponseItem['attributes'],
+		attributes: [] as nodeTreeResponseItem['attributes'],
 		label: `${attribute.name} = ${attribute.value}`,
-		children: [] as NodeTreeViewItem[],
+		children: [] as nodeTreeViewItem[],
 		lineStart: 0,
 		lineEnd: 0,
 		isAttribute: true
@@ -162,16 +162,16 @@ export function offsetToLine(offset: number, lineStarts: number[]): number {
 	return Math.max(1, high + 1);
 }
 
-export function buildNodeTree(items: NodeTreeResponseItem[]): NodeTreeViewItem[] {
-	const byId = new Map<string, NodeTreeViewItem>();
-	const roots: NodeTreeViewItem[] = [];
+export function buildNodeTree(items: nodeTreeResponseItem[]): nodeTreeViewItem[] {
+	const byId = new Map<string, nodeTreeViewItem>();
+	const roots: nodeTreeViewItem[] = [];
 
 	for (const item of items) {
 		const label = formatNodeLabel(item);
 		byId.set(item.nodeId, {
 			...item,
 			label,
-			children: [] as NodeTreeViewItem[],
+			children: [] as nodeTreeViewItem[],
 			lineStart: 0,
 			lineEnd: 0
 		});
@@ -199,7 +199,7 @@ export function buildNodeTree(items: NodeTreeResponseItem[]): NodeTreeViewItem[]
 		node.children.push(...createAttributeNodes(item));
 	}
 
-	const sortTree = (nodes: NodeTreeViewItem[]): void => {
+	const sortTree = (nodes: nodeTreeViewItem[]): void => {
 		nodes.sort((left, right) => {
 			// Attribute group / attributes first, then element children by seq.
 			const leftKind = Number(Boolean(left.isAttributeGroup)) + Number(Boolean(left.isAttribute));
@@ -215,12 +215,12 @@ export function buildNodeTree(items: NodeTreeResponseItem[]): NodeTreeViewItem[]
 	return roots;
 }
 
-export function flattenNodeTree(nodes: NodeTreeViewItem[]): NodeTreeViewItem[] {
+export function flattenNodeTree(nodes: nodeTreeViewItem[]): nodeTreeViewItem[] {
 	return nodes.flatMap((node) => [node, ...flattenNodeTree(node.children)]);
 }
 
-export function filterNodeTree(nodes: NodeTreeViewItem[], predicate: (node: NodeTreeViewItem) => boolean): NodeTreeViewItem[] {
-	const result: NodeTreeViewItem[] = [];
+export function filterNodeTree(nodes: nodeTreeViewItem[], predicate: (node: nodeTreeViewItem) => boolean): nodeTreeViewItem[] {
+	const result: nodeTreeViewItem[] = [];
 	for (const node of nodes) {
 		const filteredChildren = filterNodeTree(node.children, predicate);
 		if (predicate(node) || filteredChildren.length > 0) {
@@ -230,7 +230,7 @@ export function filterNodeTree(nodes: NodeTreeViewItem[], predicate: (node: Node
 	return result;
 }
 
-export function applyNodeDiffStatus(nodes: NodeTreeViewItem[], statusBySemanticId: Map<string, string>): NodeTreeViewItem[] {
+export function applyNodeDiffStatus(nodes: nodeTreeViewItem[], statusBySemanticId: Map<string, string>): nodeTreeViewItem[] {
 	return nodes.map((node) => ({
 		...node,
 		diffStatus: statusBySemanticId.get(node.semanticId),
@@ -238,7 +238,7 @@ export function applyNodeDiffStatus(nodes: NodeTreeViewItem[], statusBySemanticI
 	}));
 }
 
-export function buildLineHighlightMap(nodes: NodeTreeViewItem[]): Map<number, string> {
+export function buildLineHighlightMap(nodes: nodeTreeViewItem[]): Map<number, string> {
 	const lineHighlights = new Map<number, string>();
 	const highlightedNodes = flattenNodeTree(nodes)
 		.filter((node) => node.highlight && node.highlight !== 'None')

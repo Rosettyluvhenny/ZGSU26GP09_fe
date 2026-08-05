@@ -1,7 +1,7 @@
-﻿import ODataClient from './ODataClient';
+import ODataClient from './ODataClient';
 import ServiceError from './ServiceError';
 
-import type { DetailMetadataResult, NodeDiffActionResult, NodeDiffEntry, NodeTreeActionResult, NodeTreeResponseItem, RegistryDetail, SendMailParams, SendMailResult } from '../model/types';
+import type { detailMetadataResult, nodeDiffActionResult, nodeDiffEntry, nodeTreeActionResult, nodeTreeResponseItem, registryDetail, sendMailParams, sendMailResult } from '../model/types';
 import { mapDetailEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
 function normalizeGuid(value: string): string {
@@ -26,7 +26,7 @@ function asNumber(value: unknown): number {
 	return Number.isFinite(numeric) ? numeric : 0;
 }
 
-function mapNodeTreeItem(item: Record<string, unknown>): NodeTreeResponseItem {
+function mapNodeTreeItem(item: Record<string, unknown>): nodeTreeResponseItem {
 	return {
 		nodeId: asString(item.NODE_ID),
 		semanticId: asString(item.SEMANTIC_ID),
@@ -48,17 +48,17 @@ function mapNodeTreeItem(item: Record<string, unknown>): NodeTreeResponseItem {
 	};
 }
 
-function mapNodeDiffItem(item: Record<string, unknown>): NodeDiffEntry {
+function mapNodeDiffItem(item: Record<string, unknown>): nodeDiffEntry {
 	return {
-		SEMANTIC_ID: asString(item.SEMANTIC_ID),
-		STATUS: asString(item.STATUS),
-		ATTRIBUTEDIFF: Array.isArray(item.ATTRIBUTEDIFF)
+		semanticId: asString(item.SEMANTIC_ID),
+		status: asString(item.STATUS),
+		attributeDiff: Array.isArray(item.ATTRIBUTEDIFF)
 			? item.ATTRIBUTEDIFF.map((attribute: Record<string, unknown>) => ({
-				SEMANTIC_ID: asString(attribute.SEMANTIC_ID),
-				NAME: asString(attribute.NAME),
-				STATUS: asString(attribute.STATUS),
-				OLD_VALUE: asString(attribute.OLD_VALUE),
-				NEW_VALUE: asString(attribute.NEW_VALUE)
+				semanticId: asString(attribute.SEMANTIC_ID),
+				name: asString(attribute.NAME),
+				status: asString(attribute.STATUS),
+				oldValue: asString(attribute.OLD_VALUE),
+				newValue: asString(attribute.NEW_VALUE)
 			}))
 			: []
 	};
@@ -72,11 +72,11 @@ export default class DetailService {
 		this.client = new ODataClient(model);
 	}
 
-	public async getDetails(versionId: string): Promise<RegistryDetail[]> {
+	public async getDetails(versionId: string): Promise<registryDetail[]> {
 		return this.loadDetailsFromBackend(versionId);
 	}
 
-	public async getDetail(detailId: string): Promise<RegistryDetail> {
+	public async getDetail(detailId: string): Promise<registryDetail> {
 		const backendDetail = await this.loadDetailFromBackend(detailId);
 		if (!backendDetail) {
 			throw new ServiceError(404, 'Detail not found.');
@@ -84,30 +84,30 @@ export default class DetailService {
 		return backendDetail;
 	}
 
-	public async getParsedDetail(detailId: string): Promise<DetailMetadataResult> {
+	public async getParsedDetail(detailId: string): Promise<detailMetadataResult> {
 		const parsedDetail = await this.loadParsedMetadataFromBackend(detailId);
 		if (parsedDetail) {
 			return parsedDetail;
 		}
 		const detail = await this.getDetail(detailId);
-		return { detailId: detail.id, metadataXml: detail.xml };
+		return { detailId: detail.detailId, metadataXml: detail.metadataXml };
 	}
 
-	public async getNodeTree(detailId: string): Promise<NodeTreeResponseItem[]> {
+	public async getNodeTree(detailId: string): Promise<nodeTreeResponseItem[]> {
 		const payload = normalizeODataEntity(
 			await this.client.postJson(
 				`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree`,
 				{ DetailId: detailId },
 				{ headers: await this.client.ensureWriteHeaders('POST') }
 			)
-		) as unknown as NodeTreeActionResult;
-		if (Array.isArray(payload.NODETREE)) {
-			return payload.NODETREE.map(mapNodeTreeItem);
+		) as unknown as nodeTreeActionResult;
+		if (Array.isArray(payload.nodeTree)) {
+			return payload.nodeTree.map(mapNodeTreeItem);
 		}
-		return [] as NodeTreeResponseItem[];
+		return [] as nodeTreeResponseItem[];
 	}
 
-	public async compareNodeTree(baseDetailId: string, compareDetailId: string): Promise<NodeDiffEntry[]> {
+	public async compareNodeTree(baseDetailId: string, compareDetailId: string): Promise<nodeDiffEntry[]> {
 		const payload = normalizeODataEntity(
 			await this.client.postJson(
 				'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree',
@@ -117,19 +117,19 @@ export default class DetailService {
 				},
 				{ headers: await this.client.ensureWriteHeaders('POST') }
 			)
-		) as unknown as NodeDiffActionResult;
-		if (Array.isArray(payload.NODEDIFF)) {
-			return payload.NODEDIFF.map(mapNodeDiffItem);
+		) as unknown as nodeDiffActionResult;
+		if (Array.isArray(payload.nodeDiff)) {
+			return payload.nodeDiff.map(mapNodeDiffItem);
 		}
-		return [] as NodeDiffEntry[];
+		return [] as nodeDiffEntry[];
 	}
 
-	private async loadDetailsFromBackend(versionId: string): Promise<RegistryDetail[]> {
+	private async loadDetailsFromBackend(versionId: string): Promise<registryDetail[]> {
 		const payload = await this.client.readJson(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail`);
 		return normalizeODataCollection(payload).map((entity) => mapDetailEntity(entity));
 	}
 
-	private async loadDetailFromBackend(detailId: string): Promise<RegistryDetail | null> {
+	private async loadDetailFromBackend(detailId: string): Promise<registryDetail | null> {
 		const payload = await this.client.readJson(`/Detail/${formatGuidLiteral(detailId)}`);
 		const entity = normalizeODataEntity(payload);
 		if (!Object.keys(entity).length) {
@@ -139,7 +139,7 @@ export default class DetailService {
 		return mapDetailEntity(entity);
 	}
 
-	private async loadParsedMetadataFromBackend(detailId: string): Promise<DetailMetadataResult | null> {
+	private async loadParsedMetadataFromBackend(detailId: string): Promise<detailMetadataResult | null> {
 		const payload = await this.client.postJson(
 			`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getParseMetadata`,
 			{ DetailId: detailId },
@@ -156,7 +156,7 @@ export default class DetailService {
 		};
 	}
 
-	public async sendEmail(params: SendMailParams): Promise<SendMailResult> {
+	public async sendEmail(params: sendMailParams): Promise<sendMailResult> {
 		const raw = await this.client.postJson(
 			'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.sendEmail',
 			{

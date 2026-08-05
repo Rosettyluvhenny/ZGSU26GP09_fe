@@ -1,4 +1,4 @@
-import type { NodeDiffAttribute, NodeDiffEntry, NodeTreeViewItem } from '../model/types';
+import type { nodeDiffAttribute, nodeDiffEntry, nodeTreeViewItem } from '../model/types';
 
 /**
  * Turns the raw node/attribute diff returned by `compareNodeTree` into a flat,
@@ -126,9 +126,9 @@ function numericDelta(oldValue: string | undefined, newValue: string | undefined
 	return after - before;
 }
 
-function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): Classification {
-	const name = lower(attribute.NAME);
-	const status = (attribute.STATUS ?? '').toUpperCase();
+function classifyAttribute(nodeType: string, attribute: nodeDiffAttribute): Classification {
+	const name = lower(attribute.name);
+	const status = (attribute.status ?? '').toUpperCase();
 
 	// Documentation only — nothing for a reviewer to decide on.
 	if (DOC_ONLY_NODE_TYPES.has(lower(nodeType)) || DOC_ONLY_ATTRIBUTES.has(name)) {
@@ -142,8 +142,8 @@ function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): Clas
 	}
 
 	if (name === 'nullable') {
-		const wasMandatory = lower(attribute.OLD_VALUE) === 'false';
-		const isMandatory = lower(attribute.NEW_VALUE) === 'false';
+		const wasMandatory = lower(attribute.oldValue) === 'false';
+		const isMandatory = lower(attribute.newValue) === 'false';
 		if (wasMandatory && !isMandatory) {
 			return { severity: 'Compatible', reason: 'Field became optional' };
 		}
@@ -154,28 +154,28 @@ function classifyAttribute(nodeType: string, attribute: NodeDiffAttribute): Clas
 	}
 
 	if (NARROWING_ATTRIBUTES.has(name)) {
-		const delta = numericDelta(attribute.OLD_VALUE, attribute.NEW_VALUE);
+		const delta = numericDelta(attribute.oldValue, attribute.newValue);
 		if (delta === null) {
-			return { severity: 'Breaking', reason: `${attribute.NAME} changed` };
+			return { severity: 'Breaking', reason: `${attribute.name} changed` };
 		}
 		if (delta < 0) {
-			return { severity: 'Breaking', reason: `${attribute.NAME} reduced — existing values may be truncated` };
+			return { severity: 'Breaking', reason: `${attribute.name} reduced — existing values may be truncated` };
 		}
 		if (delta > 0) {
-			return { severity: 'Compatible', reason: `${attribute.NAME} increased` };
+			return { severity: 'Compatible', reason: `${attribute.name} increased` };
 		}
 		return null;
 	}
 
 	if (IDENTITY_ATTRIBUTES.has(name)) {
-		return { severity: 'Breaking', reason: `${attribute.NAME} changed — consumers bind to this` };
+		return { severity: 'Breaking', reason: `${attribute.name} changed — consumers bind to this` };
 	}
 	if (SAFE_ATTRIBUTES.has(name)) {
-		return { severity: 'Compatible', reason: `${attribute.NAME} changed` };
+		return { severity: 'Compatible', reason: `${attribute.name} changed` };
 	}
 
 	// Unknown attribute on a contract element: flag for review rather than assume safe.
-	return { severity: 'Breaking', reason: `${attribute.NAME} changed — review required` };
+	return { severity: 'Breaking', reason: `${attribute.name} changed — review required` };
 }
 
 function classifyElement(nodeType: string, status: string): Classification {
@@ -192,7 +192,7 @@ function classifyElement(nodeType: string, status: string): Classification {
 	}
 }
 
-function indexTree(nodes: NodeTreeViewItem[] | undefined, into: Map<string, NodeTreeViewItem>): void {
+function indexTree(nodes: nodeTreeViewItem[] | undefined, into: Map<string, nodeTreeViewItem>): void {
 	for (const node of nodes ?? []) {
 		if (node.semanticId && !into.has(node.semanticId)) {
 			into.set(node.semanticId, node);
@@ -237,24 +237,24 @@ function buildHeadline(groups: Map<string, Group>, total: number): string {
  * @param baseTree    node tree of the older side, needed for removed elements
  */
 export function analyzeChanges(
-	diff: NodeDiffEntry[] | null | undefined,
-	compareTree: NodeTreeViewItem[],
-	baseTree: NodeTreeViewItem[]
+	diff: nodeDiffEntry[] | null | undefined,
+	compareTree: nodeTreeViewItem[],
+	baseTree: nodeTreeViewItem[]
 ): ChangeAnalysisResult {
 	const rows: ChangeRow[] = [];
 	const groups = new Map<string, Group>();
 
 	// Compare side wins; the base side still carries elements that were removed.
-	const nodes = new Map<string, NodeTreeViewItem>();
+	const nodes = new Map<string, nodeTreeViewItem>();
 	indexTree(compareTree, nodes);
 	indexTree(baseTree, nodes);
 
 	for (const entry of diff ?? []) {
-		const node = nodes.get(entry.SEMANTIC_ID);
+		const node = nodes.get(entry.semanticId);
 		const elementType = node?.nodeType ?? 'Element';
-		const elementName = node?.nodeName || lastSegment(entry.SEMANTIC_ID);
-		const attributeDiffs = Array.isArray(entry.ATTRIBUTEDIFF) ? entry.ATTRIBUTEDIFF : [];
-		const status = (entry.STATUS ?? '').toUpperCase();
+		const elementName = node?.nodeName || lastSegment(entry.semanticId);
+		const attributeDiffs = Array.isArray(entry.attributeDiff) ? entry.attributeDiff : [];
+		const status = (entry.status ?? '').toUpperCase();
 
 		// A modified element is only interesting through its attributes.
 		if (status === 'MODIFIED' && attributeDiffs.length > 0) {
@@ -265,18 +265,18 @@ export function analyzeChanges(
 				}
 				const { severity, reason } = classification;
 				rows.push({
-					semanticId: entry.SEMANTIC_ID,
+					semanticId: entry.semanticId,
 					elementType,
 					elementName,
-					elementPath: entry.SEMANTIC_ID,
-					attribute: attribute.NAME ?? '',
-					status: attribute.STATUS ?? 'MODIFIED',
-					oldValue: attribute.OLD_VALUE ?? '',
-					newValue: attribute.NEW_VALUE ?? '',
+					elementPath: entry.semanticId,
+					attribute: attribute.name ?? '',
+					status: attribute.status ?? 'MODIFIED',
+					oldValue: attribute.oldValue ?? '',
+					newValue: attribute.newValue ?? '',
 					severity,
 					reason
 				});
-				addToGroup(groups, `${attribute.NAME || 'attribute'} change`, '');
+				addToGroup(groups, `${attribute.name || 'attribute'} change`, '');
 			}
 			continue;
 		}
@@ -287,10 +287,10 @@ export function analyzeChanges(
 		}
 		const { severity, reason } = classification;
 		rows.push({
-			semanticId: entry.SEMANTIC_ID,
+			semanticId: entry.semanticId,
 			elementType,
 			elementName,
-			elementPath: entry.SEMANTIC_ID,
+			elementPath: entry.semanticId,
 			attribute: '',
 			status: status || 'MODIFIED',
 			oldValue: '',

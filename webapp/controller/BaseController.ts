@@ -10,7 +10,7 @@ import History from 'sap/ui/core/routing/History';
 import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
-import type { JobStatus, RegistryStatus } from '../model/types';
+import type { jobStatus, registryStatus } from '../model/types';
 import AiChatService, { AI_MODEL_AUTO, type AiChatMessage, type AiModelOption } from '../services/AiChatService';
 import { highlightXmlLine } from '../services/XmlNodeUtils';
 
@@ -110,7 +110,7 @@ export default abstract class BaseController extends Controller {
 		return `${minutes}m ${seconds}s`;
 	}
 
-	public formatStatusState(status: RegistryStatus | JobStatus): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' {
+	public formatStatusState(status: registryStatus | jobStatus): 'Success' | 'Warning' | 'Error' | 'Information' | 'None' {
 		switch (status) {
 			case 'Published':
 			case 'Completed':

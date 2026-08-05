@@ -29,7 +29,7 @@
 						items="{model>/details}"
 						change=".onDetailChange"
 						visible="{= ${model>/details}.length &gt; 1 }">
-						<core:Item key="{model>id}" text="{model>serviceDefinition}" />
+						<core:Item key="{model>detailId}" text="{model>serviceDefinition}" />
 					</Select>
 					<ToolbarSpacer />
 					<Button text="View XML" icon="sap-icon://document-text" tooltip="Open the raw metadata XML" press=".navToXml" />

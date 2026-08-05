@@ -1,11 +1,11 @@
-﻿import JSONModel from 'sap/ui/model/json/JSONModel';
+import JSONModel from 'sap/ui/model/json/JSONModel';
 import Fragment from 'sap/ui/core/Fragment';
 import MessageToast from 'sap/m/MessageToast';
 import type Dialog from 'sap/m/Dialog';
 import type UI5Event from 'sap/ui/base/Event';
 
 import BaseController from './BaseController';
-import type { LogEntry } from '../model/types';
+import type { logEntry } from '../model/types';
 import { LOG_PAGE_SIZE, type LogQueryFilter } from '../services/LogService';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 
@@ -29,7 +29,7 @@ export default class Logs extends BaseController {
 
 	public onInit(): void {
 		const model = new JSONModel({
-			items: [] as LogEntry[],
+			items: [] as logEntry[],
 			busy: false,
 			loadingMore: false,
 			search: '',
@@ -40,7 +40,7 @@ export default class Logs extends BaseController {
 			actionTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
 			logResultOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
 			objectIdTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
-			selectedLog: null as LogEntry | null,
+			selectedLog: null as logEntry | null,
 			activeJobId: '',
 			activeJobLabel: '',
 			totalCount: 0,
@@ -119,7 +119,7 @@ export default class Logs extends BaseController {
 	}
 
 	public onRowPress(event: UI5Event): void {
-		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => LogEntry } | null };
+		const source = event.getSource() as unknown as { getBindingContext: (name?: string) => { getObject: () => logEntry } | null };
 		const log = source.getBindingContext('logList')?.getObject();
 		if (!log) {
 			return;
@@ -129,7 +129,7 @@ export default class Logs extends BaseController {
 	}
 
 	public async onNavigateToObject(): Promise<void> {
-		const log = (this.getModel('logList') as JSONModel).getProperty('/selectedLog') as LogEntry | null;
+		const log = (this.getModel('logList') as JSONModel).getProperty('/selectedLog') as logEntry | null;
 		if (!log || !log.objectId) {
 			return;
 		}
@@ -223,7 +223,7 @@ export default class Logs extends BaseController {
 
 	private async loadLogs(reset: boolean): Promise<void> {
 		const model = this.getModel('logList') as JSONModel;
-		const currentItems = (model.getProperty('/items') as LogEntry[]) ?? [];
+		const currentItems = (model.getProperty('/items') as logEntry[]) ?? [];
 		const skip = reset ? 0 : currentItems.length;
 
 		if (!reset) {
@@ -262,7 +262,7 @@ export default class Logs extends BaseController {
 	}
 
 	/** Accumulate distinct backend values and rebuild Select options (never invent codes). */
-	private refreshFilterOptions(items: LogEntry[]): void {
+	private refreshFilterOptions(items: logEntry[]): void {
 		for (const item of items) {
 			const actionType = (item.actionType || '').trim();
 			const actionText = (item.actionText || '').trim() || actionType;
@@ -335,7 +335,7 @@ export default class Logs extends BaseController {
 		};
 	}
 
-	private async openDetailDialog(log: LogEntry): Promise<void> {
+	private async openDetailDialog(log: logEntry): Promise<void> {
 		(this.getModel('logList') as JSONModel).setProperty('/selectedLog', log);
 
 		if (!this.detailDialog) {

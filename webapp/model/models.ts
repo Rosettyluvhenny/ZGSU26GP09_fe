@@ -3,9 +3,9 @@ import BindingMode from 'sap/ui/model/BindingMode';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 
 import { readSessionStorage, readThemePreference } from '../services/SessionStorage';
-import type { SessionData } from './types';
+import type { sessionData } from './types';
 
-const EMPTY_SESSION: SessionData = {
+const EMPTY_SESSION: sessionData = {
 	authenticated: false,
 	userName: '',
 	csrfToken: '',
