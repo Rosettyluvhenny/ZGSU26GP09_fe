@@ -159,16 +159,16 @@ export default class DetailCompare extends BaseController {
 
 		if (this._sendMailDialogPromise === null) {
 			this._sendMailDialogPromise = Fragment.load({
-			id: this.getView().getId(),
-			name: 'com.zgp9.fe.view.fragments.SendMailDialog',
-			controller: this
-		}) as Promise<Dialog>;
-	}
+				id: this.getView().getId(),
+				name: 'com.zgp9.fe.view.fragments.SendMailDialog',
+				controller: this
+			}) as Promise<Dialog>;
+		}
 
-	void this._sendMailDialogPromise.then((dialog) => {
-		this._sendMailDialog = dialog;
-		if (!dialog.getParent()) {
-			this.getView().addDependent(dialog);
+		void this._sendMailDialogPromise.then((dialog) => {
+			this._sendMailDialog = dialog;
+			if (!dialog.getParent()) {
+				this.getView().addDependent(dialog);
 			}
 			dialog.open();
 		});
@@ -195,7 +195,7 @@ export default class DetailCompare extends BaseController {
 	public async onConfirmSendMail(): Promise<void> {
 		const sendMailModel = this.getModel('sendMail') as JSONModel;
 		const recipients = ((sendMailModel.getProperty('/recipients') as string) ?? '').trim();
-		const subject    = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
+		const subject = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
 
 		let hasError = false;
 
@@ -340,10 +340,10 @@ export default class DetailCompare extends BaseController {
 		// Inline styles instead of classes → Gmail-safe
 		html = html
 			.replace(/class="xmlTokPunct"/g, 'style="color:#00C"')
-			.replace(/class="xmlTokTag"/g,   'style="color:#00008B"')
-			.replace(/class="xmlTokAttr"/g,  'style="color:#7D0045"')
-			.replace(/class="xmlTokVal"/g,   'style="color:#006400"')
-			.replace(/class="xmlTokCmt"/g,   'style="color:#6a9955"');
+			.replace(/class="xmlTokTag"/g, 'style="color:#00008B"')
+			.replace(/class="xmlTokAttr"/g, 'style="color:#7D0045"')
+			.replace(/class="xmlTokVal"/g, 'style="color:#006400"')
+			.replace(/class="xmlTokCmt"/g, 'style="color:#6a9955"');
 		return html;
 	}
 
@@ -367,18 +367,18 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 </style>` : '';
 
 		// Same rows: CSS class (full) or inline style (diff)
-		const S_N    = useClasses ? 'class="n"' : 'style="padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
-		const S_X    = useClasses ? 'class="x"' : 'style="padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
+		const S_N = useClasses ? 'class="n"' : 'style="padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
+		const S_X = useClasses ? 'class="x"' : 'style="padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
 		// Del/ins/change rows: always inline style so diff colors do not depend on <style>
-		const S_N_D  = 'style="padding:2px 4px;border:1px solid #ffd7d5;background:#ffd7d5;color:#c00;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
-		const S_N_I  = 'style="padding:2px 4px;border:1px solid #ccffd8;background:#ccffd8;color:#080;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
-		const S_N_M  = 'style="padding:2px 4px;border:1px solid #fff3cd;background:#fff3cd;color:#856404;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
-		const S_N_E  = 'style="padding:2px 4px;border:1px solid #eee;background:#f8f8f8;width:3%"';
-		const S_X_D  = 'style="padding:2px 6px;border:1px solid #ffd7d5;background:#ffd7d5;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
-		const S_X_I  = 'style="padding:2px 6px;border:1px solid #ccffd8;background:#ccffd8;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
-		const S_X_M  = 'style="padding:2px 6px;border:1px solid #fff3cd;background:#fff3cd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
-		const S_X_E  = 'style="padding:2px 6px;border:1px solid #eee;background:#f8f8f8;width:47%"';
-		const SEP    = 'style="padding:3px 8px;text-align:center;color:#888;background:#f5f5f5;font-family:sans-serif;font-size:11px;border:1px solid #ddd"';
+		const S_N_D = 'style="padding:2px 4px;border:1px solid #ffd7d5;background:#ffd7d5;color:#c00;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
+		const S_N_I = 'style="padding:2px 4px;border:1px solid #ccffd8;background:#ccffd8;color:#080;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
+		const S_N_M = 'style="padding:2px 4px;border:1px solid #fff3cd;background:#fff3cd;color:#856404;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%"';
+		const S_N_E = 'style="padding:2px 4px;border:1px solid #eee;background:#f8f8f8;width:3%"';
+		const S_X_D = 'style="padding:2px 6px;border:1px solid #ffd7d5;background:#ffd7d5;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
+		const S_X_I = 'style="padding:2px 6px;border:1px solid #ccffd8;background:#ccffd8;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
+		const S_X_M = 'style="padding:2px 6px;border:1px solid #fff3cd;background:#fff3cd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%"';
+		const S_X_E = 'style="padding:2px 6px;border:1px solid #eee;background:#f8f8f8;width:47%"';
+		const SEP = 'style="padding:3px 8px;text-align:center;color:#888;background:#f5f5f5;font-family:sans-serif;font-size:11px;border:1px solid #ddd"';
 
 		// ── Build aligned rows with LCS line diff ──────────────────────────────
 		interface AlignedRow { op: 'same' | 'del' | 'ins' | 'change'; bNo: number; cNo: number; bLine: string; cLine: string; }
@@ -393,7 +393,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			const cur = ops[k];
 			const next = k + 1 < ops.length ? ops[k + 1] : undefined;
 			if (cur.op === 'del' && next !== undefined && next.op === 'ins'
-					&& canMergeAsXmlModification(cur.line, next.line)) {
+				&& canMergeAsXmlModification(cur.line, next.line)) {
 				merged.push({ op: 'change', bLine: cur.line, cLine: next.line });
 				k += 2;
 			} else if (cur.op === 'del') {
@@ -427,11 +427,11 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			const h = this.highlightForEmail(line);
 			if (!useClasses) return h;
 			return h
-				.replace(/style="color:#00C"/g,    'class="xp"')
-				.replace(/style="color:#00008B"/g,  'class="xt"')
-				.replace(/style="color:#7D0045"/g,  'class="xa"')
-				.replace(/style="color:#006400"/g,  'class="xv"')
-				.replace(/style="color:#6a9955"/g,  'class="xc"');
+				.replace(/style="color:#00C"/g, 'class="xp"')
+				.replace(/style="color:#00008B"/g, 'class="xt"')
+				.replace(/style="color:#7D0045"/g, 'class="xa"')
+				.replace(/style="color:#006400"/g, 'class="xv"')
+				.replace(/style="color:#6a9955"/g, 'class="xc"');
 		};
 
 		const renderRow = (row: AlignedRow): string => {
@@ -552,11 +552,11 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 			const escaped = esc(val);
 			if (op === 'same') {
 				baseHtml += escaped;
-				cmpHtml  += escaped;
+				cmpHtml += escaped;
 			} else if (op === 'del') {
 				baseHtml += `<mark style="background:#ffd7d5;color:inherit">${escaped}</mark>`;
 			} else {
-				cmpHtml  += `<mark style="background:#ccffd8;color:inherit">${escaped}</mark>`;
+				cmpHtml += `<mark style="background:#ccffd8;color:inherit">${escaped}</mark>`;
 			}
 		}
 
@@ -668,11 +668,11 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 				return;
 			}
 
-			let baseRawXml = baseParsedDetail.metadataXml || baseDetail.xml || '';
+			let baseRawXml = baseParsedDetail.metadataXml || baseDetail.metadataXml || '';
 			baseRawXml = baseRawXml.replace(/<\?xml[^>]*\?>\s*/gi, '');
 			const { prettyXml: baseXml, rawOffsets: baseLineStarts } = prettyPrintXml(baseRawXml);
 
-			let compareRawXml = compareParsedDetail.metadataXml || compareDetail.xml || '';
+			let compareRawXml = compareParsedDetail.metadataXml || compareDetail.metadataXml || '';
 			compareRawXml = compareRawXml.replace(/<\?xml[^>]*\?>\s*/gi, '');
 			const { prettyXml: compareXml, rawOffsets: compareLineStarts } = prettyPrintXml(compareRawXml);
 

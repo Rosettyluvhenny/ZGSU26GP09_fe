@@ -56,14 +56,14 @@
 							selectedKey="{versionDetail>/selectedDetail/detailId}"
 							change=".onDetailChange"
 							items="{versionDetail>/details}">
-								<core:Item width="100%" key="{versionDetail>detailId}" text="{= ${versionDetail>serviceDefinition} }" />
+								<core:Item width="100%" key="{versionDetail>detailId}" text="{= ${versionDetail>serviceDefId} }" />
 						</Select>
 						<form:SimpleForm class="sapUiSmallMarginTop" layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
 							<form:content>
 								<Label text="DetailId" />
 								<Text text="{versionDetail>/selectedDetail/detailId}" wrapping="true" />
 								<Label text="ServiceDefId" />
-								<Text text="{versionDetail>/selectedDetail/serviceDefinition}" wrapping="true" />
+								<Text text="{versionDetail>/selectedDetail/serviceDefId}" wrapping="true" />
 								<Label text="ServiceHash" />
 								<Text text="{versionDetail>/selectedDetail/serviceHash}" wrapping="true" />
 								<Label text="VersionId" />

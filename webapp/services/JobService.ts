@@ -1,8 +1,11 @@
-import ODataClient from './ODataClient';
+import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
+import Sorter from 'sap/ui/model/Sorter';
+
 import ServiceError from './ServiceError';
+import { createODataClient } from './ODataClient';
 
 import type { job } from '../model/types';
-import { mapJobEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
+import { mapJobEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
@@ -10,11 +13,15 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	});
 }
 
+function normalizeGuid(value: string): string {
+	return value.replace(/[{}]/g, '').trim();
+}
 
 export default class JobService {
-	private readonly client: ODataClient;
-	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
-		this.client = new ODataClient(model);
+	private readonly odata: ReturnType<typeof createODataClient>;
+
+	constructor(model: ODataModel) {
+		this.odata = createODataClient(model);
 	}
 
 	public async getJobs(search = ''): Promise<job[]> {
@@ -32,15 +39,16 @@ export default class JobService {
 	}
 
 	public async runScanJob(): Promise<job> {
-		const headers = await this.client.ensureWriteHeaders('POST');
-		const payload = await this.client.postJson(
-			'/ScanJob/com.sap.gateway.srvd_a2x.zsr_registry.v0001.runScan',
-			undefined,
-			{ headers }
+		// runScan is bound to the ScanJob collection (no key in the path) ->
+		// bind the action to the list binding's header context.
+		const oHeaderContext = this.odata.getHeaderContext('/ScanJob');
+
+		const entity = await this.odata.callAction(
+			'com.sap.gateway.srvd_a2x.zsr_registry.v0001.runScan(...)',
+			{ context: oHeaderContext }
 		);
 
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length) {
+		if (!entity || !Object.keys(entity).length) {
 			throw new ServiceError(500, 'Invalid response from runScan action.');
 		}
 
@@ -49,30 +57,32 @@ export default class JobService {
 
 	private filterJobs(jobs: job[], search: string): job[] {
 		const normalized = search.trim().toLowerCase();
-		const filtered = jobs.filter((job) => {
+		const filtered = jobs.filter((jobItem) => {
 			if (!normalized) {
 				return true;
 			}
 
-			return [job.scanJobId, job.triggerType, job.status, job.triggeredBy, job.summary].join(' ').toLowerCase().includes(normalized);
+			return [jobItem.scanJobId, jobItem.triggerType, jobItem.status, jobItem.triggeredBy, jobItem.summary]
+				.join(' ')
+				.toLowerCase()
+				.includes(normalized);
 		});
 		return filtered;
 	}
 
 	private async loadJobsFromBackend(): Promise<job[]> {
-		const payload = await this.client.readJson('/ScanJob?$orderby=StartedAt desc');
-		return normalizeODataCollection(payload).map((entity) => mapJobEntity(entity));
+		const entities = await this.odata.readList('/ScanJob', {
+			sorters: [new Sorter('StartedAt', true)]
+		});
+		return entities.map((entity) => mapJobEntity(entity));
 	}
 
 	private async loadJobFromBackend(jobId: string): Promise<job | null> {
-		const payload = await this.client.readJson(`/ScanJob(${jobId})`);
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length) {
+		const entity = await this.odata.readOne(`/ScanJob(guid'${normalizeGuid(jobId)}')`);
+		if (!entity) {
 			return null;
 		}
 
 		return mapJobEntity(entity);
 	}
 }
-
-

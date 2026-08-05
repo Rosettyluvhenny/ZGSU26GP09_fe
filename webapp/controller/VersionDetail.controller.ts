@@ -243,7 +243,7 @@ export default class VersionDetail extends BaseController {
 	public async onConfirmSendMail(): Promise<void> {
 		const sendMailModel = this.getModel('sendMail') as JSONModel;
 		const recipients = ((sendMailModel.getProperty('/recipients') as string) ?? '').trim();
-		const subject    = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
+		const subject = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
 
 		let hasError = false;
 
@@ -270,7 +270,7 @@ export default class VersionDetail extends BaseController {
 		}
 
 		if (hasError) return;
-	
+
 
 		const model = this.getModel('versionDetail') as JSONModel;
 		const prettyXml = (model.getProperty('/selectedDetailXml') as string) ?? '';
@@ -324,10 +324,10 @@ export default class VersionDetail extends BaseController {
 		let html = indentHtml + highlightXmlLine(line.slice(indent.length));
 		html = html
 			.replace(/class="xmlTokPunct"/g, 'style="color:#00C"')
-			.replace(/class="xmlTokTag"/g,   'style="color:#00008B"')
-			.replace(/class="xmlTokAttr"/g,  'style="color:#7D0045"')
-			.replace(/class="xmlTokVal"/g,   'style="color:#006400"')
-			.replace(/class="xmlTokCmt"/g,   'style="color:#6a9955"');
+			.replace(/class="xmlTokTag"/g, 'style="color:#00008B"')
+			.replace(/class="xmlTokAttr"/g, 'style="color:#7D0045"')
+			.replace(/class="xmlTokVal"/g, 'style="color:#006400"')
+			.replace(/class="xmlTokCmt"/g, 'style="color:#6a9955"');
 		return html;
 	}
 
@@ -339,13 +339,13 @@ export default class VersionDetail extends BaseController {
 
 		const metaRows = detail
 			? `<tr><td>Service Definition</td><td>${escHtml(detail.serviceDefId || '-')}</td></tr>` +
-			  `<tr><td>Version Id</td><td>${escHtml(detail.versionId || '-')}</td></tr>` +
-			  `<tr><td>Service Hash</td><td>${escHtml(detail.serviceHash || '-')}</td></tr>`
+			`<tr><td>Version Id</td><td>${escHtml(detail.versionId || '-')}</td></tr>` +
+			`<tr><td>Service Hash</td><td>${escHtml(detail.serviceHash || '-')}</td></tr>`
 			: '';
 
 		const S_NUM = 'style="padding:2px 4px;border:1px solid #eee;color:#aaa;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:4%"';
 		const S_XML = 'style="padding:2px 8px;border:1px solid #eee;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top"';
-		const TH    = 'style="padding:4px 6px;border:1px solid #ddd;background:#f5f5f5;text-align:left;font-family:sans-serif;font-size:11px"';
+		const TH = 'style="padding:4px 6px;border:1px solid #ddd;background:#f5f5f5;text-align:left;font-family:sans-serif;font-size:11px"';
 
 		const styledRows = lines.map((line, idx) =>
 			`<tr><td ${S_NUM}>${idx + 1}</td><td ${S_XML}>${this.highlightForEmail(line)}</td></tr>`
@@ -356,17 +356,17 @@ export default class VersionDetail extends BaseController {
 
 		const metaTable = metaRows
 			? `<table style="border-collapse:collapse;margin-bottom:16px"><tbody>` +
-			  metaRows.replace(/<td>/g, `<td ${metaStyle}>`).replace(/<td class="[^"]*">/g, `<td ${metaLabelStyle}>`) +
-			  `</tbody></table>`
+			metaRows.replace(/<td>/g, `<td ${metaStyle}>`).replace(/<td class="[^"]*">/g, `<td ${metaLabelStyle}>`) +
+			`</tbody></table>`
 			: '';
 
 		return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:8px;font-family:sans-serif;color:#333">` +
 			`<h2 style="margin-bottom:4px">${escHtml(title)}</h2>` +
 			metaTable +
 			`<table style="border-collapse:collapse;width:100%;table-layout:fixed">` +
-				`<colgroup><col style="width:4%"/><col style="width:96%"/></colgroup>` +
-				`<thead><tr><th ${TH}>#</th><th ${TH}>XML Content</th></tr></thead>` +
-				`<tbody>${styledRows}</tbody>` +
+			`<colgroup><col style="width:4%"/><col style="width:96%"/></colgroup>` +
+			`<thead><tr><th ${TH}>#</th><th ${TH}>XML Content</th></tr></thead>` +
+			`<tbody>${styledRows}</tbody>` +
 			`</table></body></html>`;
 	}
 
@@ -441,6 +441,7 @@ export default class VersionDetail extends BaseController {
 			model.setProperty('/selectedDetailLines', this.buildXmlLines(prettyXml));
 			model.setProperty('/selectedNodeLine', 1);
 			this.selectXmlLine(1);
+			this.expandTreeToLevel('versionDetailTree', 1);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
@@ -468,6 +469,19 @@ export default class VersionDetail extends BaseController {
 					binding.expand(index);
 				}
 				index += 1;
+			}
+		});
+	}
+
+	private expandTreeToLevel(treeId: string, level: number): void {
+		const tree = this.byId(treeId) as Tree;
+		if (!tree) {
+			return;
+		}
+
+		tree.attachEventOnce('updateFinished', () => {
+			if (typeof tree.expandToLevel === 'function') {
+				tree.expandToLevel(level);
 			}
 		});
 	}

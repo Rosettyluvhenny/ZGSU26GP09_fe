@@ -1,238 +1,271 @@
-﻿import ServiceError from './ServiceError';
+﻿import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
+import type ODataListBinding from 'sap/ui/model/odata/v4/ODataListBinding';
+import type ODataContextBinding from 'sap/ui/model/odata/v4/ODataContextBinding';
+import type Context from 'sap/ui/model/odata/v4/Context';
+import type Filter from 'sap/ui/model/Filter';
+import type Sorter from 'sap/ui/model/Sorter';
 
-export const SERVICE_ORIGIN = '/sap/opu/odata4/sap/zsb_gsugp9/srvd_a2x/sap/zsr_registry/0001';
-export const SERVICE_BASE_URL = `${SERVICE_ORIGIN}/`;
-export const SERVICE_METADATA_URL = `${SERVICE_ORIGIN}/$metadata`;
+import ServiceError from './ServiceError';
 
-type ODataQueryValue = string | number | boolean | null | undefined;
+// ---------------------------------------------------------------------------
+// NOTE: No CSRF token / auth-header handling here.
+// Authentication is done via principal propagation (reverse proxy / SSO),
+// and CSRF tokens for mutating requests are managed internally by
+// sap.ui.model.odata.v4.ODataModel. There is nothing to fetch, cache, or
+// refresh manually — every call below is a direct, synchronous-looking
+// wrapper around the model's own request queue.
+// ---------------------------------------------------------------------------
 
-export const DEFAULT_QUERY: Record<string, ODataQueryValue> = {};
-
-export type ODataWriteMethod = 'POST' | 'PATCH' | 'DELETE';
-export interface ODataRequestOptions {
-	query?: Record<string, ODataQueryValue>;
-	headers?: Record<string, string>;
+export interface ReadListOptions {
+	sorters?: Sorter[];
+	filters?: Filter[];
+	parameters?: Record<string, string>;
+	skip?: number;
+	top?: number;
 }
 
-export default class ODataClient {
-	constructor(private readonly model?: import('sap/ui/model/odata/v4/ODataModel').default) {}
-	private static csrfToken = '';
-	private static etag = '*';
-	private static authPromise: Promise<string> | null = null;
+export interface CallActionOptions {
+	/** Bind the action to this context (entity-bound or a list binding's header context for collection-bound actions). Omit for unbound actions. */
+	context?: Context;
+	parameters?: Record<string, unknown>;
+}
 
-	public static setSecurityState(csrfToken: string, etag?: string): void {
-		if (csrfToken) ODataClient.csrfToken = csrfToken;
-		if (etag) ODataClient.etag = etag;
-	}
+function toServiceError(error: unknown, context: string): ServiceError {
+	const err = error as {
+		message?: string;
+		status?: number;
+		error?: { message?: string; code?: string };
+		cause?: { message?: string };
+	};
 
-	public static clearSecurityState(): void {
-		ODataClient.csrfToken = '';
-		ODataClient.etag = '*';
-		ODataClient.authPromise = null;
-	}
+	const message =
+		err?.error?.message ||
+		err?.cause?.message ||
+		err?.message ||
+		`${context} failed.`;
 
-	public static async refreshCsrfToken(): Promise<string> {
-		if (ODataClient.authPromise !== null) {
-			return ODataClient.authPromise;
-		}
+	return new ServiceError(err?.status ?? 500, message);
+}
 
-		ODataClient.authPromise = (async () => {
-			const response = await fetch(SERVICE_BASE_URL, {
-				method: 'GET',
-				credentials: 'include',
-				headers: {
-					Accept: 'application/json',
-					'X-CSRF-Token': 'Fetch'
-				}
-			});
+/**
+ * True when a rejection looks like a CSRF-token failure that survived the
+ * model's own internal fetch-and-retry. At this point retrying the exact
+ * same request again won't help on its own — the session/token needs to be
+ * re-established first (see withCsrfRetry below).
+ */
+function isCsrfFailure(error: unknown): boolean {
+	const err = error as { status?: number; message?: string };
+	return err?.status === 403 && /csrf/i.test(err?.message ?? '');
+}
 
-			if (!response.ok) {
-				ODataClient.authPromise = null;
-				throw new ServiceError(response.status, `CSRF fetch failed (${response.status})`);
-			}
-
-			const token = response.headers.get('x-csrf-token') ?? response.headers.get('X-CSRF-Token') ?? '';
-			const etag = response.headers.get('etag');
-			ODataClient.setSecurityState(token, etag || undefined);
-			return ODataClient.csrfToken;
-		})();
-
-		try {
-			await ODataClient.authPromise;
-		} catch (error) {
-			ODataClient.authPromise = null;
+/**
+ * Wraps a write/action operation so that, if it fails with a CSRF error
+ * (the model already retried once internally and still failed), we force a
+ * model refresh to re-establish a fresh CSRF token/session and retry the
+ * operation exactly once more before giving up.
+ */
+async function withCsrfRetry<T>(model: ODataModel, operation: () => Promise<T>): Promise<T> {
+	try {
+		return await operation();
+	} catch (error) {
+		if (!isCsrfFailure(error)) {
 			throw error;
 		}
-
-		return ODataClient.authPromise;
-	}
-
-	public static async ensureAuth(): Promise<void> {
-		if (ODataClient.csrfToken) {
-			return;
-		}
-		await ODataClient.refreshCsrfToken();
-	}
-
-	private buildUrl(path: string, query?: Record<string, ODataQueryValue>): string {
-		const normalizedPath = path.startsWith('http://') || path.startsWith('https://') || path.startsWith(SERVICE_ORIGIN)
-			? path
-			: `${SERVICE_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
-		const url = new URL(normalizedPath, window.location.origin);
-		const mergedQuery = { ...DEFAULT_QUERY, ...(query ?? {}) };
-		for (const [key, value] of Object.entries(mergedQuery)) {
-			if (value === null || value === undefined || value === '') {
-				continue;
-			}
-			url.searchParams.set(key, String(value));
-		}
-
-		return url.toString();
-	}
-
-	private async requestJson(path: string, options: ODataRequestOptions = {}): Promise<unknown> {
-		const response = await fetch(this.buildUrl(path, options.query), {
-			method: 'GET',
-			credentials: 'include',
-			cache: 'no-store',
-			headers: {
-				Accept: 'application/json',
-				'Cache-Control': 'no-cache',
-				Pragma: 'no-cache',
-				...options.headers
-			}
-		});
-
-		if (!response.ok) {
-			throw new ServiceError(response.status, `GET ${path} failed (${response.status})`);
-		}
-
-		const text = await response.text();
-		if (!text) {
-			return {};
-		}
-
-		try {
-			return JSON.parse(text);
-		} catch {
-			return {};
-		}
-	}
-
-	private async requestText(path: string, options: ODataRequestOptions = {}): Promise<string> {
-		const response = await fetch(this.buildUrl(path, options.query), {
-			method: 'GET',
-			credentials: 'include',
-			headers: {
-				Accept: 'application/xml, text/xml, application/json',
-				...options.headers
-			}
-		});
-
-		if (!response.ok) {
-			throw new ServiceError(response.status, `GET ${path} failed (${response.status})`);
-		}
-
-		return response.text();
-	}
-
-	private async requestWriteJson(path: string, method: ODataWriteMethod, body?: unknown, options: ODataRequestOptions = {}): Promise<unknown> {
-		await ODataClient.ensureAuth();
-		const response = await fetch(this.buildUrl(path, options.query), {
-			method,
-			credentials: 'include',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				...options.headers
-			},
-			body: body === undefined ? undefined : JSON.stringify(body)
-		});
-
-		if (!response.ok) {
-			// Try to extract the ABAP/OData error message from the response body
-			let detail = '';
-			try {
-				const errText = await response.text();
-				const errJson = JSON.parse(errText) as Record<string, unknown>;
-				const errObj = errJson['error'] as Record<string, unknown> | undefined;
-				if (errObj) {
-					const msg = errObj['message'];
-					if (typeof msg === 'string') {
-						detail = msg;
-				} else if (msg && typeof msg === 'object') {
-					const val = (msg as Record<string, unknown>)['value'];
-					detail = typeof val === 'string' ? val : '';
-				}
-				}
-			} catch {
-				// ignore parse errors â€” fall back to generic message
-			}
-			const message = detail
-				? `${method} ${path} failed (${response.status}): ${detail}`
-				: `${method} ${path} failed (${response.status})`;
-			throw new ServiceError(response.status, message);
-		}
-
-		const text = await response.text();
-		if (!text) {
-			return {};
-		}
-
-		try {
-			return JSON.parse(text);
-		} catch {
-			return {};
-		}
-	}
-
-	public async readJson(path: string, options: ODataRequestOptions = {}): Promise<unknown> {
-		return this.requestJson(path, options);
-	}
-
-	public async readText(path: string, options: ODataRequestOptions = {}): Promise<string> {
-		return this.requestText(path, options);
-	}
-
-	public async postJson(path: string, body?: unknown, options: ODataRequestOptions = {}): Promise<unknown> {
-		return this.requestWriteJson(path, 'POST', body, options);
-	}
-
-	public async refreshCsrfToken(): Promise<string> {
-		return ODataClient.refreshCsrfToken();
-	}
-
-	public clearSecurityState(): void {
-		ODataClient.clearSecurityState();
-	}
-
-	public async fetchCsrfToken(): Promise<string> {
-		if (ODataClient.csrfToken) {
-			return ODataClient.csrfToken;
-		}
-
-		if (this.model) {
-			try {
-				await this.model.getMetaModel().requestObject('/');
-			} catch (e) {
-				// Ignore errors from metamodel
-			}
-		}
-
-		return await this.refreshCsrfToken();
-	}
-
-	public async ensureWriteHeaders(method: ODataWriteMethod, etag?: string): Promise<Record<string, string>> {
-		const csrfToken = await this.fetchCsrfToken();
-		const headers: Record<string, string> = {
-			'X-CSRF-Token': csrfToken
-		};
-
-		if (method === 'PATCH' || method === 'DELETE') {
-			headers['If-Match'] = etag ?? ODataClient.etag ?? '*';
-		}
-
-		return headers;
+		await model.refresh();
+		return operation();
 	}
 }
 
+/**
+ * Creates a lightweight functional wrapper around an existing ODataModel v4
+ * instance. No shared/static state, no CSRF handling — just domain-shaped
+ * read/write/action helpers translated to the model's bindList/bindContext API.
+ */
+export function createODataClient(model: ODataModel) {
+	function bindContextAt(path: string): Context {
+		return model.bindContext(path).getBoundContext();
+	}
+
+	async function readList<T = Record<string, unknown>>(path: string, options: ReadListOptions = {}): Promise<T[]> {
+		try {
+			const oListBinding = model.bindList(
+				path,
+				undefined,
+				options.sorters,
+				options.filters,
+				options.parameters
+			) as ODataListBinding;
+
+			const aContexts = await oListBinding.requestContexts(options.skip, options.top);
+			return aContexts.map((oContext) => oContext.getObject() as T);
+		} catch (error) {
+			throw toServiceError(error, `readList ${path}`);
+		}
+	}
+
+	/**
+	 * Same as readList, but also requests the server-side total count
+	 * (equivalent to $count=true). Use this for paged lists where you need
+	 * to know "how many more" beyond the current page.
+	 */
+	async function readListWithCount<T = Record<string, unknown>>(
+		path: string,
+		options: ReadListOptions = {}
+	): Promise<{ items: T[]; count: number }> {
+		try {
+			const oListBinding = model.bindList(path, undefined, options.sorters, options.filters, {
+				...options.parameters,
+				'$count': 'true'
+			}) as ODataListBinding;
+
+			const aContexts = await oListBinding.requestContexts(options.skip, options.top);
+			const items = aContexts.map((oContext) => oContext.getObject() as T);
+			const count = oListBinding.getCount() ?? items.length;
+			return { items, count };
+		} catch (error) {
+			throw toServiceError(error, `readListWithCount ${path}`);
+		}
+	}
+
+	async function readOne<T = Record<string, unknown>>(path: string): Promise<T | null> {
+		try {
+			const oContext = bindContextAt(path);
+			const entity = (await oContext.requestObject()) as T | undefined;
+			if (!entity || !Object.keys(entity as Record<string, unknown>).length) {
+				return null;
+			}
+			return entity;
+		} catch (error) {
+			throw toServiceError(error, `readOne ${path}`);
+		}
+	}
+
+	async function create<T = Record<string, unknown>>(collectionPath: string, payload: Record<string, unknown>): Promise<T> {
+		try {
+			return await withCsrfRetry(model, async () => {
+				const oListBinding = model.bindList(collectionPath) as ODataListBinding;
+				const oContext = oListBinding.create(payload);
+				await oContext.created();
+				return oContext.getObject() as T;
+			});
+		} catch (error) {
+			throw toServiceError(error, `create ${collectionPath}`);
+		}
+	}
+
+	async function update<T = Record<string, unknown>>(
+		entityPath: string,
+		patch: Record<string, unknown>,
+		groupId = '$auto'
+	): Promise<T> {
+		try {
+			return await withCsrfRetry(model, async () => {
+				const oContext = bindContextAt(entityPath);
+				for (const [field, value] of Object.entries(patch)) {
+					oContext.setProperty(field, value);
+				}
+				await model.submitBatch(groupId);
+				return oContext.getObject() as T;
+			});
+		} catch (error) {
+			throw toServiceError(error, `update ${entityPath}`);
+		}
+	}
+
+	async function updateContext<T = Record<string, unknown>>(
+		context: Context,
+		patch: Record<string, unknown>,
+		groupId = '$auto'
+	): Promise<T> {
+		try {
+			return await withCsrfRetry(model, async () => {
+				for (const [field, value] of Object.entries(patch)) {
+					context.setProperty(field, value);
+				}
+				await model.submitBatch(groupId);
+				return context.getObject() as T;
+			});
+		} catch (error) {
+			throw toServiceError(error, 'update context');
+		}
+	}
+
+	async function remove(entityPath: string): Promise<void> {
+		try {
+			await withCsrfRetry(model, async () => {
+				const oContext = bindContextAt(entityPath);
+				await oContext.delete();
+			});
+		} catch (error) {
+			throw toServiceError(error, `remove ${entityPath}`);
+		}
+	}
+
+	async function removeContext(context: Context): Promise<void> {
+		try {
+			await withCsrfRetry(model, () => context.delete());
+		} catch (error) {
+			throw toServiceError(error, 'remove context');
+		}
+	}
+
+	/**
+	 * Calls a bound or unbound action/function.
+	 * - Unbound: pass an operation path like "/actionName(...)" with no context.
+	 * - Entity-bound: pass "namespace.actionName(...)" plus the entity's Context.
+	 * - Collection-bound: pass "namespace.actionName(...)" plus a list binding's
+	 *   header context (listBinding.getHeaderContext()).
+	 */
+	async function callAction<T = Record<string, unknown>>(operationPath: string, options: CallActionOptions = {}): Promise<T> {
+		try {
+			return await withCsrfRetry(model, async () => {
+				const oOperation = model.bindContext(operationPath, options.context) as ODataContextBinding;
+
+				if (options.parameters) {
+					for (const [name, value] of Object.entries(options.parameters)) {
+						oOperation.setParameter(name, value);
+					}
+				}
+
+				await oOperation.execute();
+				return oOperation.getBoundContext()?.getObject() as T;
+			});
+		} catch (error) {
+			throw toServiceError(error, `callAction ${operationPath}`);
+		}
+	}
+
+	function getHeaderContext(collectionPath: string): Context {
+		const oListBinding = model.bindList(collectionPath) as ODataListBinding;
+		return oListBinding.getHeaderContext();
+	}
+
+	function bindEntity(entityPath: string): Context {
+		return bindContextAt(entityPath);
+	}
+
+	function refresh(context?: Context): void {
+		if (context) {
+			context.refresh();
+		} else {
+			model.refresh();
+		}
+	}
+
+	return {
+		readList,
+		readListWithCount,
+		readOne,
+		create,
+		update,
+		updateContext,
+		remove,
+		removeContext,
+		callAction,
+		getHeaderContext,
+		bindEntity,
+		refresh
+	};
+}
+
+export type ODataClient = ReturnType<typeof createODataClient>;

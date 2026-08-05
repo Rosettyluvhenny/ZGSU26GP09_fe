@@ -1,16 +1,21 @@
-import ODataClient, { SERVICE_ORIGIN } from './ODataClient';
+import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
+import type ODataListBinding from 'sap/ui/model/odata/v4/ODataListBinding';
+import type ODataContextBinding from 'sap/ui/model/odata/v4/ODataContextBinding';
+import type Context from 'sap/ui/model/odata/v4/Context';
+import Filter from 'sap/ui/model/Filter';
+import FilterOperator from 'sap/ui/model/FilterOperator';
+import Sorter from 'sap/ui/model/Sorter';
+
 import ServiceError from './ServiceError';
 
 import type { registry, registryCreateInput, registryUpdateInput, registryValueHelpItem } from '../model/types';
-import { mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
+import { mapRegistryEntity } from './ODataParsers';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
 		setTimeout(() => resolve(value), ms);
 	});
 }
-
-
 
 function normalizeGuid(value: string): string {
 	return value.replace(/[{}]/g, '').trim();
@@ -20,178 +25,86 @@ function formatGuidLiteral(value: string): string {
 	return normalizeGuid(value);
 }
 
-// function isNetworkFailure(error: unknown): boolean {
-// 	return error instanceof TypeError || String(error).toLowerCase().includes('fetch');
-// }
-
 function asString(value: unknown): string {
 	if (value === null || value === undefined) {
 		return '';
 	}
-
 	const primitive = value as string | number | boolean | bigint;
 	return String(primitive);
 }
 
-function toValueHelpItems(payload: unknown, keyFields: string[]): registryValueHelpItem[] {
-	return normalizeODataCollection(payload)
-		.map((entity) => {
-			const key = keyFields.map((field) => asString(entity[field])).find((value) => Boolean(value)) ?? '';
-			const text = asString(entity.Description) || asString(entity.Text) || key;
-			return { key, text };
-		})
-		.filter((item) => Boolean(item.key));
+function extractServiceError(error: unknown, context: string): ServiceError {
+	// v4 ODataModel operation/binding rejections carry .cause / .message / status varies by version
+	const err = error as { message?: string; status?: number; error?: { message?: string }; cause?: { message?: string } };
+	const message =
+		err?.error?.message ||
+		err?.cause?.message ||
+		err?.message ||
+		`${context} failed.`;
+	return new ServiceError(err?.status ?? 500, message);
 }
-
-function mapPermissionNames(payload: unknown): string[] {
-	const records = normalizeODataCollection(payload);
-	const values = records
-		.map((entity) => asString(entity.Permission) || asString(entity.permission) || asString(entity.Name) || asString(entity.name))
-		.filter((value) => Boolean(value));
-
-	if (values.length > 0) {
-		return values;
-	}
-
-	if (Array.isArray(payload)) {
-		return payload.map((item) => asString(item)).filter((value) => Boolean(value));
-	}
-
-	return [];
-}
-
-function buildServiceUrl(path: string): string {
-	const normalizedPath = path.startsWith('http://') || path.startsWith('https://')
-		? path
-		: `${SERVICE_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
-	const url = new URL(normalizedPath, window.location.origin);
-	url.searchParams.set('sap-client', '324');
-	return url.toString();
-}
-
-async function parseErrorResponse(response: Response, context: string): Promise<ServiceError> {
-	let message = `${context} failed (${response.status})`;
-	const details: string[] = [];
-
-	try {
-		const text = await response.text();
-		if (text) {
-			try {
-				const payload = JSON.parse(text) as Record<string, unknown>;
-				const error = payload.error as Record<string, unknown> | undefined;
-				if (error) {
-					message = asString(error.message) || asString((error as { value?: string }).value) || message;
-					const inner = error.details as Array<Record<string, unknown>> | undefined;
-					if (Array.isArray(inner)) {
-						details.push(...inner.map((item) => asString(item.message)).filter((item) => Boolean(item)));
-					}
-				}
-				const messages = payload.SAP__Messages as Array<Record<string, unknown>> | undefined;
-				if (Array.isArray(messages)) {
-					details.push(...messages.map((item) => asString(item.message)).filter((item) => Boolean(item)));
-				}
-			} catch {
-				message = text.trim() || message;
-			}
-		}
-	} catch {
-		// Ignore body parsing failures and fall back to the status-based message.
-	}
-
-	return new ServiceError(response.status, message, details);
-}
-
-async function readJson(path: string): Promise<unknown> {
-	await ODataClient.ensureAuth();
-	const response = await fetch(buildServiceUrl(path), {
-		method: 'GET',
-		credentials: 'include',
-		headers: {
-			Accept: 'application/json'
-		}
-	});
-
-	if (!response.ok) {
-		throw await parseErrorResponse(response, `GET ${path}`);
-	}
-
-	const text = await response.text();
-	if (!text) {
-		return {};
-	}
-
-	try {
-		return JSON.parse(text);
-	} catch {
-		return {};
-	}
-}
-
-async function writeJson(path: string, method: 'POST' | 'PATCH' | 'DELETE', body: unknown, headers: Record<string, string>): Promise<unknown> {
-	await ODataClient.ensureAuth();
-	const response = await fetch(buildServiceUrl(path), {
-		method,
-		credentials: 'include',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...headers
-		},
-		body: JSON.stringify(body)
-	});
-
-	if (!response.ok) {
-		throw await parseErrorResponse(response, `${method} ${path}`);
-	}
-
-	const text = await response.text();
-	if (!text) {
-		return {};
-	}
-
-	try {
-		return JSON.parse(text);
-	} catch {
-		return {};
-	}
-}
-
-
 
 export default class RegistryService {
-	private readonly client: ODataClient;
-	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
-		this.client = new ODataClient(model);
+	private readonly model: ODataModel;
+
+	constructor(model: ODataModel) {
+		this.model = model;
 	}
 
-	public async getPermissions(): Promise<string[]> {
-		const csrfToken = await this.client.fetchCsrfToken();
-		const payload = await this.client.postJson(
-			'/Registry/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getPermissions',
-			undefined,
-			{ headers: { 'X-CSRF-Token': csrfToken } }
-		);
-		const permissions = mapPermissionNames(payload);
-		if (permissions.length === 0) {
-			throw new ServiceError(500, 'Permission response did not contain any permissions.');
-		}
+	// ---------------------------------------------------------------------
+	// Value helps / read-only lookups
+	// ---------------------------------------------------------------------
 
-		return delay(permissions);
+	public async getPermissions(): Promise<string[]> {
+		try {
+			// Action bound to the Registry collection (no specific key) -> bind on the
+			// list binding's header context.
+			const oListBinding = this.model.bindList('/Registry') as ODataListBinding;
+			const oHeaderContext = oListBinding.getHeaderContext();
+
+			const oOperation = this.model.bindContext(
+				'com.sap.gateway.srvd_a2x.zsr_registry.v0001.getPermissions(...)',
+				oHeaderContext
+			) as ODataContextBinding;
+
+			await oOperation.execute();
+			const result = oOperation.getBoundContext()?.getObject() as Record<string, unknown>;
+
+			const permissions = this.mapPermissionNames(result);
+			if (permissions.length === 0) {
+				throw new ServiceError(500, 'Permission response did not contain any permissions.');
+			}
+			return delay(permissions);
+		} catch (error) {
+			if (error instanceof ServiceError) {
+				throw error;
+			}
+			throw extractServiceError(error, 'getPermissions');
+		}
 	}
 
 	public async getGroupTypes(): Promise<registryValueHelpItem[]> {
-		const payload = await readJson('/ZI_GRP_TYPE_VH');
-		const items = toValueHelpItems(payload, ['TypeId']);
+		const items = await this.readValueHelpList('/ZI_GRP_TYPE_VH', ['TypeId']);
 		return delay(items);
 	}
 
 	public async getStatuses(): Promise<registryValueHelpItem[]> {
-		const payload = await readJson('/ZI_GRP_STAT_VH');
-		const items = toValueHelpItems(payload, ['StatusId']);
+		const items = await this.readValueHelpList('/ZI_GRP_STAT_VH', ['StatusId']);
 		return delay(items);
 	}
 
-	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string; searchField: string }): Promise<registry[]> {
+	// ---------------------------------------------------------------------
+	// Registry CRUD
+	// ---------------------------------------------------------------------
+
+	public async getRegistries(filter: {
+		search: string;
+		status: string;
+		groupType: string;
+		registryName: string;
+		createdBy: string;
+		searchField: string;
+	}): Promise<registry[]> {
 		const backendRegistries = await this.loadRegistriesFromBackend(filter);
 		return delay(this.filterRegistries(backendRegistries, filter));
 	}
@@ -210,7 +123,6 @@ export default class RegistryService {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
 		}
 
-		const headers = await this.client.ensureWriteHeaders('POST');
 		const payload: Record<string, string> = {
 			GroupName: input.groupName.trim(),
 			GroupType: input.groupType.trim()
@@ -219,8 +131,16 @@ export default class RegistryService {
 			payload.VersionNo = input.versionNo.trim();
 		}
 
-		const entity = normalizeODataEntity(await writeJson('/Registry', 'POST', payload, headers));
-		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
+		try {
+			const oListBinding = this.model.bindList('/Registry') as ODataListBinding;
+			const oContext = oListBinding.create(payload);
+			await oContext.created();
+
+			const entity = oContext.getObject() as Record<string, unknown>;
+			return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
+		} catch (error) {
+			throw extractServiceError(error, 'createRegistry');
+		}
 	}
 
 	public async updateRegistry(registryId: string, input: registryUpdateInput): Promise<registry> {
@@ -229,60 +149,115 @@ export default class RegistryService {
 			throw new ServiceError(400, 'Registry validation failed.', validationMessages);
 		}
 
-		const headers = await this.client.ensureWriteHeaders('PATCH');
-		const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: input.status.trim() }, headers));
-		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
+		return this.changeStatus(registryId, input.status.trim() as registry['status']);
 	}
 
 	public async deleteRegistry(registryId: string): Promise<void> {
-		await this.client.ensureWriteHeaders('DELETE');
-		await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'DELETE', undefined, await this.client.ensureWriteHeaders('DELETE'));
-		await delay(undefined);
-	}
-
-	public async activateRegistry(registryId: string, changedBy = 'demo.user'): Promise<registry> {
-		return this.changeStatus(registryId, 'Published', changedBy);
-	}
-
-	public async deactivateRegistry(registryId: string, changedBy = 'demo.user'): Promise<registry> {
-		return this.changeStatus(registryId, 'Unpublished', changedBy);
-	}
-
-	public async generateVersion(registryId: string, etag?: string): Promise<unknown> {
-		const headers = await this.client.ensureWriteHeaders('POST');
-		if (etag) {
-			headers['If-Match'] = etag;
+		try {
+			const oContext = this.getRegistryContext(registryId);
+			await oContext.delete();
+			await delay(undefined);
+		} catch (error) {
+			throw extractServiceError(error, 'deleteRegistry');
 		}
-		const payload = normalizeODataEntity(
-			await writeJson(
-				`/Registry/${formatGuidLiteral(registryId)}/com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion`,
-				'POST',
-				undefined,
-				headers
-			)
-		);
-		return delay(payload, 350);
 	}
 
-	private filterRegistries(registries: registry[], filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }): registry[] {
+	public async activateRegistry(registryId: string): Promise<registry> {
+		return this.changeStatus(registryId, 'Published');
+	}
+
+	public async deactivateRegistry(registryId: string): Promise<registry> {
+		return this.changeStatus(registryId, 'Unpublished');
+	}
+
+	public async generateVersion(registryId: string): Promise<unknown> {
+		try {
+			const oRegistryContext = this.getRegistryContext(registryId);
+
+			const oOperation = this.model.bindContext(
+				'com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion(...)',
+				oRegistryContext
+			) as ODataContextBinding;
+
+			await oOperation.execute();
+			const result = oOperation.getBoundContext()?.getObject();
+			return delay(result, 350);
+		} catch (error) {
+			throw extractServiceError(error, 'generateVersion');
+		}
+	}
+
+	// ---------------------------------------------------------------------
+	// Internal helpers
+	// ---------------------------------------------------------------------
+
+	private getRegistryContext(registryId: string): Context {
+		const path = `/Registry(${registryId})`;
+		return this.model.bindContext(path).getBoundContext();
+	}
+
+	private async readValueHelpList(path: string, keyFields: string[]): Promise<registryValueHelpItem[]> {
+		try {
+			const oListBinding = this.model.bindList(path) as ODataListBinding;
+			const aContexts = await oListBinding.requestContexts();
+			const entities = aContexts.map((oContext) => oContext.getObject() as Record<string, unknown>);
+			return this.toValueHelpItems(entities, keyFields);
+		} catch (error) {
+			throw extractServiceError(error, `read ${path}`);
+		}
+	}
+
+	private toValueHelpItems(entities: Record<string, unknown>[], keyFields: string[]): registryValueHelpItem[] {
+		return entities
+			.map((entity) => {
+				const key = keyFields.map((field) => asString(entity[field])).find((value) => Boolean(value)) ?? '';
+				const text = asString(entity.Description) || asString(entity.Text) || key;
+				return { key, text };
+			})
+			.filter((item) => Boolean(item.key));
+	}
+
+	private mapPermissionNames(payload: unknown): string[] {
+		const record = payload as Record<string, unknown> | undefined;
+		const collection = (record?.value ?? record?.Set ?? []) as Array<Record<string, unknown>>;
+
+		const values = collection
+			.map((entity) => asString(entity.Permission) || asString(entity.permission) || asString(entity.Name) || asString(entity.name))
+			.filter((value) => Boolean(value));
+
+		if (values.length > 0) {
+			return values;
+		}
+
+		if (Array.isArray(payload)) {
+			return (payload as unknown[]).map((item) => asString(item)).filter((value) => Boolean(value));
+		}
+
+		return [];
+	}
+
+	private filterRegistries(
+		registries: registry[],
+		filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string }
+	): registry[] {
 		const normalizedSearch = filter.search.trim().toLowerCase();
 
-		return registries.filter((registry) => {
+		return registries.filter((registryItem) => {
 			const matchesSearch =
 				!normalizedSearch ||
 				[
-					registry.groupId,
-					registry.groupName,
-					registry.serviceName,
-					registry.groupType,
-					registry.versionNo,
-					registry.status,
-					registry.statusText,
-					registry.description,
-					registry.registeredBy,
-					registry.registeredAt,
-					registry.lastChangedBy,
-					registry.lastChangeAt
+					registryItem.groupId,
+					registryItem.groupName,
+					registryItem.serviceName,
+					registryItem.groupType,
+					registryItem.versionNo,
+					registryItem.status,
+					registryItem.statusText,
+					registryItem.description,
+					registryItem.registeredBy,
+					registryItem.registeredAt,
+					registryItem.lastChangedBy,
+					registryItem.lastChangeAt
 				]
 					.join(' ')
 					.toLowerCase()
@@ -292,70 +267,94 @@ export default class RegistryService {
 		});
 	}
 
-	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string, searchField: string }): Promise<registry[]> {
-		let url = '/Registry?$orderby=LastChangeAt desc';
-		const filterParts: string[] = [];
+	private async loadRegistriesFromBackend(filter?: {
+		search: string;
+		status: string;
+		groupType: string;
+		registryName: string;
+		createdBy: string;
+		searchField: string;
+	}): Promise<registry[]> {
+		const aFilters: Filter[] = [];
+
 		if (filter) {
 			if (filter.status && filter.status.toLowerCase() !== 'all') {
-				filterParts.push(`Status eq '${filter.status}'`);
+				aFilters.push(new Filter('Status', FilterOperator.EQ, filter.status));
 			}
 			if (filter.groupType && filter.groupType.toLowerCase() !== 'all') {
-				filterParts.push(`GroupType eq '${filter.groupType}'`);
+				aFilters.push(new Filter('GroupType', FilterOperator.EQ, filter.groupType));
 			}
 			if (filter.registryName) {
-				filterParts.push(`contains(GroupName,'${filter.registryName}')`);
+				aFilters.push(new Filter('GroupName', FilterOperator.Contains, filter.registryName));
 			}
 			if (filter.createdBy) {
-				filterParts.push(`contains(RegisteredBy,'${filter.createdBy}')`);
+				aFilters.push(new Filter('RegisteredBy', FilterOperator.Contains, filter.createdBy));
 			}
 
-			if (filterParts.length > 0 || filter.search) {
-				const queryParts = [...filterParts];
-				if (filter.search) {
-					const term = filter.search.replace(/'/g, "''");
-					let globalSearchFilter = '';
-					const isGuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(term);
+			if (filter.search) {
+				const term = filter.search.trim();
+				const isGuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(term);
 
-					if (filter.searchField === 'registryName') {
-						globalSearchFilter = `contains(GroupName,'${term}')`;
-					} else if (filter.searchField === 'registryId') {
-						if (isGuid) {
-							globalSearchFilter = `GroupId eq ${term}`;
-						} else {
-							globalSearchFilter = `GroupId eq 00000000-0000-0000-0000-000000000000`;
-						}
-					} else {
-						if (isGuid) {
-							globalSearchFilter = `(contains(GroupName,'${term}') or GroupId eq ${term})`;
-						} else {
-							globalSearchFilter = `contains(GroupName,'${term}')`;
-						}
-					}
-					queryParts.push(globalSearchFilter);
+				if (filter.searchField === 'registryName') {
+					aFilters.push(new Filter('GroupName', FilterOperator.Contains, term));
+				} else if (filter.searchField === 'registryId') {
+					aFilters.push(new Filter('GroupId', FilterOperator.EQ, isGuid ? term : '00000000-0000-0000-0000-000000000000'));
+				} else if (isGuid) {
+					aFilters.push(
+						new Filter({
+							filters: [
+								new Filter('GroupName', FilterOperator.Contains, term),
+								new Filter('GroupId', FilterOperator.EQ, term)
+							],
+							and: false
+						})
+					);
+				} else {
+					aFilters.push(new Filter('GroupName', FilterOperator.Contains, term));
 				}
-				url += `&$filter=${encodeURIComponent(queryParts.join(' and '))}`;
 			}
 		}
 
-		const payload = await readJson(url);
-		const registries = normalizeODataCollection(payload);
-		return registries.map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
+		try {
+			const oListBinding = this.model.bindList(
+				'/Registry',
+				undefined,
+				[new Sorter('LastChangeAt', true)],
+				aFilters.length > 0 ? aFilters : undefined
+			) as ODataListBinding;
+
+			const aContexts = await oListBinding.requestContexts();
+			const entities = aContexts.map((oContext) => oContext.getObject() as Record<string, unknown>);
+			return entities.map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
+		} catch (error) {
+			throw extractServiceError(error, 'loadRegistriesFromBackend');
+		}
 	}
 
 	private async loadRegistryFromBackend(registryId: string): Promise<registry | null> {
-		const payload = await readJson(`/Registry/${formatGuidLiteral(registryId)}`);
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length) {
-			return null;
+		try {
+			const oContext = this.getRegistryContext(registryId);
+			const entity = (await oContext.requestObject()) as Record<string, unknown> | undefined;
+			if (!entity || !Object.keys(entity).length) {
+				return null;
+			}
+			return mapRegistryEntity(entity, { serviceDefinition: '' });
+		} catch (error) {
+			throw extractServiceError(error, 'loadRegistryFromBackend');
 		}
-
-		return mapRegistryEntity(entity, { serviceDefinition: '' });
 	}
 
-	private async changeStatus(registryId: string, status: registry['status'], _changedBy: string): Promise<registry> {
-		const headers = await this.client.ensureWriteHeaders('PATCH');
-		const entity = normalizeODataEntity(await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'PATCH', { Status: status }, headers));
-		return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
+	private async changeStatus(registryId: string, status: registry['status']): Promise<registry> {
+		try {
+			const oContext = this.getRegistryContext(registryId);
+			oContext.setProperty('Status', status);
+			await this.model.submitBatch('$auto');
+
+			const entity = oContext.getObject() as Record<string, unknown>;
+			return delay(mapRegistryEntity(entity, { serviceDefinition: '' }));
+		} catch (error) {
+			throw extractServiceError(error, 'changeStatus');
+		}
 	}
 
 	private validateCreateInput(input: registryCreateInput): string[] {
@@ -379,18 +378,4 @@ export default class RegistryService {
 		}
 		return messages;
 	}
-
-	private statusTextFromId(statusId: string): registry['status'] {
-		switch (statusId.trim().toUpperCase()) {
-			case 'P':
-				return 'Published';
-			case 'U':
-				return 'Unpublished';
-			case 'A':
-				return 'Archive';
-			default:
-				return 'Unpublished';
-		}
-	}
 }
-

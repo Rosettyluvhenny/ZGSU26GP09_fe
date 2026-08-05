@@ -1,7 +1,11 @@
-﻿import ODataClient from './ODataClient';
+﻿import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
+import Filter from 'sap/ui/model/Filter';
+import FilterOperator from 'sap/ui/model/FilterOperator';
+
+import { createODataClient } from './ODataClient';
 
 import type { logEntry } from '../model/types';
-import { mapLogEntity, normalizeODataCollection } from './ODataParsers';
+import { mapLogEntity } from './ODataParsers';
 
 export const LOG_PAGE_SIZE = 50;
 
@@ -29,36 +33,35 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	});
 }
 
-function escapeODataString(value: string): string {
-	return value.replace(/'/g, "''");
+function normalizeGuid(value: string): string {
+	return value.replace(/[{}]/g, '').trim();
 }
 
 function toODataDateTime(date: Date): string {
 	return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-function readODataCount(payload: unknown, fallback: number): number {
-	if (!payload || typeof payload !== 'object') {
-		return fallback;
-	}
-	const record = payload as Record<string, unknown>;
-	const raw = record['@odata.count'] ?? record['odata.count'] ?? record['__count'];
-	const numeric = Number(raw);
-	return Number.isFinite(numeric) ? numeric : fallback;
-}
-
 export default class LogService {
-	private readonly client: ODataClient;
-	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
-		this.client = new ODataClient(model);
+	private readonly odata: ReturnType<typeof createODataClient>;
+
+	constructor(model: ODataModel) {
+		this.odata = createODataClient(model);
 	}
 
 	public async getLogs(filter: LogQueryFilter = {}): Promise<LogPageResult> {
 		const top = filter.top ?? LOG_PAGE_SIZE;
 		const skip = filter.skip ?? 0;
-		const payload = await this.client.readJson(this.buildLogUrl({ ...filter, top, skip }));
-		const items = normalizeODataCollection(payload).map((entity) => mapLogEntity(entity));
-		const totalCount = readODataCount(payload, skip + items.length);
+
+		const { items: entities, count } = await this.odata.readListWithCount('/Log', {
+			filters: this.buildLogFilters(filter),
+			parameters: { '$orderby': 'ActionAt desc' },
+			top,
+			skip
+		});
+
+		const items = entities.map((entity) => mapLogEntity(entity));
+		const totalCount = Number.isFinite(count) ? count : skip + items.length;
+
 		return delay({
 			items,
 			totalCount,
@@ -71,60 +74,59 @@ export default class LogService {
 		return this.getLogs({ jobId });
 	}
 
-	private buildLogUrl(filter: LogQueryFilter): string {
-		const parts: string[] = [];
+	private buildLogFilters(filter: LogQueryFilter): Filter[] {
+		const filters: Filter[] = [];
 
 		if (filter.jobId) {
-			const normalized = filter.jobId.replace(/[{}]/g, '').trim();
-			parts.push(`JobId eq ${normalized}`);
+			filters.push(new Filter('JobId', FilterOperator.EQ, normalizeGuid(filter.jobId)));
 		}
 		if (filter.actionType && filter.actionType !== 'All') {
-			parts.push(`ActionType eq '${escapeODataString(filter.actionType)}'`);
+			filters.push(new Filter('ActionType', FilterOperator.EQ, filter.actionType));
 		}
 		if (filter.logResult && filter.logResult !== 'All') {
-			parts.push(`LogResult eq '${escapeODataString(filter.logResult)}'`);
+			filters.push(new Filter('LogResult', FilterOperator.EQ, filter.logResult));
 		}
 		if (filter.objectIdType && filter.objectIdType !== 'All') {
-			parts.push(`objectIdType eq '${escapeODataString(filter.objectIdType)}'`);
+			filters.push(new Filter('objectIdType', FilterOperator.EQ, filter.objectIdType));
 		}
 		if (filter.dateFrom) {
 			const from = new Date(filter.dateFrom);
 			from.setHours(0, 0, 0, 0);
-			parts.push(`ActionAt ge ${toODataDateTime(from)}`);
+			filters.push(new Filter('ActionAt', FilterOperator.GE, toODataDateTime(from)));
 		}
 		if (filter.dateTo) {
 			const to = new Date(filter.dateTo);
 			to.setHours(23, 59, 59, 999);
-			parts.push(`ActionAt le ${toODataDateTime(to)}`);
+			filters.push(new Filter('ActionAt', FilterOperator.LE, toODataDateTime(to)));
 		}
+
 		if (filter.search?.trim()) {
 			const raw = filter.search.trim();
 			const normalizedGuid = raw.replace(/[{}]/g, '');
 			const looksLikeGuid = /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/.test(normalizedGuid);
 			const objectTypeTerm = raw.toUpperCase();
 			const knownObjectTypes = ['REGISTRY', 'DETAIL', 'VERSION', 'SCANJOB'];
+
 			if (looksLikeGuid) {
-				parts.push(`ObjectId eq ${normalizedGuid}`);
+				filters.push(new Filter('ObjectId', FilterOperator.EQ, normalizedGuid));
 			} else if (knownObjectTypes.includes(objectTypeTerm)) {
 				// Avoid duplicating objectIdType filter when the dropdown already selected the same value.
 				if (!filter.objectIdType || filter.objectIdType === 'All' || filter.objectIdType.toUpperCase() !== objectTypeTerm) {
-					parts.push(`objectIdType eq '${escapeODataString(objectTypeTerm)}'`);
+					filters.push(new Filter('objectIdType', FilterOperator.EQ, objectTypeTerm));
 				}
 			} else {
-				const term = escapeODataString(raw);
-				parts.push(`(contains(Remarks,'${term}') or contains(Actor,'${term}'))`);
+				filters.push(
+					new Filter({
+						filters: [
+							new Filter('Remarks', FilterOperator.Contains, raw),
+							new Filter('Actor', FilterOperator.Contains, raw)
+						],
+						and: false
+					})
+				);
 			}
 		}
 
-		const query: string[] = [];
-		if (parts.length > 0) {
-			query.push(`$filter=${encodeURIComponent(parts.join(' and '))}`);
-		}
-		query.push('$orderby=ActionAt desc');
-		query.push(`$top=${filter.top ?? LOG_PAGE_SIZE}`);
-		query.push(`$skip=${filter.skip ?? 0}`);
-		query.push('$count=true');
-		return `/Log?${query.join('&')}`;
+		return filters;
 	}
 }
-

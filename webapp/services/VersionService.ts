@@ -1,8 +1,11 @@
-import ODataClient from './ODataClient';
+import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
+import Sorter from 'sap/ui/model/Sorter';
+
 import ServiceError from './ServiceError';
+import { createODataClient } from './ODataClient';
 
 import type { compareVersionEntry, compareVersionResult, registryVersion, versionCompareActionEntry, versionCompareActionResult } from '../model/types';
-import { mapVersionEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
+import { mapVersionEntity } from './ODataParsers';
 import DetailService from './DetailService';
 
 function delay<T>(value: T, ms = 250): Promise<T> {
@@ -28,30 +31,30 @@ function asString(value: unknown): string {
 	return String(primitive);
 }
 
-function mapCompareEntry(entry: versionCompareActionEntry): compareVersionEntry {
+function mapCompareEntry(entry: Record<string, unknown>): compareVersionEntry {
 	return {
-		serviceDefId: asString(entry.serviceDefId),
-		baseDetailId: asString(entry.baseDetailId),
-		compareDetailId: asString(entry.compareDetailId),
-		changeType: (asString(entry.changeType).toUpperCase() as compareVersionEntry['changeType']) || 'UNCHANGED'
+		serviceDefId: asString(entry.SERVICEDEFID),
+		baseDetailId: asString(entry.BASEDETAILID),
+		compareDetailId: asString(entry.COMPAREDETAILID),
+		changeType: (asString(entry.CHANGETYPE).toUpperCase() as compareVersionEntry['changeType']) || 'UNCHANGED'
 	};
 }
 
-function mapCompareResult(payload: versionCompareActionResult): compareVersionResult {
+function mapCompareResult(payload: Record<string, unknown>): compareVersionResult {
 	return {
-		baseVersionId: asString(payload.baseVersionId),
-		compareVersionId: asString(payload.compareVersionId),
-		change: Array.isArray(payload.change) ? payload.change.map(mapCompareEntry) : [],
-		differ: Array.isArray(payload.differ) ? payload.differ.map(mapCompareEntry) : [],
-		unchange: Array.isArray(payload.unchange) ? payload.unchange.map(mapCompareEntry) : []
+		baseVersionId: asString(payload.BASEVERSIONID),
+		compareVersionId: asString(payload.COMPAREVERSIONID),
+		change: Array.isArray(payload.CHANGE) ? payload.CHANGE.map(mapCompareEntry) : [],
+		differ: Array.isArray(payload.DIFFER) ? payload.DIFFER.map(mapCompareEntry) : [],
+		unchange: Array.isArray(payload.UNCHANGE) ? payload.UNCHANGE.map(mapCompareEntry) : []
 	};
 }
 
 export default class VersionService {
-	private readonly client: ODataClient;
+	private readonly odata: ReturnType<typeof createODataClient>;
 
-	public constructor(private readonly detailService: DetailService, model?: import("sap/ui/model/odata/v4/ODataModel").default) {
-		this.client = new ODataClient(model);
+	public constructor(private readonly detailService: DetailService, model: ODataModel) {
+		this.odata = createODataClient(model);
 	}
 
 	public async getVersions(registryId: string): Promise<registryVersion[]> {
@@ -68,30 +71,41 @@ export default class VersionService {
 	}
 
 	public async compareVersions(leftVersionId: string, rightVersionId: string): Promise<compareVersionResult> {
-		const headers = await this.client.ensureWriteHeaders('POST');
-		const payload = normalizeODataEntity(
-			await this.client.postJson(
-			'/Version/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion',
+		const oHeaderContext = this.odata.getHeaderContext('/Version');
+
+		const result = await this.odata.callAction<versionCompareActionResult>(
+			'com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareVersion(...)',
 			{
-				BaseVrsId: leftVersionId,
-				CompareVrsId: rightVersionId
-			},
-				{ headers }
-			)
-		) as unknown as versionCompareActionResult;
-		return mapCompareResult(payload);
+				context: oHeaderContext,
+				parameters: {
+					BaseVrsId: leftVersionId,
+					CompareVrsId: rightVersionId
+				}
+			}
+		);
+
+		return delay(mapCompareResult(result as unknown as Record<string, unknown>));
+	}
+
+	// ---------------------------------------------------------------------
+	// Internal helpers
+	// ---------------------------------------------------------------------
+
+	private versionPath(versionId: string): string {
+		return `/Version(${formatGuidLiteral(versionId)})`;
 	}
 
 	private async loadVersionsFromBackend(registryId: string): Promise<registryVersion[]> {
-		const payload = await this.client.readJson(`/Registry/${formatGuidLiteral(registryId)}/_Version?$orderby=CreatedAt desc`);
-		const versions = normalizeODataCollection(payload);
-		return versions.map((entity) => this.loadVersionFromEntity(entity));
+		const entities = await this.odata.readList(`/Registry(${formatGuidLiteral(registryId)})/_Version`, {
+			sorters: [new Sorter('CreatedAt', true)]
+		});
+
+		return entities.map((entity) => this.loadVersionFromEntity(entity));
 	}
 
 	private async loadVersionFromBackend(versionId: string): Promise<registryVersion | null> {
-		const payload = await this.client.readJson(`/Version/${formatGuidLiteral(versionId)}`);
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length) {
+		const entity = await this.odata.readOne(this.versionPath(versionId));
+		if (!entity) {
 			return null;
 		}
 
@@ -103,5 +117,3 @@ export default class VersionService {
 		return mapVersionEntity(entity, parsedDetail);
 	}
 }
-
-

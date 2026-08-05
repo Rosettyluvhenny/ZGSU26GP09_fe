@@ -1,4 +1,5 @@
-import ODataClient from './ODataClient';
+import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
+import { createODataClient } from './ODataClient';
 import ServiceError from './ServiceError';
 
 import type { detailMetadataResult, nodeDiffActionResult, nodeDiffEntry, nodeTreeActionResult, nodeTreeResponseItem, registryDetail, sendMailParams, sendMailResult } from '../model/types';
@@ -67,9 +68,10 @@ function mapNodeDiffItem(item: Record<string, unknown>): nodeDiffEntry {
 
 
 export default class DetailService {
-	private readonly client: ODataClient;
-	constructor(model?: import("sap/ui/model/odata/v4/ODataModel").default) {
-		this.client = new ODataClient(model);
+	private readonly odata: ReturnType<typeof createODataClient>;
+
+	constructor(model: ODataModel) {
+		this.odata = createODataClient(model);
 	}
 
 	public async getDetails(versionId: string): Promise<registryDetail[]> {
@@ -94,59 +96,63 @@ export default class DetailService {
 	}
 
 	public async getNodeTree(detailId: string): Promise<nodeTreeResponseItem[]> {
-		const payload = normalizeODataEntity(
-			await this.client.postJson(
-				`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree`,
-				{ DetailId: detailId },
-				{ headers: await this.client.ensureWriteHeaders('POST') }
-			)
-		) as unknown as nodeTreeActionResult;
-		if (Array.isArray(payload.nodeTree)) {
-			return payload.nodeTree.map(mapNodeTreeItem);
+		const payload = await this.odata.callAction(
+			'com.sap.gateway.srvd_a2x.zsr_registry.v0001.getNodeTree(...)',
+			{
+				context: this.odata.getHeaderContext('/Detail'),
+				parameters: { DetailId: detailId }
+			}
+		) as unknown as Record<string, unknown>;
+
+		const results = payload?.value || payload?.NODETREE || payload?.NodeTree || payload?.nodeTree || payload;
+		if (Array.isArray(results)) {
+			return results.map(mapNodeTreeItem);
 		}
 		return [] as nodeTreeResponseItem[];
 	}
 
 	public async compareNodeTree(baseDetailId: string, compareDetailId: string): Promise<nodeDiffEntry[]> {
-		const payload = normalizeODataEntity(
-			await this.client.postJson(
-				'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree',
-				{
+		const payload = await this.odata.callAction(
+			'com.sap.gateway.srvd_a2x.zsr_registry.v0001.compareNodeTree(...)',
+			{
+				context: this.odata.getHeaderContext('/Detail'),
+				parameters: {
 					BaseDetailId: baseDetailId,
 					CompareDetailId: compareDetailId
-				},
-				{ headers: await this.client.ensureWriteHeaders('POST') }
-			)
-		) as unknown as nodeDiffActionResult;
-		if (Array.isArray(payload.nodeDiff)) {
-			return payload.nodeDiff.map(mapNodeDiffItem);
+				}
+			}
+		) as unknown as Record<string, unknown>;
+
+		const results = payload?.value || payload?.NODEDIFF || payload?.NodeDiff || payload?.nodeDiff || payload;
+		if (Array.isArray(results)) {
+			return results.map(mapNodeDiffItem);
 		}
 		return [] as nodeDiffEntry[];
 	}
 
 	private async loadDetailsFromBackend(versionId: string): Promise<registryDetail[]> {
-		const payload = await this.client.readJson(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail`);
-		return normalizeODataCollection(payload).map((entity) => mapDetailEntity(entity));
+		const entities = await this.odata.readList(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail`);
+		return entities.map((entity) => mapDetailEntity(entity as Record<string, unknown>));
 	}
 
 	private async loadDetailFromBackend(detailId: string): Promise<registryDetail | null> {
-		const payload = await this.client.readJson(`/Detail/${formatGuidLiteral(detailId)}`);
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length) {
+		const entity = await this.odata.readOne(`/Detail/${formatGuidLiteral(detailId)}`);
+		if (!entity) {
 			return null;
 		}
 
-		return mapDetailEntity(entity);
+		return mapDetailEntity(entity as Record<string, unknown>);
 	}
 
 	private async loadParsedMetadataFromBackend(detailId: string): Promise<detailMetadataResult | null> {
-		const payload = await this.client.postJson(
-			`/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.getParseMetadata`,
-			{ DetailId: detailId },
-			{ headers: await this.client.ensureWriteHeaders('POST') }
+		const entity = await this.odata.callAction<Record<string, unknown>>(
+			'com.sap.gateway.srvd_a2x.zsr_registry.v0001.getParseMetadata(...)',
+			{
+				context: this.odata.getHeaderContext('/Detail'),
+				parameters: { DetailId: detailId }
+			}
 		);
-		const entity = normalizeODataEntity(payload);
-		if (!Object.keys(entity).length) {
+		if (!entity || !Object.keys(entity).length) {
 			return null;
 		}
 
@@ -157,16 +163,17 @@ export default class DetailService {
 	}
 
 	public async sendEmail(params: sendMailParams): Promise<sendMailResult> {
-		const raw = await this.client.postJson(
-			'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.sendEmail',
+		const entity = await this.odata.callAction<Record<string, unknown>>(
+			'com.sap.gateway.srvd_a2x.zsr_registry.v0001.sendEmail(...)',
 			{
-				HtmlContent: params.htmlContent,
-				Recipients: params.recipients,
-				Subject: params.subject
-			},
-			{ headers: await this.client.ensureWriteHeaders('POST') }
+				context: this.odata.getHeaderContext('/Detail'),
+				parameters: {
+					HtmlContent: params.htmlContent,
+					Recipients: params.recipients,
+					Subject: params.subject
+				}
+			}
 		);
-		const entity = normalizeODataEntity(raw);
 		// Backend returns PascalCase per ZI_EMAIL_SEND_RESULT complex type
 		return {
 			success: !!(entity.Success ?? entity.success),

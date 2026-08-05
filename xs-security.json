@@ -29,6 +29,9 @@
         "redirect-uris": [
             "https://7f4c3e60trial-dev-zgp9-fe-approuter.cfapps.us10-001.hana.ondemand.com/**"
         ],
-        "credential-types": ["binding-secret", "x509"]
+        "credential-types": [
+            "binding-secret",
+            "x509"
+        ]
     }
 }
