@@ -3,14 +3,9 @@
     "authenticationMethod": "route",
     "logout": {
         "logoutEndpoint": "/logout",
-        "logoutPage": "/logout.html"
+        "logoutPage": "/"
     },
     "routes": [
-        {
-            "source": "^/logout.html$",
-            "localDir": "resources",
-            "authenticationType": "none"
-        },
         {
             "source": "^/sap/(.*)$",
             "destination": "S40",

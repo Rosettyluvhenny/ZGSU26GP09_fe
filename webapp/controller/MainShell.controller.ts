@@ -2,7 +2,6 @@ import Theming from "sap/ui/core/Theming";
 import type Control from "sap/ui/core/Control";
 
 import BaseController from "./BaseController";
-import ODataClient from "../services/ODataClient";
 import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
 const LIGHT_THEME = "sap_horizon";
@@ -112,7 +111,6 @@ export default class MainShell extends BaseController {
 	}
 
 	public onLogout(): void {
-		ODataClient.clearSecurityState();
 		(this.getSessionModel()).setData({
 			userName: "",
 			csrfToken: "",
