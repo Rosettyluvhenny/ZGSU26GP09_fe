@@ -13,6 +13,13 @@
             "csrfProtection": false
         },
         {
+            "source": "^/convert/(.*)$",
+            "target": "/convert/$1",
+            "destination": "SCHEMA_GENERATOR",
+            "authenticationType": "xsuaa",
+            "csrfProtection": false
+        },
+        {
             "source": "^/ai/groq/chat/completions$",
             "target": "/chat/completions",
             "destination": "AI_GROQ",

@@ -175,7 +175,9 @@ module.exports = function () {
 			return;
 		}
 
-		if (!req.url.startsWith(TARGET_PREFIX)) {
+		const isTarget = req.url.startsWith(TARGET_PREFIX);
+		const isConvert = req.url.startsWith("/convert/");
+		if (!isTarget && !isConvert) {
 			next();
 			return;
 		}
@@ -189,9 +191,14 @@ module.exports = function () {
 		}
 
 		// Append sap-client if not already present.
-		const targetUrl = req.url.includes("sap-client=")
-			? `${TARGET_BASE_URL}${req.url}`
-			: `${TARGET_BASE_URL}${req.url}${req.url.includes("?") ? "&" : "?"}sap-client=324`;
+		let targetUrl;
+		if (isConvert) {
+			targetUrl = `https://zgsu26gp09schemagenerator-production.up.railway.app${req.url}`;
+		} else {
+			targetUrl = req.url.includes("sap-client=")
+				? `${TARGET_BASE_URL}${req.url}`
+				: `${TARGET_BASE_URL}${req.url}${req.url.includes("?") ? "&" : "?"}sap-client=324`;
+		}
 
 		try {
 			const body = await readBody(req);

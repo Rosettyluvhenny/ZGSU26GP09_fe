@@ -88,6 +88,13 @@ resources:
                 Authentication: PrincipalPropagation
                 sap-client: "324"
                 HTML5.DynamicDestination: true
+              - Name: SCHEMA_GEN
+                Description: Schema Generator
+                URL: https://zgsu26gp09schemagenerator-production.up.railway.app
+                Type: HTTP
+                ProxyType: Internet
+                Authentication: NoAuthentication
+                HTML5.DynamicDestination: true
             existing_destinations_policy: update
 
   - name: zgp9-connectivity

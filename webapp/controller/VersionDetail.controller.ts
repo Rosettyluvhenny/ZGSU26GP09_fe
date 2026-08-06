@@ -29,6 +29,7 @@ export default class VersionDetail extends BaseController {
 	private versionId: string | null = null;
 	private fullTree: nodeTreeViewItem[] = [];
 	private _sendMailDialog: Dialog | null = null;
+	private _exportSchemaDialog: Dialog | null = null;
 	private highlightClearTimer: number | null = null;
 
 	public onInit(): void {
@@ -160,7 +161,7 @@ export default class VersionDetail extends BaseController {
 		MessageToast.show(copied ? 'XML copied to clipboard.' : 'Unable to copy XML.');
 	}
 
-	public onDownloadXml(): void {
+	public async onDownloadXml(): Promise<void> {
 		const model = this.getModel('versionDetail') as JSONModel;
 		const xml = model.getProperty('/selectedDetailXml') as string;
 		if (!xml) {
@@ -170,7 +171,8 @@ export default class VersionDetail extends BaseController {
 
 		const detail = model.getProperty('/selectedDetail') as registryDetail | null;
 		const baseName = (detail?.serviceDefId || detail?.detailId || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
-		this.downloadTextFile(`${baseName}.xml`, xml);
+		await this.downloadFile(`${baseName}.xml`, new Blob([xml], { type: 'application/xml' }));
+		MessageToast.show('XML downloaded successfully.');
 	}
 
 	public onXmlLineSelectionChange(event: UI5Event): void {
@@ -305,6 +307,71 @@ export default class VersionDetail extends BaseController {
 
 	public onCancelSendMail(): void {
 		this._sendMailDialog?.close();
+	}
+
+	// ─── Export Schema ───────────────────────────────────────────────────────
+
+	public onExportSchema(): void {
+		this.setModel(
+			new JSONModel({
+				busy: false,
+				selectedFormatIndex: 0
+			}),
+			'exportSchema'
+		);
+
+		const loadDialog = async () => {
+			if (!this._exportSchemaDialog) {
+				this._exportSchemaDialog = await Fragment.load({
+					id: this.getView()?.getId(),
+					name: 'com.zgp9.fe.view.fragments.ExportSchemaDialog',
+					controller: this
+				}) as Dialog;
+				this.getView()?.addDependent(this._exportSchemaDialog);
+			}
+			this._exportSchemaDialog.open();
+		};
+		void loadDialog();
+	}
+
+	public async onConfirmExportSchema(): Promise<void> {
+		const exportModel = this.getModel('exportSchema') as JSONModel;
+		const selectedIndex = exportModel.getProperty('/selectedFormatIndex') as number;
+		const formats = ['openapi', 'dart', 'kotlin', 'swift', 'json-schema', 'ts'];
+		const extensions = ['json', 'dart', 'kt', 'swift', 'json', 'zip'];
+		const format = formats[selectedIndex];
+		const ext = extensions[selectedIndex];
+		
+		const versionDetailModel = this.getModel('versionDetail') as JSONModel;
+		const xml = versionDetailModel.getProperty('/selectedDetailXml') as string;
+		if (!xml) {
+			MessageBox.error('No XML content available to export.');
+			return;
+		}
+
+		const detail = versionDetailModel.getProperty('/selectedDetail') as registryDetail | null;
+		const defaultBaseName = (detail?.serviceDefId || detail?.detailId || 'schema').replace(/[^a-zA-Z0-9_.-]+/g, '_');
+
+		exportModel.setProperty('/busy', true);
+		BusyIndicator.show(0);
+		try {
+			const { blob, isZip } = await this.getOwnerComponent().getDetailService().exportSchema(xml, format);
+			const finalExt = isZip ? 'zip' : ext;
+			
+			await this.downloadFile(`${defaultBaseName}.${finalExt}`, blob);
+			
+			this._exportSchemaDialog?.close();
+			MessageToast.show('Schema exported successfully.');
+		} catch (error: any) {
+			await this.handleServiceError(error);
+		} finally {
+			exportModel.setProperty('/busy', false);
+			BusyIndicator.hide();
+		}
+	}
+
+	public onCancelExportSchema(): void {
+		this._exportSchemaDialog?.close();
 	}
 
 	private validateEmails(raw: string): { valid: string[]; invalid: string[] } {
@@ -512,8 +579,7 @@ export default class VersionDetail extends BaseController {
 		}
 	}
 
-	private downloadTextFile(fileName: string, content: string): void {
-		const blob = new Blob([content], { type: 'application/xml' });
+	private async downloadFile(fileName: string, blob: Blob): Promise<void> {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;

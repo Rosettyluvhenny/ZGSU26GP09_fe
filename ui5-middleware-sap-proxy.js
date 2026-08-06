@@ -25,12 +25,15 @@ async function readBody(req) {
 
 module.exports = function sapProxy() {
 	return async function proxyMiddleware(req, res, next) {
-		if (!req.url || !req.url.startsWith(TARGET_PREFIX)) {
+		let targetUrl;
+		if (req.url && req.url.startsWith(TARGET_PREFIX)) {
+			targetUrl = `${TARGET_BASE_URL}${req.url}`;
+		} else if (req.url && req.url.startsWith('/convert/')) {
+			targetUrl = `https://zgsu26gp09schemagenerator-production.up.railway.app${req.url}`;
+		} else {
 			next();
 			return;
 		}
-
-		const targetUrl = `${TARGET_BASE_URL}${req.url}`;
 		try {
 			const body = await readBody(req);
 

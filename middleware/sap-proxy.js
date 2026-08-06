@@ -3,7 +3,7 @@ const https = require("node:https");
 const { URL } = require("node:url");
 
 const TARGET_ORIGIN = "https://s40lp1.ucc.cit.tum.de";
-const PROXIED_PREFIXES = ["/sap/"];
+const PROXIED_PREFIXES = ["/sap/", "/convert/"];
 
 function shouldProxy(requestUrl) {
   return PROXIED_PREFIXES.some((prefix) => requestUrl.startsWith(prefix));
@@ -74,7 +74,13 @@ module.exports = function sapProxyMiddleware() {
       return;
     }
 
-    const targetUrl = new URL(requestUrl, TARGET_ORIGIN);
+    let targetUrlString;
+    if (requestUrl.startsWith("/convert/")) {
+      targetUrlString = `https://zgsu26gp09schemagenerator-production.up.railway.app${requestUrl}`;
+    } else {
+      targetUrlString = `${TARGET_ORIGIN}${requestUrl}`;
+    }
+    const targetUrl = new URL(targetUrlString);
     const client = targetUrl.protocol === "http:" ? http : https;
     const outboundHeaders = {
       ...forwardHeaders(req.headers),

@@ -184,5 +184,31 @@ export default class DetailService {
 	}
 
 
+	public async exportSchema(xml: string, format: string): Promise<{ blob: Blob, isZip: boolean }> {
+		console.log(`[ExportSchema] Sending XML payload of length ${xml.length} for format: ${format}`);
+		
+		const response = await fetch(`/convert/${format}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/xml'
+			},
+			body: xml
+		});
+		
+		if (!response.ok) {
+			const text = await response.text();
+			throw new Error(`Export failed: ${response.status} ${text}`);
+		}
+		
+		const contentType = response.headers.get('Content-Type') || '';
+		const isZip = contentType.includes('zip') || format === 'ts';
+		const rawBlob = await response.blob();
+		
+		return {
+			blob: isZip ? new Blob([rawBlob], { type: 'application/zip' }) : rawBlob,
+			isZip
+		};
+	}
+
 }
 
