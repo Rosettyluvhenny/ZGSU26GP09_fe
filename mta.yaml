@@ -25,7 +25,7 @@ modules:
           app-uri: ${default-url}
 
   - name: com.zgp9.fe
-    type: javascript.nodejs
+    type: html5
     path: .
     build-parameters:
       builder: custom
@@ -50,12 +50,15 @@ modules:
             - 'com.zgp9.fe.zip'
           target-path: resources/
 
+
 resources:
   - name: zgp9-html5-repo-host
     type: org.cloudfoundry.managed-service
     parameters:
       service: html5-apps-repo
       service-plan: app-host
+      service-keys:
+       - name: zgp9-html5-repo-host-key
 
   - name: zgp9-html5-repo-runtime
     type: org.cloudfoundry.managed-service
@@ -69,6 +72,8 @@ resources:
       service: xsuaa
       service-plan: application
       path: ./xs-security.json
+      service-keys:
+        - name: zgp9-uaa-key
 
   - name: zgp9-destination
     type: org.cloudfoundry.managed-service
