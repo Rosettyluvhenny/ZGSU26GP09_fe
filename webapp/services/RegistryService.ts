@@ -1,6 +1,4 @@
 import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
-import type ODataListBinding from 'sap/ui/model/odata/v4/ODataListBinding';
-import type ODataContextBinding from 'sap/ui/model/odata/v4/ODataContextBinding';
 import type Context from 'sap/ui/model/odata/v4/Context';
 import Filter from 'sap/ui/model/Filter';
 import FilterOperator from 'sap/ui/model/FilterOperator';
@@ -17,13 +15,9 @@ function delay<T>(value: T, ms = 250): Promise<T> {
 	});
 }
 
-function normalizeGuid(value: string): string {
-	return value.replace(/[{}]/g, '').trim();
-}
 
-function formatGuidLiteral(value: string): string {
-	return normalizeGuid(value);
-}
+
+
 
 function asString(value: unknown): string {
 	if (value === null || value === undefined) {
@@ -59,13 +53,13 @@ export default class RegistryService {
 		try {
 			// Action bound to the Registry collection (no specific key) -> bind on the
 			// list binding's header context.
-			const oListBinding = this.model.bindList('/Registry') as ODataListBinding;
+			const oListBinding = this.model.bindList('/Registry');
 			const oHeaderContext = oListBinding.getHeaderContext();
 
 			const oOperation = this.model.bindContext(
 				'com.sap.gateway.srvd_a2x.zsr_registry.v0001.getPermissions(...)',
 				oHeaderContext
-			) as ODataContextBinding;
+			);
 
 			await oOperation.execute();
 			const result = oOperation.getBoundContext()?.getObject() as Record<string, unknown>;
@@ -132,7 +126,7 @@ export default class RegistryService {
 		}
 
 		try {
-			const oListBinding = this.model.bindList('/Registry') as ODataListBinding;
+			const oListBinding = this.model.bindList('/Registry');
 			const oContext = oListBinding.create(payload);
 			await oContext.created();
 
@@ -177,10 +171,10 @@ export default class RegistryService {
 			const oOperation = this.model.bindContext(
 				'com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion(...)',
 				oRegistryContext
-			) as ODataContextBinding;
+			);
 
 			await oOperation.execute();
-			const result = oOperation.getBoundContext()?.getObject();
+			const result = oOperation.getBoundContext()?.getObject() as unknown;
 			return delay(result, 350);
 		} catch (error) {
 			throw extractServiceError(error, 'generateVersion');
@@ -198,7 +192,7 @@ export default class RegistryService {
 
 	private async readValueHelpList(path: string, keyFields: string[]): Promise<registryValueHelpItem[]> {
 		try {
-			const oListBinding = this.model.bindList(path) as ODataListBinding;
+			const oListBinding = this.model.bindList(path);
 			const aContexts = await oListBinding.requestContexts();
 			const entities = aContexts.map((oContext) => oContext.getObject() as Record<string, unknown>);
 			return this.toValueHelpItems(entities, keyFields);
@@ -321,7 +315,7 @@ export default class RegistryService {
 				undefined,
 				[new Sorter('LastChangeAt', true)],
 				aFilters.length > 0 ? aFilters : undefined
-			) as ODataListBinding;
+			);
 
 			const aContexts = await oListBinding.requestContexts();
 			const entities = aContexts.map((oContext) => oContext.getObject() as Record<string, unknown>);
@@ -347,7 +341,7 @@ export default class RegistryService {
 	private async changeStatus(registryId: string, status: registry['status']): Promise<registry> {
 		try {
 			const oContext = this.getRegistryContext(registryId);
-			oContext.setProperty('Status', status);
+			await oContext.setProperty('Status', status);
 			await this.model.submitBatch('$auto');
 
 			const entity = oContext.getObject() as Record<string, unknown>;

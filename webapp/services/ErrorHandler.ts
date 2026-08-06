@@ -1,6 +1,6 @@
 import MessageBox from "sap/m/MessageBox";
 import ServiceError from "./ServiceError";
-import ODataClient from "./ODataClient";
+
 import type Router from "sap/ui/core/routing/Router";
 
 export default class ErrorHandler {
@@ -10,6 +10,7 @@ export default class ErrorHandler {
 		private readonly router: Router
 	) { }
 
+	// eslint-disable-next-line @typescript-eslint/require-await
 	public async handle(error: unknown): Promise<void> {
 		if (error instanceof ServiceError) {
 			if (error.status === 401 || error.status === 403) {
@@ -18,19 +19,8 @@ export default class ErrorHandler {
 				}
 				this.handlingAuthError = true;
 
-				if (error.status === 403) {
-					try {
-						await ODataClient.refreshCsrfToken();
-						this.handlingAuthError = false;
-						return; // Recovered from 403 — retry on next request
-					} catch {
-						// Fall through to navigate to login
-					}
-				}
-
-				ODataClient.clearSecurityState();
 				this.router.navTo("login", undefined, undefined, true);
-				const message = error.status === 403 ? "Your session expired. Please sign in again." : "Your session expired. Please sign in again.";
+				const message = "Your session expired. Please sign in again.";
 				MessageBox.error(message, {
 					onClose: () => {
 						this.handlingAuthError = false;

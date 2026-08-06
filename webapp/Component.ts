@@ -1,4 +1,4 @@
-﻿import UIComponent from 'sap/ui/core/UIComponent';
+import UIComponent from 'sap/ui/core/UIComponent';
 import Device from 'sap/ui/Device';
 import * as Messaging from 'sap/ui/core/Messaging';
 import Theming from 'sap/ui/core/Theming';
@@ -7,7 +7,7 @@ import JSONModel from 'sap/ui/model/json/JSONModel';
 
 import { readThemePreference } from './services/SessionStorage';
 
-import AuthenticationService from './services/AuthenticationService';
+
 import DetailService from './services/DetailService';
 import ErrorHandler from './services/ErrorHandler';
 import JobService from './services/JobService';
@@ -25,7 +25,7 @@ export default class Component extends UIComponent {
 		interfaces: ['sap.ui.core.IAsyncContentCreation']
 	};
 
-	private authenticationService!: AuthenticationService;
+
 	private detailService!: DetailService;
 	private registryService!: RegistryService;
 	private versionService!: VersionService;
@@ -38,7 +38,7 @@ export default class Component extends UIComponent {
 		super.init();
 
 		const model = this.getModel() as import("sap/ui/model/odata/v4/ODataModel").default;
-		this.authenticationService = new AuthenticationService(model);
+
 		this.detailService = new DetailService(model);
 		this.registryService = new RegistryService(model);
 		this.versionService = new VersionService(this.detailService, model);
@@ -114,9 +114,7 @@ export default class Component extends UIComponent {
 		return this.contentDensityClass;
 	}
 
-	public getAuthenticationService(): AuthenticationService {
-		return this.authenticationService;
-	}
+
 
 	public getRegistryService(): RegistryService {
 		return this.registryService;

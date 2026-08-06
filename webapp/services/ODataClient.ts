@@ -1,6 +1,4 @@
-﻿import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
-import type ODataListBinding from 'sap/ui/model/odata/v4/ODataListBinding';
-import type ODataContextBinding from 'sap/ui/model/odata/v4/ODataContextBinding';
+import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
 import type Context from 'sap/ui/model/odata/v4/Context';
 import type Filter from 'sap/ui/model/Filter';
 import type Sorter from 'sap/ui/model/Sorter';
@@ -71,7 +69,7 @@ async function withCsrfRetry<T>(model: ODataModel, operation: () => Promise<T>):
 		if (!isCsrfFailure(error)) {
 			throw error;
 		}
-		await model.refresh();
+		model.refresh();
 		return operation();
 	}
 }
@@ -94,7 +92,7 @@ export function createODataClient(model: ODataModel) {
 				options.sorters,
 				options.filters,
 				options.parameters
-			) as ODataListBinding;
+			);
 
 			const aContexts = await oListBinding.requestContexts(options.skip, options.top);
 			return aContexts.map((oContext) => oContext.getObject() as T);
@@ -116,7 +114,7 @@ export function createODataClient(model: ODataModel) {
 			const oListBinding = model.bindList(path, undefined, options.sorters, options.filters, {
 				...options.parameters,
 				'$count': 'true'
-			}) as ODataListBinding;
+			});
 
 			const aContexts = await oListBinding.requestContexts(options.skip, options.top);
 			const items = aContexts.map((oContext) => oContext.getObject() as T);
@@ -143,7 +141,7 @@ export function createODataClient(model: ODataModel) {
 	async function create<T = Record<string, unknown>>(collectionPath: string, payload: Record<string, unknown>): Promise<T> {
 		try {
 			return await withCsrfRetry(model, async () => {
-				const oListBinding = model.bindList(collectionPath) as ODataListBinding;
+				const oListBinding = model.bindList(collectionPath);
 				const oContext = oListBinding.create(payload);
 				await oContext.created();
 				return oContext.getObject() as T;
@@ -162,7 +160,7 @@ export function createODataClient(model: ODataModel) {
 			return await withCsrfRetry(model, async () => {
 				const oContext = bindContextAt(entityPath);
 				for (const [field, value] of Object.entries(patch)) {
-					oContext.setProperty(field, value);
+					await oContext.setProperty(field, value);
 				}
 				await model.submitBatch(groupId);
 				return oContext.getObject() as T;
@@ -180,7 +178,7 @@ export function createODataClient(model: ODataModel) {
 		try {
 			return await withCsrfRetry(model, async () => {
 				for (const [field, value] of Object.entries(patch)) {
-					context.setProperty(field, value);
+					await context.setProperty(field, value);
 				}
 				await model.submitBatch(groupId);
 				return context.getObject() as T;
@@ -219,7 +217,7 @@ export function createODataClient(model: ODataModel) {
 	async function callAction<T = Record<string, unknown>>(operationPath: string, options: CallActionOptions = {}): Promise<T> {
 		try {
 			return await withCsrfRetry(model, async () => {
-				const oOperation = model.bindContext(operationPath, options.context) as ODataContextBinding;
+				const oOperation = model.bindContext(operationPath, options.context);
 
 				if (options.parameters) {
 					for (const [name, value] of Object.entries(options.parameters)) {
@@ -236,7 +234,7 @@ export function createODataClient(model: ODataModel) {
 	}
 
 	function getHeaderContext(collectionPath: string): Context {
-		const oListBinding = model.bindList(collectionPath) as ODataListBinding;
+		const oListBinding = model.bindList(collectionPath);
 		return oListBinding.getHeaderContext();
 	}
 

@@ -36,38 +36,36 @@
 					<content>
 						<form:SimpleForm layout="ResponsiveGridLayout" columnsL="2" columnsM="2" editable="false">
 							<form:content>
-							<Label text="ID" />
-    <Text text="{registryDetail>/registry/groupId}" />
+									<Label text="ID" />
+    						<Text text="{registryDetail>/registry/groupId}" />
 
-    <Label text="Registry Name" />
-    <Text text="{registryDetail>/registry/groupName}" />
+    						<Label text="Group Name" />
+    						<Text text="{registryDetail>/registry/groupName}" />
 
-    <Label text="Service Name" />
-    <Text text="{registryDetail>/registry/serviceName}" />
 
-    <Label text="Service Type" />
-    <Text text="{registryDetail>/registry/groupType}" />
+    						<Label text="Group Type" />
+    						<Text text="{registryDetail>/registry/groupType}" />
 
-    <Label text="Status Code" />
-    <Text text="{registryDetail>/registry/status}" />
+    						<Label text="Status Code" />
+    						<Text text="{registryDetail>/registry/status}" />
 
-    <Label text="Version No." />
-    <Text text="{registryDetail>/registry/versionNo}" />
+    						<Label text="Version No." />
+    						<Text text="{registryDetail>/registry/versionNo}" />
 
-    <Label text="Created By" />
-    <Text text="{registryDetail>/registry/registeredBy}" />
+							<Label text="Created By" />
+    						<Text text="{registryDetail>/registry/registeredBy}" />
 
-    <Label text="Created At" />
-    <Text text="{path: 'registryDetail>/registry/registeredAt', formatter: '.formatDateTime'}" />
+    						<Label text="Created At" />
+    						<Text text="{path: 'registryDetail>/registry/registeredAt', formatter: '.formatDateTime'}" />
 
-    <Label text="Last Changed By" />
-    <Text text="{registryDetail>/registry/lastChangedBy}" />
+    						<Label text="Last Changed By" />
+    						<Text text="{registryDetail>/registry/lastChangedBy}" />
 
-    <Label text="Last Changed At" />
-    <Text text="{path: 'registryDetail>/registry/lastChangeAt', formatter: '.formatDateTime'}" />
+    						<Label text="Last Changed At" />
+    						<Text text="{path: 'registryDetail>/registry/lastChangeAt', formatter: '.formatDateTime'}" />
 
-    <Label text="Description" />
-    <Text text="{registryDetail>/registry/description}" wrapping="true" />
+							<Label text="Description" />
+   							 <Text text="{registryDetail>/registry/description}" wrapping="true" />
 							</form:content>
 						</form:SimpleForm>
 					</content>

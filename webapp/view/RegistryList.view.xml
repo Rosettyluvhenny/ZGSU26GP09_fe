@@ -36,7 +36,7 @@
 							</Select>
 						</VBox>
 						<VBox class="sapUiSmallMarginEnd">
-							<Label text="Registry Name" />
+							<Label text="Group Name" />
 							<Input width="12rem" value="{registryList>/groupName}" placeholder="Filter by Name" submit=".onFilterChange" />
 						</VBox>
 						<VBox class="sapUiSmallMarginEnd">
@@ -70,9 +70,8 @@
 						</OverflowToolbar>
 					</headerToolbar>
 					<columns>
-						<Column width="16rem"><Text text="Registry Name" /></Column>
-						<Column width="12rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Service Name" /></Column>
-						<Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Service Type" /></Column>
+						<Column width="16rem"><Text text="Group Name" /></Column>
+						<Column width="8rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Group Type" /></Column>
 						<Column width="6rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Version No" /></Column>
 						<Column width="9rem"><Text text="Current Status" /></Column>
 						<Column minScreenWidth="1300px" demandPopin="true"><Text text="Created By" /></Column>
@@ -85,7 +84,6 @@
 						<ColumnListItem type="Navigation" press=".onRowPress">
 							<cells>
 								<ObjectIdentifier title="{registryList>groupName}" text="{registryList>description}" />
-								<Text text="{registryList>serviceName}" />
 								<ObjectStatus text="{registryList>groupType}" />
 								<Text text="{registryList>versionNo}" />
 								<ObjectStatus text="{registryList>statusText}" state="{path: 'registryList>status', formatter: '.formatStatusState'}" />

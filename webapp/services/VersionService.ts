@@ -4,7 +4,7 @@ import Sorter from 'sap/ui/model/Sorter';
 import ServiceError from './ServiceError';
 import { createODataClient } from './ODataClient';
 
-import type { compareVersionEntry, compareVersionResult, registryVersion, versionCompareActionEntry, versionCompareActionResult } from '../model/types';
+import type { compareVersionEntry, compareVersionResult, registryVersion, versionCompareActionResult } from '../model/types';
 import { mapVersionEntity } from './ODataParsers';
 import DetailService from './DetailService';
 

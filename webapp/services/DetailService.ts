@@ -2,8 +2,8 @@ import type ODataModel from 'sap/ui/model/odata/v4/ODataModel';
 import { createODataClient } from './ODataClient';
 import ServiceError from './ServiceError';
 
-import type { detailMetadataResult, nodeDiffActionResult, nodeDiffEntry, nodeTreeActionResult, nodeTreeResponseItem, registryDetail, sendMailParams, sendMailResult } from '../model/types';
-import { mapDetailEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
+import type { detailMetadataResult, nodeDiffEntry, nodeTreeResponseItem, registryDetail, sendMailParams, sendMailResult } from '../model/types';
+import { mapDetailEntity } from './ODataParsers';
 
 function normalizeGuid(value: string): string {
 	return value.replace(/[{}]/g, '').trim();
@@ -102,7 +102,7 @@ export default class DetailService {
 				context: this.odata.getHeaderContext('/Detail'),
 				parameters: { DetailId: detailId }
 			}
-		) as unknown as Record<string, unknown>;
+		);
 
 		const results = payload?.value || payload?.NODETREE || payload?.NodeTree || payload?.nodeTree || payload;
 		if (Array.isArray(results)) {
@@ -121,7 +121,7 @@ export default class DetailService {
 					CompareDetailId: compareDetailId
 				}
 			}
-		) as unknown as Record<string, unknown>;
+		);
 
 		const results = payload?.value || payload?.NODEDIFF || payload?.NodeDiff || payload?.nodeDiff || payload;
 		if (Array.isArray(results)) {
@@ -132,7 +132,7 @@ export default class DetailService {
 
 	private async loadDetailsFromBackend(versionId: string): Promise<registryDetail[]> {
 		const entities = await this.odata.readList(`/Version(VersionId=${formatGuidLiteral(versionId)})/_Detail`);
-		return entities.map((entity) => mapDetailEntity(entity as Record<string, unknown>));
+		return entities.map((entity) => mapDetailEntity(entity));
 	}
 
 	private async loadDetailFromBackend(detailId: string): Promise<registryDetail | null> {
@@ -141,7 +141,7 @@ export default class DetailService {
 			return null;
 		}
 
-		return mapDetailEntity(entity as Record<string, unknown>);
+		return mapDetailEntity(entity);
 	}
 
 	private async loadParsedMetadataFromBackend(detailId: string): Promise<detailMetadataResult | null> {
@@ -186,7 +186,7 @@ export default class DetailService {
 
 	public async exportSchema(xml: string, format: string): Promise<{ blob: Blob, isZip: boolean }> {
 		console.log(`[ExportSchema] Sending XML payload of length ${xml.length} for format: ${format}`);
-		
+
 		const response = await fetch(`/convert/${format}`, {
 			method: 'POST',
 			headers: {
@@ -194,16 +194,16 @@ export default class DetailService {
 			},
 			body: xml
 		});
-		
+
 		if (!response.ok) {
 			const text = await response.text();
 			throw new Error(`Export failed: ${response.status} ${text}`);
 		}
-		
+
 		const contentType = response.headers.get('Content-Type') || '';
 		const isZip = contentType.includes('zip') || format === 'ts';
 		const rawBlob = await response.blob();
-		
+
 		return {
 			blob: isZip ? new Blob([rawBlob], { type: 'application/zip' }) : rawBlob,
 			isZip

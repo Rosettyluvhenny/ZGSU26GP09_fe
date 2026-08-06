@@ -161,7 +161,7 @@ export default class VersionDetail extends BaseController {
 		MessageToast.show(copied ? 'XML copied to clipboard.' : 'Unable to copy XML.');
 	}
 
-	public async onDownloadXml(): Promise<void> {
+	public onDownloadXml(): void {
 		const model = this.getModel('versionDetail') as JSONModel;
 		const xml = model.getProperty('/selectedDetailXml') as string;
 		if (!xml) {
@@ -171,7 +171,7 @@ export default class VersionDetail extends BaseController {
 
 		const detail = model.getProperty('/selectedDetail') as registryDetail | null;
 		const baseName = (detail?.serviceDefId || detail?.detailId || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
-		await this.downloadFile(`${baseName}.xml`, new Blob([xml], { type: 'application/xml' }));
+		this.downloadFile(`${baseName}.xml`, new Blob([xml], { type: 'application/xml' }));
 		MessageToast.show('XML downloaded successfully.');
 	}
 
@@ -341,7 +341,7 @@ export default class VersionDetail extends BaseController {
 		const extensions = ['json', 'dart', 'kt', 'swift', 'json', 'zip'];
 		const format = formats[selectedIndex];
 		const ext = extensions[selectedIndex];
-		
+
 		const versionDetailModel = this.getModel('versionDetail') as JSONModel;
 		const xml = versionDetailModel.getProperty('/selectedDetailXml') as string;
 		if (!xml) {
@@ -357,12 +357,12 @@ export default class VersionDetail extends BaseController {
 		try {
 			const { blob, isZip } = await this.getOwnerComponent().getDetailService().exportSchema(xml, format);
 			const finalExt = isZip ? 'zip' : ext;
-			
-			await this.downloadFile(`${defaultBaseName}.${finalExt}`, blob);
-			
+
+			this.downloadFile(`${defaultBaseName}.${finalExt}`, blob);
+
 			this._exportSchemaDialog?.close();
 			MessageToast.show('Schema exported successfully.');
-		} catch (error: any) {
+		} catch (error: unknown) {
 			await this.handleServiceError(error);
 		} finally {
 			exportModel.setProperty('/busy', false);
@@ -579,7 +579,7 @@ export default class VersionDetail extends BaseController {
 		}
 	}
 
-	private async downloadFile(fileName: string, blob: Blob): Promise<void> {
+	private downloadFile(fileName: string, blob: Blob): void {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;

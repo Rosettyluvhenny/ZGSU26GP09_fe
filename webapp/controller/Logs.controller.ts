@@ -212,13 +212,13 @@ export default class Logs extends BaseController {
 
 	public formatShortId(id: string): string {
 		if (!id) {
-			return 'â€”';
+			return '-';
 		}
 		const normalized = id.replace(/[{}]/g, '');
 		if (normalized.length <= 13) {
 			return normalized;
 		}
-		return `${normalized.slice(0, 8)}â€¦${normalized.slice(-4)}`;
+		return `${normalized.slice(0, 8)}...${normalized.slice(-4)}`;
 	}
 
 	private async loadLogs(reset: boolean): Promise<void> {
