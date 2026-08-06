@@ -18,6 +18,7 @@ modules:
       - name: zgp9-destination
       - name: zgp9-connectivity
       - name: zgp9-ias
+      - name: zgp9-html5-repo-host
     provides:
       - name: app-api
         properties:
@@ -26,7 +27,7 @@ modules:
 
   - name: com.zgp9.fe
     type: html5
-    path: .
+    path: frontend
     build-parameters:
       builder: custom
       commands:
