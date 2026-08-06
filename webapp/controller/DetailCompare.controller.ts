@@ -4,6 +4,7 @@ import type Tree from 'sap/m/Tree';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
+import History from 'sap/ui/core/routing/History';
 // UI5 1.108 exports Icon/Action as named module exports rather than as members of the
 // default export, so MessageBox.Icon / MessageBox.Action do not type-check against it.
 import MessageBox, { Icon as MessageBoxIcon, Action as MessageBoxAction } from 'sap/m/MessageBox';
@@ -580,6 +581,13 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	public onNavBack(): void {
+		// Prefer browser history so Back does not re-push VersionCompare with replace
+		// (that stacked duplicate entries and made later Back from Version Detail loop).
+		const previousHash = History.getInstance().getPreviousHash();
+		if (previousHash !== undefined && previousHash !== '') {
+			window.history.go(-1);
+			return;
+		}
 		if (this.registryId && this.leftVersionId && this.rightVersionId) {
 			this.navTo('versionCompare', {
 				registryId: this.registryId,

@@ -285,13 +285,20 @@ export default class VersionDetail extends BaseController {
 		const htmlSizeKb = Math.round(htmlContent.length / 1024);
 		console.log(`[SendVersionMail] HTML size: ${htmlSizeKb} KB, recipients: "${recipients}"`);
 
+		const attachVersionId = this.versionId ?? detail?.versionId ?? '';
+		if (!attachVersionId) {
+			MessageBox.error('Version ID is missing. Cannot attach version to the email.');
+			return;
+		}
+
 		sendMailModel.setProperty('/busy', true);
 		BusyIndicator.show(0);
 		try {
 			const result = await this.getOwnerComponent().getDetailService().sendEmail({
 				htmlContent,
 				recipients,
-				subject
+				subject,
+				attachVersionId
 			});
 			this._sendMailDialog?.close();
 
