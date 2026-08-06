@@ -9,7 +9,10 @@
 	<Page id="homePage" title="Home" showHeader="false" busy="{home>/busy}">
 		<content>
 			<VBox class="sapUiMediumMargin">
-				<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" class="sapUiSmallMarginBottom" />
+				<HBox alignItems="Center" class="sapUiSmallMarginBottom">
+					<core:Fragment fragmentName="com.zgp9.fe.view.fragments.NavToggleButton" type="XML" />
+					<Title text="{= 'Welcome back' + (${session>/userName} ? ', ' + ${session>/userName} : '') + '!' }" level="H2" />
+				</HBox>
 				<HBox alignItems="Center" class="sapUiMediumMarginBottom">
 					<Text text="Here's a snapshot of your registries and scan jobs." />
 					<ToolbarSpacer />
@@ -75,7 +78,7 @@
 								<content>
 									<NumericContent
 										value="{home>/registryStats/archive}"
-										icon="sap-icon://box"
+										icon="sap-icon://inventory"
 										valueColor="Error"
 										withMargin="false" />
 								</content>
@@ -167,7 +170,7 @@
 												showIcon="true"
 												class="sapUiTinyMarginTop"
 												visible="{home>changeSummary/breaking}" />
-											<List items="{home>changeSummary/details}" class="sapUiTinyMarginTop" visible="{= ${home>changeSummary/details}.length > 0 }">
+											<List items="{path: 'home>changeSummary/details', templateShareable: false}" class="sapUiTinyMarginTop" visible="{= ${home>changeSummary/details}.length > 0 }">
 												<StandardListItem
 													title="{home>text}"
 													icon="{= ${home>severity} === 'Breaking' ? 'sap-icon://message-error' : 'sap-icon://message-success' }"

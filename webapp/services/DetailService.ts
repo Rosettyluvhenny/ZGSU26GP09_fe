@@ -154,13 +154,19 @@ export default class DetailService {
 	}
 
 	public async sendEmail(params: SendMailParams): Promise<SendMailResult> {
+		const payload: Record<string, string> = {
+			HtmlContent: params.htmlContent,
+			Recipients: params.recipients,
+			Subject: params.subject
+		};
+		const attachVersionId = params.attachVersionId?.replace(/[{}]/g, '').trim();
+		if (attachVersionId) {
+			payload.AttachVersionId = attachVersionId;
+		}
+
 		const raw = await this.client.postJson(
 			'/Detail/com.sap.gateway.srvd_a2x.zsr_registry.v0001.sendEmail',
-			{
-				HtmlContent: params.htmlContent,
-				Recipients: params.recipients,
-				Subject: params.subject
-			},
+			payload,
 			{ headers: await this.client.ensureWriteHeaders('POST') }
 		);
 		const entity = normalizeODataEntity(raw);

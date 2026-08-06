@@ -1,9 +1,10 @@
-import Theming from "sap/ui/core/Theming";
+import Core from "sap/ui/core/Core";
 import type Control from "sap/ui/core/Control";
+import type { Router$RouteMatchedEvent } from "sap/ui/core/routing/Router";
 
 import BaseController from "./BaseController";
 import ODataClient from "../services/ODataClient";
-import { readSideNavPreference, writeSideNavPreference, writeThemePreference } from "../services/SessionStorage";
+import { readSideNavPreference, writeThemePreference } from "../services/SessionStorage";
 
 const LIGHT_THEME = "sap_horizon";
 const DARK_THEME = "sap_horizon_dark";
@@ -15,7 +16,7 @@ export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;
 
 	public onInit(): void {
-		this.getRouter().attachRouteMatched((event) => { this.onGlobalRouteMatched(event); });
+		this.getRouter().attachRouteMatched((event: Router$RouteMatchedEvent) => { this.onGlobalRouteMatched(event); });
 
 		this.getView().addEventDelegate({
 			onAfterRendering: () => this.flushPendingNavigation(),
@@ -29,15 +30,23 @@ export default class MainShell extends BaseController {
 		this.getUiModel().setProperty("/sideNavVisible", sideNavVisible);
 		this.applySideNavVisibility(sideNavVisible);
 
+		// The toggle button lives in the routed pages' title bars now, so the press is
+		// handled by whichever page controller is showing (BaseController.onToggleSideNav)
+		// and never reaches this controller. Watch the model instead of a click, so the
+		// shell's CSS class follows /sideNavVisible whoever wrote it.
+		//
+		// A standalone binding, not `attachPropertyChange`: on 1.108 JSONModel.setProperty
+		// runs checkUpdate over the model's registered bindings but does **not** fire the
+		// model-level propertyChange event, so the obvious-looking handler never runs. The
+		// `addBinding` call is what registers this one — `bindProperty` alone does not.
+		const sideNavBinding = this.getUiModel().bindProperty("/sideNavVisible");
+		this.getUiModel().addBinding(sideNavBinding);
+		sideNavBinding.attachChange(() => {
+			this.applySideNavVisibility(sideNavBinding.getValue() as boolean);
+		});
+
 		// Load permissions once on page load — drives nav bar and button visibility
 		void this.loadGlobalPermissions();
-	}
-
-	public onToggleSideNav(): void {
-		const visible = !(this.getUiModel().getProperty("/sideNavVisible") as boolean);
-		this.getUiModel().setProperty("/sideNavVisible", visible);
-		this.applySideNavVisibility(visible);
-		writeSideNavPreference(visible);
 	}
 
 	private applySideNavVisibility(visible: boolean): void {
@@ -63,7 +72,7 @@ export default class MainShell extends BaseController {
 		}
 	}
 
-	private onGlobalRouteMatched(event: import("sap/ui/core/routing/Router").Router$RouteMatchedEvent): void {
+	private onGlobalRouteMatched(event: Router$RouteMatchedEvent): void {
 		const routeName = event.getParameter("name");
 
 		if (routeName.startsWith("registry") || routeName.startsWith("version") || routeName.startsWith("detailCompare")) {
@@ -106,7 +115,8 @@ export default class MainShell extends BaseController {
 	public onToggleTheme(): void {
 		const nextIsDark = !this.getUiModel().getProperty("/isDarkTheme");
 		const nextTheme = nextIsDark ? DARK_THEME : LIGHT_THEME;
-		Theming.setTheme(nextTheme);
+		// ui5lint-disable-next-line no-deprecated-api -- sap/ui/core/Theming does not exist on the launchpad's UI5 1.108.33
+		Core.applyTheme(nextTheme);
 		writeThemePreference(nextTheme);
 		this.getUiModel().setProperty("/isDarkTheme", nextIsDark);
 	}
@@ -123,12 +133,28 @@ export default class MainShell extends BaseController {
 	}
 
 	/**
-	 * Full-page navigation to the approuter's central logout endpoint. This is what
-	 * actually ends the session on BTP: the approuter clears its session cookie and
-	 * the XSUAA session, then redirects to logoutPage "/". A plain reload could not do
-	 * this — the session cookie survived it, so the approuter re-served the app and the
-	 * user appeared stuck logged in. Locally the sap-proxy mirrors /logout as a redirect
-	 * to "/". Isolated for unit tests so the QUnit page is not navigated under the runner.
+	 * Ends the session the way the standalone host expects.
+	 *
+	 * There is deliberately no launchpad branch here. Embedded, the FLP owns the session and
+	 * logout happens through the shell bar's avatar menu; the app's own Logout button — the
+	 * only caller of this method — is hidden when embedded (FLP_MIGRATION.md 3.3), so an
+	 * `isInLaunchpad()` branch was unreachable code and was deleted. See 3.4.
+	 *
+	 * Known gap, unchanged by that deletion: on the **ABAP standalone** URL "/logout" does not
+	 * exist — it is an approuter endpoint — so that host has been 404ing on logout all along.
+	 *
+	 * Standalone on BTP, "/logout" is the approuter's central logout endpoint: it clears the
+	 * approuter session cookie and the XSUAA session, then redirects to the configured
+	 * logoutPage. A plain reload cannot do this — the session cookie survives it, so the
+	 * approuter re-serves the app and the user appears stuck logged in.
+	 *
+	 * The live logoutPage is "/logout.html", from approuter/xs-app.json. Note the root
+	 * xs-app.json still says "/" — it is bundled into the app zip but is not what the
+	 * standalone approuter reads (FLP_MIGRATION.md deferred finding A). Locally
+	 * ui5-middleware-sap-proxy mirrors /logout as a redirect to /logout.html, so this branch
+	 * is exercisable with npm start.
+	 *
+	 * Isolated for unit tests so the QUnit page is not navigated under the runner.
 	 */
 	protected redirectToLogout(): void {
 		window.location.assign("/logout");
@@ -137,9 +163,9 @@ export default class MainShell extends BaseController {
 	private navigateWhenReady(route: "home" | "registryList" | "jobList" | "logs"): void {
 		// On phone the nav is a full-screen overlay; close it so it doesn't cover the
 		// page the user just navigated to.
+		// The onInit listener above turns this into the CSS class, so only the model is set.
 		if (window.matchMedia("(max-width: 599px)").matches && this.getUiModel().getProperty("/sideNavVisible")) {
 			this.getUiModel().setProperty("/sideNavVisible", false);
-			this.applySideNavVisibility(false);
 		}
 		this.pendingRoute = route;
 		this.flushPendingNavigation();
@@ -157,9 +183,5 @@ export default class MainShell extends BaseController {
 		const route = this.pendingRoute;
 		this.pendingRoute = null;
 		this.navTo(route, {}, true);
-	}
-
-	private getCurrentHash(): string {
-		return window.location.hash.replace(/^#/, "");
 	}
 }

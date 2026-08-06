@@ -1,10 +1,13 @@
 import type { ListBase$ItemPressEvent } from 'sap/m/ListBase';
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
-import TreeTable from 'sap/ui/table/TreeTable';
+import type Tree from 'sap/m/Tree';
 import type UI5Event from 'sap/ui/base/Event';
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import JSONModel from 'sap/ui/model/json/JSONModel';
-import MessageBox from 'sap/m/MessageBox';
+import History from 'sap/ui/core/routing/History';
+// UI5 1.108 exports Icon/Action as named module exports rather than as members of the
+// default export, so MessageBox.Icon / MessageBox.Action do not type-check against it.
+import MessageBox, { Icon as MessageBoxIcon, Action as MessageBoxAction } from 'sap/m/MessageBox';
 import MessageToast from 'sap/m/MessageToast';
 import Fragment from 'sap/ui/core/Fragment';
 import type Dialog from 'sap/m/Dialog';
@@ -87,7 +90,7 @@ export default class DetailCompare extends BaseController {
 		this.setModel(model, 'detailCompare');
 		this.getRouter()
 			.getRoute("detailCompare")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
@@ -250,9 +253,9 @@ export default class DetailCompare extends BaseController {
 					`• ${ACTION_FULL} (${htmlSizeKb} KB) — may fail on backend/Gmail\n` +
 					`• Cancel`,
 					{
-						icon: MessageBox.Icon.WARNING,
+						icon: MessageBoxIcon.WARNING,
 						title: 'Large email',
-						actions: [ACTION_FULL, ACTION_DIFF, MessageBox.Action.CANCEL],
+						actions: [ACTION_FULL, ACTION_DIFF, MessageBoxAction.CANCEL],
 						emphasizedAction: ACTION_FULL,
 						onClose: (action?: string) => {
 							if (action === ACTION_DIFF) {
@@ -295,11 +298,15 @@ export default class DetailCompare extends BaseController {
 
 			this._sendMailDialog?.close();
 
+			const beMessage = (result.message ?? '').trim();
 			if (result.success) {
-				MessageBox.success('Email sent successfully to ' + recipients + '.');
+				MessageBox.success(beMessage || `Email sent successfully to ${recipients}.`);
 			} else {
-				const detail = result.failedRecip ? `\nFailed recipients: ${result.failedRecip}` : '';
-				MessageBox.warning('Email may not have been delivered.' + detail);
+				let warning = beMessage || 'Email may not have been delivered.';
+				if (result.failedRecip && !warning.includes(result.failedRecip)) {
+					warning += `\nFailed recipients: ${result.failedRecip}`;
+				}
+				MessageBox.warning(warning);
 			}
 		} catch (error) {
 			await this.handleServiceError(error);
@@ -351,15 +358,7 @@ export default class DetailCompare extends BaseController {
 		const escHtml = (s: string): string =>
 			s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-		// Full mode uses a CSS <style> block so each cell only needs class="n"/"x"/...
-		// instead of ~130-char inline styles → saves ~250 KB on large files.
-		// Diff mode keeps inline styles for Gmail compatibility (style blocks are stripped when truncated).
 		const useClasses = mode === 'full';
-
-		// Full mode: CSS classes for SAME rows only (no diff color needed).
-		// Del/ins/change rows always use inline styles so diff colors show even if the
-		// email client strips the <style> block (e.g. Gmail).
-		// Same rows are ~80-90% of lines → saves ~200 KB.
 		const cssBlock = useClasses ? `<style>
 td.n{padding:2px 4px;border:1px solid #ddd;color:#999;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:3%}
 td.x{padding:2px 6px;border:1px solid #ddd;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top;width:47%}
@@ -582,6 +581,13 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	public onNavBack(): void {
+		// Prefer browser history so Back does not re-push VersionCompare with replace
+		// (that stacked duplicate entries and made later Back from Version Detail loop).
+		const previousHash = History.getInstance().getPreviousHash();
+		if (previousHash !== undefined && previousHash !== '') {
+			window.history.go(-1);
+			return;
+		}
 		if (this.registryId && this.leftVersionId && this.rightVersionId) {
 			this.navTo('versionCompare', {
 				registryId: this.registryId,
@@ -949,7 +955,7 @@ span.xt{color:#00008B}span.xa{color:#7D0045}span.xv{color:#006400}span.xp{color:
 	}
 
 	private scheduleTreeExpansion(treeId: string): void {
-		const tree = this.byId(treeId) as TreeTable;
+		const tree = this.byId(treeId) as Tree;
 		if (!tree) {
 			return;
 		}

@@ -16,12 +16,30 @@ function asText(value: unknown): string {
 }
 
 function getLabelSuffix(value: string): string {
-	const lastSegment = value.split('/').filter(Boolean).pop();
+	// Split only on '/' that are outside '[...]' brackets so that a semanticId like
+	// "Schema(#1)/Annotations[Target=Entities/ZC_BOOKING]" yields the full last
+	// segment "Annotations[Target=Entities/ZC_BOOKING]" instead of "ZC_BOOKING]".
+	const s = value ?? '';
+	const parts: string[] = [];
+	let depth = 0;
+	let start = 0;
+	for (let i = 0; i < s.length; i++) {
+		if (s[i] === '[') {
+			depth++;
+		} else if (s[i] === ']') {
+			depth--;
+		} else if (s[i] === '/' && depth === 0) {
+			parts.push(s.slice(start, i));
+			start = i + 1;
+		}
+	}
+	parts.push(s.slice(start));
+	const lastSegment = parts.filter(Boolean).pop();
 	return lastSegment && lastSegment.length > 0 ? lastSegment : value;
 }
 
 function formatNodeLabel(item: NodeTreeResponseItem): string {
-	return `${item.nodeType}{${getLabelSuffix(item.semanticId)}}`;
+	return getLabelSuffix(item.semanticId);
 }
 
 function createAttributeNodes(item: NodeTreeResponseItem): NodeTreeViewItem[] {

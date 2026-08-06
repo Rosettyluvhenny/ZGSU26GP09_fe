@@ -11,6 +11,7 @@
 			<f:DynamicPageTitle>
 				<f:heading>
 					<HBox alignItems="Center">
+						<core:Fragment fragmentName="com.zgp9.fe.view.fragments.NavToggleButton" type="XML" />
 						<Title text="Logs" level="H1" />
 						<ObjectStatus text="{logList>/countLabel}" state="Information" class="sapUiSmallMarginBegin" />
 					</HBox>
@@ -32,7 +33,7 @@
 						<Button text="Clear" press=".onClearFilters" />
 						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 						<ToolbarSpacer />
-						<SearchField width="18rem" placeholder="Search type, remarks, actor, Object ID…" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
+						<SearchField width="22rem" placeholder="Search remarks, actor, action, result, type; full Object/Log ID (GUID)…" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
 					</OverflowToolbar>
 					<HBox wrap="Wrap" alignItems="End" class="sapUiTinyMarginTop">
 						<VBox class="sapUiSmallMarginEnd">
@@ -55,7 +56,7 @@
 						</VBox>
 						<VBox>
 							<Label text="Created At" />
-							<DateRangeSelection width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
+							<DateRangeSelection id="logDateRange" width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
 						</VBox>
 					</HBox>
 				</VBox>

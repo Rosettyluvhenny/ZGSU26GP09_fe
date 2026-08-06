@@ -22,7 +22,7 @@ export default class JobDetail extends BaseController {
 		);
 		this.getRouter()
 			.getRoute("jobDetail")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}

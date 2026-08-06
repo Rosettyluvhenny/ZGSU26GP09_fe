@@ -23,7 +23,6 @@ export default class Logs extends BaseController {
 	private dateTo: Date | null = null;
 	private loadingMore = false;
 	/** Distinct values seen from backend responses — never hard-coded. */
-	private knownActions = new Map<string, string>();
 	private knownLogResults = new Set<string>();
 	private knownObjectIdTypes = new Set<string>();
 
@@ -68,6 +67,9 @@ export default class Logs extends BaseController {
 		model.setProperty('/activeJobId', jobId);
 		model.setProperty('/activeJobLabel', jobId || '');
 
+		// Load action type options from dedicated VH API (once per navigation).
+		void this.loadActionTypeOptions();
+
 		await this.loadLogs(true);
 	}
 
@@ -85,8 +87,18 @@ export default class Logs extends BaseController {
 		model.setProperty('/logResult', 'All');
 		model.setProperty('/objectIdType', 'All');
 		model.setProperty('/search', '');
+		model.setProperty('/activeJobId', '');
+		model.setProperty('/activeJobLabel', '');
 		this.dateFrom = null;
 		this.dateTo = null;
+
+		const dateRange = this.byId('logDateRange') as unknown as {
+			setDateValue?: (value: Date | null) => void;
+			setSecondDateValue?: (value: Date | null) => void;
+		} | undefined;
+		dateRange?.setDateValue?.(null);
+		dateRange?.setSecondDateValue?.(null);
+
 		await this.loadLogs(true);
 	}
 
@@ -198,8 +210,8 @@ export default class Logs extends BaseController {
 		return 'None';
 	}
 
-	/** CREATE → green, UPDATE → yellow; other actions stay neutral. */
-	public formatLogActionState(action: string): 'Success' | 'Warning' | 'None' {
+	/** CREATE → green, UPDATE → yellow; other actions → blue. */
+	public formatLogActionState(action: string): 'Success' | 'Warning' | 'Information' {
 		const normalized = (action || '').toUpperCase().trim();
 		if (normalized === 'CREATE' || normalized === 'C') {
 			return 'Success';
@@ -207,7 +219,7 @@ export default class Logs extends BaseController {
 		if (normalized === 'UPDATE' || normalized === 'U' || normalized === 'UP') {
 			return 'Warning';
 		}
-		return 'None';
+		return 'Information';
 	}
 
 	public formatShortId(id: string): string {
@@ -264,13 +276,8 @@ export default class Logs extends BaseController {
 	/** Accumulate distinct backend values and rebuild Select options (never invent codes). */
 	private refreshFilterOptions(items: LogEntry[]): void {
 		for (const item of items) {
-			const actionType = (item.actionType || '').trim();
-			const actionText = (item.actionText || '').trim() || actionType;
 			const result = (item.logResult || '').trim();
 			const objectType = (item.objectIdType || '').trim();
-			if (actionType) {
-				this.knownActions.set(actionType, actionText);
-			}
 			if (result) {
 				this.knownLogResults.add(result);
 			}
@@ -280,15 +287,6 @@ export default class Logs extends BaseController {
 		}
 
 		const model = this.getModel('logList') as JSONModel;
-		model.setProperty(
-			'/actionTypeOptions',
-			[
-				{ key: 'All', text: 'All' },
-				...[...this.knownActions.entries()]
-					.sort((a, b) => a[1].localeCompare(b[1]))
-					.map(([key, text]) => ({ key, text }))
-			]
-		);
 		model.setProperty('/logResultOptions', this.buildOptionsFromSet(this.knownLogResults));
 		model.setProperty('/objectIdTypeOptions', this.buildOptionsFromSet(this.knownObjectIdTypes));
 
@@ -296,6 +294,22 @@ export default class Logs extends BaseController {
 		this.ensureSelectedFilterKey('/actionType', '/actionTypeOptions');
 		this.ensureSelectedFilterKey('/logResult', '/logResultOptions');
 		this.ensureSelectedFilterKey('/objectIdType', '/objectIdTypeOptions');
+	}
+
+	/** Fetch action type VH from API and populate the Action filter dropdown. */
+	private async loadActionTypeOptions(): Promise<void> {
+		try {
+			const options = await this.getOwnerComponent().getLogService().getActionTypeOptions();
+			const model = this.getModel('logList') as JSONModel;
+			model.setProperty('/actionTypeOptions', [
+				{ key: 'All', text: 'All' },
+				...options
+			]);
+			this.ensureSelectedFilterKey('/actionType', '/actionTypeOptions');
+		} catch (error) {
+			// Non-fatal: keep existing options if VH call fails.
+			console.warn('Failed to load action type options:', error);
+		}
 	}
 
 	private buildOptionsFromSet(values: Set<string>): FilterOption[] {

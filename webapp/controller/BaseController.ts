@@ -8,10 +8,12 @@ import ResourceBundle from 'sap/base/i18n/ResourceBundle';
 import Router from 'sap/ui/core/routing/Router';
 import History from 'sap/ui/core/routing/History';
 import Fragment from 'sap/ui/core/Fragment';
+import MessageToast from 'sap/m/MessageToast';
 import type Dialog from 'sap/m/Dialog';
 import type ScrollContainer from 'sap/m/ScrollContainer';
 import type { JobStatus, RegistryStatus } from '../model/types';
 import AiChatService, { AI_MODEL_AUTO, type AiChatMessage, type AiModelOption } from '../services/AiChatService';
+import { writeSideNavPreference } from '../services/SessionStorage';
 import { highlightXmlLine } from '../services/XmlNodeUtils';
 
 export interface AiChatContext {
@@ -177,13 +179,23 @@ export default abstract class BaseController extends Controller {
 			}) as Promise<Dialog>;
 		}
 
-		void this.aiChatDialogPromise.then((dialog) => {
-			this.aiChatDialog = dialog;
-			if (!dialog.getParent()) {
-				this.getView().addDependent(dialog);
+		void this.aiChatDialogPromise.then(
+			(dialog) => {
+				this.aiChatDialog = dialog;
+				if (!dialog.getParent()) {
+					this.getView().addDependent(dialog);
+				}
+				dialog.open();
+			},
+			(error: unknown) => {
+				// Without this the rejected promise stays cached, so every later click is a
+				// no-op too and the button just looks dead — which is how a 1.108-only
+				// fragment error went unnoticed until it reached the launchpad.
+				this.aiChatDialogPromise = null;
+				MessageToast.show('The AI assistant could not be opened.');
+				throw error;
 			}
-			dialog.open();
-		});
+		);
 	}
 
 	public onAiChatClose(): void {
@@ -421,6 +433,21 @@ export default abstract class BaseController extends Controller {
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Toggles the shell's side navigation.
+	 *
+	 * Lives here, not on MainShell, because the button was moved out of the shell header
+	 * into each routed page's title bar (NavToggleButton.fragment.xml) — so the press is
+	 * handled by whichever page controller is showing, not by the shell. Only the model is
+	 * written; MainShell watches `/sideNavVisible` and applies the shell's CSS class.
+	 */
+	public onToggleSideNav(): void {
+		const ui = this.getUiModel();
+		const visible = !(ui.getProperty('/sideNavVisible') as boolean);
+		ui.setProperty('/sideNavVisible', visible);
+		writeSideNavPreference(visible);
+	}
 
 	public onNavBack(): void {
 		const previousHash = History.getInstance().getPreviousHash();

@@ -1,6 +1,7 @@
 import type { Route$PatternMatchedEvent } from 'sap/ui/core/routing/Route';
 import type UI5Event from 'sap/ui/base/Event';
 import JSONModel from 'sap/ui/model/json/JSONModel';
+import History from 'sap/ui/core/routing/History';
 
 import BaseController from './BaseController';
 import type { CompareVersionEntry } from '../model/types';
@@ -39,7 +40,7 @@ export default class VersionCompare extends BaseController {
 		this.setModel(model, 'versionCompare');
 		this.getRouter()
 			.getRoute("versionCompare")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}
@@ -57,6 +58,13 @@ export default class VersionCompare extends BaseController {
 	}
 
 	public onNavBack(): void {
+		// Prefer browser history (same as RegistryDetail) so Back returns to the real
+		// previous screen instead of replace-nav stacking VersionCompare in history.
+		const previousHash = History.getInstance().getPreviousHash();
+		if (previousHash !== undefined && previousHash !== '') {
+			window.history.go(-1);
+			return;
+		}
 		if (this.registryId) {
 			this.navTo('registryDetail', { registryId: this.registryId }, true);
 		} else {

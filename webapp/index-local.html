@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+	<head>
+		<meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate" />
+		<meta http-equiv="Pragma" content="no-cache" />
+		<meta http-equiv="expires" content="0" />
+
+		<meta charset="utf-8" />
+
+		<title>UI5 Application: com.zgp9.fe (local, UI5 1.108.33)</title>
+
+		<!--
+			Local development entry point. Unlike index.html / index-cdn.html, this loads UI5
+			from the relative "resources/" path, which @ui5/server supplies from the
+			framework.version pinned in ui5.yaml (1.108.33). That is the same version the
+			Fiori Launchpad on s40lp1 runs, so control drift shows up here instead of only
+			after an ABAP deploy.
+
+			Not deployed — excluded from the build in ui5.yaml, because "resources/" does not
+			exist on either the ABAP repository or the BTP html5-apps-repo.
+		-->
+		<!--
+			The attribute names below are the legacy single-token forms
+			(resourceroots / oninit / compatversion / frameoptions), NOT the kebab-case forms
+			(data-sap-ui-resource-roots, data-sap-ui-on-init, …) used by index.html.
+
+			Kebab-case came with UI5's newer configuration API and is silently ignored by
+			1.108: the attributes parse to unknown keys, so no resource root is registered and
+			ComponentSupport never runs. The symptom is a blank page with a healthy-looking
+			console — Core initialises, no Component is ever created, and nothing errors.
+
+			The legacy forms are understood by both 1.108 and current UI5, so they are the
+			portable choice.
+		-->
+		<script
+			id="sap-ui-bootstrap"
+			src="resources/sap-ui-core.js"
+			data-sap-ui-resourceroots='{
+				"com.zgp9.fe": "./"
+			}'
+			data-sap-ui-oninit="module:sap/ui/core/ComponentSupport"
+			data-sap-ui-compatversion="edge"
+			data-sap-ui-theme="sap_horizon"
+			data-sap-ui-frameoptions="trusted"
+			data-sap-ui-async="true"
+		></script>
+	</head>
+
+	<body class="sapUiBody">
+		<div data-sap-ui-component data-name="com.zgp9.fe"></div>
+	</body>
+</html>

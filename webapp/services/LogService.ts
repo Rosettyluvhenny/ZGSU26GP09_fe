@@ -3,6 +3,11 @@ import ODataClient from './ODataClient';
 import type { LogEntry } from '../model/types';
 import { mapLogEntity, normalizeODataCollection } from './ODataParsers';
 
+export interface ActionTypeOption {
+	key: string;
+	text: string;
+}
+
 export const LOG_PAGE_SIZE = 50;
 
 export interface LogQueryFilter {
@@ -33,8 +38,29 @@ function escapeODataString(value: string): string {
 	return value.replace(/'/g, "''");
 }
 
+/** Safe stringify for OData VH fields (ActionId / Description are Edm.String). */
+function asString(value: unknown): string {
+	if (value === null || value === undefined) {
+		return '';
+	}
+	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return String(value);
+	}
+	return '';
+}
+
 function toODataDateTime(date: Date): string {
 	return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/** Normalize to `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` or null if not a full GUID. */
+function normalizeGuidLiteral(raw: string): string | null {
+	const hex = raw.replace(/[{}\s-]/g, '');
+	if (!/^[0-9a-fA-F]{32}$/.test(hex)) {
+		return null;
+	}
+	const h = hex.toLowerCase();
+	return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
 function readODataCount(payload: unknown, fallback: number): number {
@@ -68,6 +94,22 @@ export default class LogService {
 		return this.getLogs({ jobId });
 	}
 
+	/**
+	 * Fetches all valid action types from the value-help entity ZI_LOG_ACT_TYPE_VH.
+	 * Schema: { ActionId: string (2), Description: string (20) }
+	 * Returns [{key, text}] ready for the Action filter Select.
+	 */
+	public async getActionTypeOptions(): Promise<ActionTypeOption[]> {
+		const payload = await this.client.readJson('/ZI_LOG_ACT_TYPE_VH');
+		return normalizeODataCollection(payload)
+			.map((record) => {
+				const key = asString(record.ActionId);
+				const text = asString(record.Description) || key;
+				return { key, text };
+			})
+			.filter((opt) => opt.key.length > 0);
+	}
+
 	private buildLogUrl(filter: LogQueryFilter): string {
 		const parts: string[] = [];
 
@@ -96,12 +138,12 @@ export default class LogService {
 		}
 		if (filter.search?.trim()) {
 			const raw = filter.search.trim();
-			const normalizedGuid = raw.replace(/[{}]/g, '');
-			const looksLikeGuid = /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/.test(normalizedGuid);
+			const guid = normalizeGuidLiteral(raw);
 			const objectTypeTerm = raw.toUpperCase();
-			const knownObjectTypes = ['REGISTRY', 'DETAIL', 'VERSION', 'SCANJOB'];
-			if (looksLikeGuid) {
-				parts.push(`ObjectId eq ${normalizedGuid}`);
+			const knownObjectTypes = ['REGISTRY', 'DETAIL', 'VERSION', 'SCANJOB', 'JOB'];
+			if (guid) {
+				// ObjectId / LogId are Edm.Guid — only exact eq is supported (not contains).
+				parts.push(`(ObjectId eq ${guid} or LogId eq ${guid})`);
 			} else if (knownObjectTypes.includes(objectTypeTerm)) {
 				// Avoid duplicating objectIdType filter when the dropdown already selected the same value.
 				if (!filter.objectIdType || filter.objectIdType === 'All' || filter.objectIdType.toUpperCase() !== objectTypeTerm) {
@@ -109,7 +151,20 @@ export default class LogService {
 				}
 			} else {
 				const term = escapeODataString(raw);
-				parts.push(`(contains(Remarks,'${term}') or contains(Actor,'${term}'))`);
+				const upper = escapeODataString(raw.toUpperCase());
+				parts.push(
+					'(' +
+						[
+							`contains(Remarks,'${term}')`,
+							`contains(Actor,'${term}')`,
+							`contains(ActionText,'${term}')`,
+							`contains(LogResult,'${upper}')`,
+							`contains(ActionType,'${upper}')`,
+							`contains(objectIdType,'${upper}')`,
+							`contains(IpAddress,'${term}')`
+						].join(' or ') +
+						')'
+				);
 			}
 		}
 

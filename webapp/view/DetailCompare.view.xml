@@ -152,7 +152,7 @@
 					<ToolbarSpacer />
 					<SegmentedButton selectedKey="{detailCompare>/xmlViewMode}" selectionChange=".onXmlViewModeChange">
 						<items>
-							<SegmentedButtonItem key="all" text="All lines" icon="sap-icon://lines" />
+							<SegmentedButtonItem key="all" text="All lines" icon="sap-icon://text-align-justified" />
 							<SegmentedButtonItem key="changes" text="Changes only" icon="sap-icon://filter" />
 						</items>
 					</SegmentedButton>

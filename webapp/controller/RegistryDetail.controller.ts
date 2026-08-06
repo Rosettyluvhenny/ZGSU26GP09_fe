@@ -32,7 +32,7 @@ export default class RegistryDetail extends BaseController {
 		);
 		this.getRouter()
 			.getRoute("registryDetail")
-			.attachPatternMatched((event) => {
+			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
 	}

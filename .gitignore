@@ -9,6 +9,12 @@ Makefile_*.mta
 mta_archives/
 *.mtar
 
+# Packaged app archives — build output, never source.
+# ui5-task-zipper writes the app zip on every build; these were tracked and
+# dirtied the tree on every run (FLP_MIGRATION.md deferred finding B).
+archive.zip
+resources/*.zip
+
 # Logs
 logs
 *.log

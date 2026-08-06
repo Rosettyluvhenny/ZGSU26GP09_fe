@@ -12,8 +12,11 @@ interface AiModelRef {
 
 interface AiProvider {
 	name: string;
-	/** Approuter route, not the provider's own URL — see the comment on PROVIDERS. */
-	url: string;
+	/**
+	 * Path *below* the host's AI base — not the provider's own URL, and not a complete
+	 * path. See resolveAiBasePath and the comment on PROVIDERS.
+	 */
+	path: string;
 	models: AiModelRef[];
 }
 
@@ -32,18 +35,56 @@ export const AI_MODEL_AUTO = 'auto';
 const MODEL_STORAGE_KEY = 'com.zgp9.fe.aiChat.selectedModel';
 const CHAT_STORAGE_PREFIX = 'com.zgp9.fe.aiChat.';
 
-// These are approuter routes, not provider URLs. The approuter forwards each to a
-// BTP destination (AI_GROQ / AI_OPENROUTER) that attaches the provider's API key
-// server-side, so no key is ever shipped to or held by the browser. Locally the same
-// paths are served by ui5-middleware-sap-proxy.js reading keys from .env.
-//
+/**
+ * Base path for the AI routes on the host currently serving the app.
+ *
+ * These are never the provider's own URL. Whichever host serves the app puts a component
+ * in front of the provider that attaches the API key server-side, so no key is ever
+ * shipped to or held by the browser:
+ *
+ * | Host                        | Base                  | Key injected by                        |
+ * | --------------------------- | --------------------- | -------------------------------------- |
+ * | BTP approuter               | `/ai/`                | AI_GROQ / AI_OPENROUTER destinations    |
+ * | local `npm start`           | `/ai/`                | ui5-middleware-sap-proxy, from `.env`   |
+ * | ABAP — standalone *and* FLP | `/sap/bc/zgp9_ai/`    | the Z ICF handler, from its SM59 dest.  |
+ *
+ * Keyed off paths rather than the hostname: hostnames move, and deferred finding D is a
+ * live example of a pinned URL breaking when a route changes. `/sap/bc/` is the ICF runtime
+ * path and exists only on an ABAP host.
+ *
+ * ⚠️ **`toUrl` must be resolved before it is tested, and the two clauses below are not
+ * redundant.** Both facts cost a deploy cycle to learn; do not simplify this to one check.
+ *
+ *  - `toUrl('com/zgp9/fe/')` returns whatever the resource root was *registered* as, which
+ *    is not always absolute. `index.html` registers `resourceroots` as `"./"`, so on the
+ *    ABAP standalone URL and on BTP alike it returns the relative `./` — with no path in it
+ *    to match. An earlier version tested that string directly and therefore never took the
+ *    ABAP branch on the standalone URL. Resolving against `document.baseURI` fixes it:
+ *    a relative root resolves against the page, an absolute one is left alone.
+ *  - Under FLP the resource root *is* absolute (the shell registers it from the app index,
+ *    since the launchpad page and the app live at different paths), so the first clause
+ *    normally catches the embedded case. The `location` clause is the backstop for it —
+ *    the FLP page itself is `/sap/bc/ui2/flp`, which is the same ABAP host by definition.
+ *    Neither clause alone covers both entry points reliably.
+ */
+const AI_BASE_APPROUTER = '/ai/';
+/** Must match the SICF node created for the handler. Change both together. */
+const AI_BASE_ABAP = '/sap/bc/zgp9_ai/';
+
+const isAbapHost = (): boolean => {
+	const resourceRoot = new URL(sap.ui.require.toUrl('com/zgp9/fe/'), document.baseURI).pathname;
+	return resourceRoot.includes('/sap/bc/ui5_ui5/') || window.location.pathname.startsWith('/sap/bc/');
+};
+
+export const resolveAiBasePath = (): string => (isAbapHost() ? AI_BASE_ABAP : AI_BASE_APPROUTER);
+
 // Providers are tried in order; within a provider, models are tried in order. When one
 // is rate-limited/unavailable the next is used, so exhausting one provider's daily
 // quota rolls over to the next. All are OpenAI-compatible.
 const PROVIDERS: AiProvider[] = [
 	{
 		name: 'Groq',
-		url: '/ai/groq/chat/completions',
+		path: 'groq/chat/completions',
 		models: [
 			{ id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
 			{ id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
@@ -52,11 +93,16 @@ const PROVIDERS: AiProvider[] = [
 	},
 	{
 		name: 'OpenRouter',
-		url: '/ai/openrouter/chat/completions',
+		path: 'openrouter/chat/completions',
+		// Replaced 2026-07-28. The previous three slugs had rotted: OpenRouter answered
+		// "This model is unavailable for free" for meta-llama/llama-3.3-70b-instruct:free,
+		// and deepseek-chat-v3-0324:free had left the catalogue. Free-tier slugs churn, and
+		// this list is only reached when Groq is rate-limited — so a dead entry here stays
+		// invisible until the exact moment the fallback is needed. If the AI chat ever fails
+		// only under load, re-check these first.
 		models: [
-			{ id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra' },
-			{ id: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3' },
-			{ id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B' }
+			{ id: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B' },
+			{ id: 'inclusionai/ling-3.0-flash:free', label: 'Ling 3.0 Flash' }
 		]
 	}
 ];
@@ -195,13 +241,16 @@ export default class AiChatService {
 	}
 
 	private async callModelStream(provider: AiProvider, model: string, messages: AiChatMessage[], onDelta: (fullText: string) => void): Promise<string> {
-		const response = await fetch(provider.url, {
+		const response = await fetch(resolveAiBasePath() + provider.path, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			// Same-origin call to the approuter; the session cookie is what authenticates
-			// it, and the approuter attaches the provider key on the way out.
+			// Same-origin on every host — the approuter on BTP, the ICF handler on ABAP. The
+			// session cookie is what authenticates the call, and the server side attaches the
+			// provider key on the way out. Staying same-origin is deliberate: calling the BTP
+			// approuter cross-origin from ABAP would need CORS plus a second session, and its
+			// xsuaa routes answer an unauthenticated fetch with a login redirect it cannot follow.
 			credentials: 'same-origin',
 			body: JSON.stringify({
 				model,

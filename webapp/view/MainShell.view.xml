@@ -8,13 +8,33 @@
 
 	<tnt:ToolPage id="shellPage" class="shellPage" sideExpanded="{ui>/sideNavVisible}">
 		<tnt:header>
-			<OverflowToolbar>
-				<Button
-					icon="sap-icon://menu2"
-					tooltip="{= ${ui>/sideNavVisible} ? 'Hide navigation' : 'Show navigation' }"
-					press=".onToggleSideNav"
-					type="Transparent" />
-				<Title text="Registry Control Center" level="H3" />
+			<!--
+				sap.tnt.ToolHeader, not sap.m.OverflowToolbar: on UI5 1.108 the ToolPage "header"
+				aggregation accepts only sap.tnt.IToolHeader, and an OverflowToolbar here logs
+				"is not valid for aggregation" and is not placed correctly. Newer UI5 relaxed the
+				aggregation, which is why this worked on 1.149. ToolHeader extends
+				OverflowToolbar, so the children below behave identically.
+			-->
+			<!--
+				Header visibility, standalone vs embedded — see FLP_MIGRATION.md 3.3.
+
+				Embedded in a launchpad the whole toolbar goes: the FLP shell bar already
+				carries the app title, the user, the theme switch and logout, so showing them
+				again is duplication; theme in particular belongs to FLP user settings, not to
+				the app. Bound rather than deleted, because the standalone hosts (BTP, ABAP
+				direct URL) have no shell bar and still need all four.
+
+				There is no side-navigation toggle here any more. It was the one control the
+				shell bar does NOT duplicate, so 3.3 kept the toolbar alive below 600px purely
+				to host it — which left the button present on embedded phone but missing on
+				embedded desktop. Keeping the toolbar at every width fixed that, but bought a
+				full-width strip under the shell bar holding a single button. The toggle now
+				lives in each routed page's own title bar (NavToggleButton.fragment.xml), which
+				costs no chrome on either host and puts it in the same place standalone and
+				embedded — so this toolbar is once again purely the four duplicated controls.
+			-->
+			<tnt:ToolHeader visible="{= !${ui>/isInLaunchpad} }">
+				<Title text="{i18n>appTitle}" level="H3" />
 				<ToolbarSpacer />
 				<ObjectStatus text="{session>/userName}" state="Information" />
 				<Button
@@ -22,8 +42,12 @@
 					tooltip="{= ${ui>/isDarkTheme} ? 'Switch to light theme' : 'Switch to dark theme' }"
 					press=".onToggleTheme"
 					type="Transparent" />
-				<Button icon="sap-icon://log" text="Logout" press=".onLogout" type="Transparent" />
-			</OverflowToolbar>
+				<Button
+					icon="sap-icon://log"
+					text="Logout"
+					press=".onLogout"
+					type="Transparent" />
+			</tnt:ToolHeader>
 		</tnt:header>
 		<tnt:sideContent>
 			<tnt:SideNavigation expanded="true" visible="{ui>/permissionsLoaded}">

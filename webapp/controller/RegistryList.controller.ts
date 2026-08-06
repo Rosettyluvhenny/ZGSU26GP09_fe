@@ -4,6 +4,7 @@ import ViewSettingsDialog, { type ViewSettingsDialog$ConfirmEvent } from 'sap/m/
 import BusyIndicator from 'sap/ui/core/BusyIndicator';
 import Dialog from 'sap/m/Dialog';
 import Fragment from 'sap/ui/core/Fragment';
+import HashChanger from 'sap/ui/core/routing/HashChanger';
 import JSONModel from 'sap/ui/model/json/JSONModel';
 import MessageToast from 'sap/m/MessageToast';
 import Sorter from 'sap/ui/model/Sorter';
@@ -40,7 +41,7 @@ export default class RegistryList extends BaseController {
 			'registryList'
 		);
 
-		this.getRouter().getRoute('registryList').attachPatternMatched((event) => { void this.onRouteMatched(event); });
+		this.getRouter().getRoute('registryList').attachPatternMatched((event: Route$PatternMatchedEvent) => { void this.onRouteMatched(event); });
 		this.applyStatusFromCurrentHash();
 		void this.refreshRegistryPage();
 	}
@@ -54,12 +55,25 @@ export default class RegistryList extends BaseController {
 		await this.refreshRegistryPage();
 	}
 
+	/**
+	 * Picks the status filter out of the current hash on a deep link, before the first
+	 * patternMatched event lands.
+	 *
+	 * Reads through HashChanger rather than window.location.hash: embedded in a launchpad the
+	 * browser hash is the whole intent — "#ZODataServiceRegistry-manage&/registries?status=Published" —
+	 * so the first "?" found in the raw hash may belong to the intent's own parameters rather
+	 * than to the app's route, and the filter silently comes out wrong or empty. The shell
+	 * replaces UI5's HashChanger with one that reports only the app-internal part
+	 * ("registries?status=Published"), which is exactly what this needs, and which is
+	 * identical to the raw hash when running standalone. See FLP_MIGRATION.md 3.6.
+	 */
 	private applyStatusFromCurrentHash(): void {
-		const queryIndex = window.location.hash.indexOf('?');
+		const hash = HashChanger.getInstance().getHash();
+		const queryIndex = hash.indexOf('?');
 		if (queryIndex === -1) {
 			return;
 		}
-		const status = new URLSearchParams(window.location.hash.substring(queryIndex + 1)).get('status');
+		const status = new URLSearchParams(hash.substring(queryIndex + 1)).get('status');
 		if (status) {
 			(this.getModel('registryList') as JSONModel).setProperty('/status', status);
 		}

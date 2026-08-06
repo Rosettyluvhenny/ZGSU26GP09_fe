@@ -10,15 +10,16 @@
 		<title>UI5 Application: com.zgp9.fe</title>
 
 		<!-- The 'data-sap-ui-frameOptions="allow"' in the UI5 bootstrap is a NON-SECURE setting for test environments -->
+		<!-- Legacy single-token attribute names: the kebab-case forms are ignored by UI5 1.108, which this page now loads via the relative resources path. See index-local.html. -->
 		<script
 			id="sap-ui-bootstrap"
-			src="https://ui5.sap.com/1.149.1/resources/sap-ui-core.js"
-			data-sap-ui-resource-roots='{
+			src="../resources/sap-ui-core.js"
+			data-sap-ui-resourceroots='{
 				"com.zgp9.fe": "../"
 			}'
-			data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-			data-sap-ui-compat-version="edge"
-			data-sap-ui-frame-options="allow"
+			data-sap-ui-oninit="module:sap/ui/core/ComponentSupport"
+			data-sap-ui-compatversion="edge"
+			data-sap-ui-frameoptions="allow"
 			data-sap-ui-async="true"
 		></script>
 	</head>

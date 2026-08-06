@@ -21,11 +21,29 @@
 					"odataVersion": "4.0"
 				}
 			}
+		},
+		"crossNavigation": {
+			"inbounds": {
+				"ZODataServiceRegistry-manage": {
+					"semanticObject": "ZODataServiceRegistry",
+					"action": "manage",
+					"title": "{{appTitle}}",
+					"subTitle": "{{appDescription}}",
+					"icon": "sap-icon://business-objects-experience",
+					"signature": {
+						"parameters": {},
+						"additionalParameters": "allowed"
+					}
+				}
+			}
 		}
 	},
 	"sap.ui": {
 		"technology": "UI5",
-		"icons": {},
+		"fullWidth": true,
+		"icons": {
+			"icon": "sap-icon://business-objects-experience"
+		},
 		"deviceTypes": {
 			"desktop": true,
 			"tablet": true,
@@ -43,7 +61,7 @@
 			"id": "app"
 		},
 		"dependencies": {
-			"minUI5Version": "1.149.1",
+			"minUI5Version": "1.108.33",
 			"libs": {
 				"sap.ui.core": {},
 				"sap.m": {},
@@ -72,7 +90,8 @@
 				"settings": {
 					"operationMode": "Server",
 					"autoExpandSelect": true,
-					"earlyRequests": true
+					"earlyRequests": true,
+					"synchronizationMode": "None"
 				}
 			}
 		},

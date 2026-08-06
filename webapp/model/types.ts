@@ -257,6 +257,8 @@ export interface SendMailParams {
 	htmlContent: string;
 	recipients: string;
 	subject: string;
+	/** Optional OData Guid — BE attaches version XML when set (sendEmail.AttachVersionId). */
+	attachVersionId?: string;
 }
 
 export interface SendMailResult {
