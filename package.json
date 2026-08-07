@@ -1,0 +1,11 @@
+{
+  "name": "com-zgp09-fe-mta",
+  "version": "0.0.1",
+  "description": "MTA project for UI5 Application",
+  "scripts": {
+    "build": "mbt build"
+  },
+  "devDependencies": {
+    "mbt": "^1.2.49"
+  }
+}

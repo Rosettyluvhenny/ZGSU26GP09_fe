@@ -1,6 +1,6 @@
-const SESSION_KEY = 'com.zgp9.fe.session';
-const THEME_KEY = 'com.zgp9.fe.theme';
-const SIDE_NAV_KEY = 'com.zgp9.fe.sideNavVisible';
+const SESSION_KEY = 'com.zgp09.fe.session';
+const THEME_KEY = 'com.zgp09.fe.theme';
+const SIDE_NAV_KEY = 'com.zgp09.fe.sideNavVisible';
 
 function isBrowserStorageAvailable(): boolean {
 	return typeof window !== 'undefined' && Boolean(window.localStorage);

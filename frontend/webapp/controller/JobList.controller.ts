@@ -9,7 +9,7 @@ import BaseController from './BaseController';
 import type { job } from '../model/types';
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class JobList extends BaseController {
 	private _jobDetailDialog: Dialog | null = null;
@@ -108,7 +108,7 @@ export default class JobList extends BaseController {
 		if (!this._jobDetailDialog) {
 			this._jobDetailDialog = (await Fragment.load({
 				id: this.getView().getId(),
-				name: 'com.zgp9.fe.view.fragments.JobDetailDialog',
+				name: 'com.zgp09.fe.view.fragments.JobDetailDialog',
 				controller: this
 			})) as Dialog;
 			this.getView().addDependent(this._jobDetailDialog);

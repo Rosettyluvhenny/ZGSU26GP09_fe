@@ -21,7 +21,7 @@ type EdmElement = EdmEntityType | EdmEntitySet | EdmComplexType | EdmEnumType | 
 type EdmKind = 'entityType' | 'entitySet' | 'complexType' | 'enumType' | 'operation';
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class ModelExplorer extends BaseController {
 	private registryId: string | null = null;

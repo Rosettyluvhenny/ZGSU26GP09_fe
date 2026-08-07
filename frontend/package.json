@@ -1,12 +1,12 @@
 {
-  "name": "com.zgp9.fe",
+  "name": "com.zgp09.fe",
   "version": "1.0.0",
-  "description": "UI5 Application: com.zgp9.fe",
+  "description": "UI5 Application: com.zgp09.fe",
   "author": "ASUS",
   "license": "Apache-2.0",
   "scripts": {
     "clean": "rimraf dist coverage",
-    "build": "ui5 build --clean-dest",
+    "build": "ui5 build --clean-dest && node -e \"require('fs').copyFileSync('xs-app.json', 'dist/xs-app.json')\"",
     "build:opt": "ui5 build self-contained --clean-dest --all",
     "start": "ui5 serve --port 8080 -o index.html",
     "start-cdn": "ui5 serve --port 8080 -o index-cdn.html",
@@ -22,7 +22,8 @@
     "test-unit": "ui5-test-runner --start start-coverage --start-timeout 120000 --url http://localhost:8080/test/testsuite.qunit.html --page-filter unit/unitTests --no-screenshot --screenshot-on-failure false --qunit-batch-size 50 --parallel 1",
     "test-unit:local": "ui5-test-runner --url http://localhost:8080/test/testsuite.qunit.html --page-filter unit/unitTests --no-screenshot --screenshot-on-failure false --qunit-batch-size 50 --parallel 1 --ci",
     "test": "npm run lint && npm run test-ui5",
-    "deploy": "npm run build && fiori deploy --config ui5-deploy.yaml"
+    "deploy": "npm run build && fiori deploy --config ui5-deploy.yaml",
+    "build:cf": "ui5 build preload --clean-dest --config ui5-cf.yaml --include-task=generateCachebusterInfo && node -e \"require('fs').copyFileSync('xs-app.json', 'dist/xs-app.json')\""
   },
   "devDependencies": {
     "@sap/ux-ui5-tooling": "^1.28.0",

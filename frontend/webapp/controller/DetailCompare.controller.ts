@@ -24,7 +24,7 @@ import { applyNodeDiffStatus, buildLineHighlightMap, buildNodeTree, canMergeAsXm
 import { analyzeChanges, type ChangeRow, type ChangeSeverity } from '../services/ChangeAnalysis';
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class DetailCompare extends BaseController {
 	private registryId: string | null = null;
@@ -160,7 +160,7 @@ export default class DetailCompare extends BaseController {
 		if (this._sendMailDialogPromise === null) {
 			this._sendMailDialogPromise = Fragment.load({
 				id: this.getView().getId(),
-				name: 'com.zgp9.fe.view.fragments.SendMailDialog',
+				name: 'com.zgp09.fe.view.fragments.SendMailDialog',
 				controller: this
 			}) as Promise<Dialog>;
 		}

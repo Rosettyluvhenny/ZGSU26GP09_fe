@@ -1,6 +1,6 @@
 specVersion: "4.0"
 metadata:
-  name: com.zgp9.fe
+  name: com.zgp09.fe
 type: application
 framework:
   name: SAPUI5

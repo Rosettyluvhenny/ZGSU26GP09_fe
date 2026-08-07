@@ -29,8 +29,8 @@ export interface AiModelOption {
 
 export const AI_MODEL_AUTO = 'auto';
 
-const MODEL_STORAGE_KEY = 'com.zgp9.fe.aiChat.selectedModel';
-const CHAT_STORAGE_PREFIX = 'com.zgp9.fe.aiChat.';
+const MODEL_STORAGE_KEY = 'com.zgp09.fe.aiChat.selectedModel';
+const CHAT_STORAGE_PREFIX = 'com.zgp09.fe.aiChat.';
 
 // These are approuter routes, not provider URLs. The approuter forwards each to a
 // BTP destination (AI_GROQ / AI_OPENROUTER) that attaches the provider's API key
@@ -195,7 +195,8 @@ export default class AiChatService {
 	}
 
 	private async callModelStream(provider: AiProvider, model: string, messages: AiChatMessage[], onDelta: (fullText: string) => void): Promise<string> {
-		const response = await fetch(provider.url, {
+		const baseUrl = sap.ui.require.toUrl('com/zgp09/fe');
+		const response = await fetch(`${baseUrl}${provider.url}`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -240,7 +241,7 @@ export default class AiChatService {
 		let fullText = '';
 
 		// OpenAI-compatible SSE stream: lines of "data: {json}" ending with "data: [DONE]".
-		for (;;) {
+		for (; ;) {
 			const { done, value } = await reader.read();
 			if (done) {
 				break;

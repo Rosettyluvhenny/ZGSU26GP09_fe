@@ -16,7 +16,7 @@ import BaseController from './BaseController';
 import type { registry, registryCreateInput, registryValueHelpItem } from '../model/types';
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class RegistryList extends BaseController {
 	private registryDialogPromise?: Promise<Dialog>;
@@ -78,7 +78,7 @@ export default class RegistryList extends BaseController {
 		if (!view.byId('registryListSortDialog')) {
 			const fragment = await Fragment.load({
 				id: view.getId(),
-				name: 'com.zgp9.fe.view.fragments.RegistryListSortDialog',
+				name: 'com.zgp09.fe.view.fragments.RegistryListSortDialog',
 				controller: this
 			});
 			view.addDependent(fragment as Control);
@@ -283,7 +283,7 @@ export default class RegistryList extends BaseController {
 		if (this.registryDialogPromise === undefined) {
 			this.registryDialogPromise = Fragment.load({
 				id: this.getView().getId(),
-				name: 'com.zgp9.fe.view.fragments.RegistryDialog',
+				name: 'com.zgp09.fe.view.fragments.RegistryDialog',
 				controller: this
 			}).then((dialog) => {
 				this.getView().addDependent(dialog as Dialog);

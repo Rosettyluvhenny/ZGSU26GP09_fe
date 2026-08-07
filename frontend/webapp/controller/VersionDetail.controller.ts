@@ -22,7 +22,7 @@ interface ExtendedTreeBinding {
 }
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class VersionDetail extends BaseController {
 	private registryId: string | null = null;
@@ -214,7 +214,7 @@ export default class VersionDetail extends BaseController {
 			if (!this._sendMailDialog) {
 				this._sendMailDialog = await Fragment.load({
 					id: this.getView()?.getId(),
-					name: 'com.zgp9.fe.view.fragments.SendVersionMailDialog',
+					name: 'com.zgp09.fe.view.fragments.SendVersionMailDialog',
 					controller: this
 				}) as Dialog;
 				this.getView()?.addDependent(this._sendMailDialog);
@@ -324,7 +324,7 @@ export default class VersionDetail extends BaseController {
 			if (!this._exportSchemaDialog) {
 				this._exportSchemaDialog = await Fragment.load({
 					id: this.getView()?.getId(),
-					name: 'com.zgp9.fe.view.fragments.ExportSchemaDialog',
+					name: 'com.zgp09.fe.view.fragments.ExportSchemaDialog',
 					controller: this
 				}) as Dialog;
 				this.getView()?.addDependent(this._exportSchemaDialog);

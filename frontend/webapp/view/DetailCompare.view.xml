@@ -1,5 +1,5 @@
 <mvc:View
-	controllerName="com.zgp9.fe.controller.DetailCompare"
+	controllerName="com.zgp09.fe.controller.DetailCompare"
 	displayBlock="true"
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"

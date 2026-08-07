@@ -6,7 +6,7 @@ import BaseController from './BaseController';
 import type { compareVersionEntry } from '../model/types';
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class VersionCompare extends BaseController {
 	private registryId: string | null = null;

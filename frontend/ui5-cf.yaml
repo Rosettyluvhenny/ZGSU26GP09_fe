@@ -1,0 +1,17 @@
+specVersion: "4.0"
+metadata:
+  name: com.zgp09.fe
+type: application
+builder:
+  resources:
+    excludes:
+      - "test/e2e/**"
+  customTasks:
+    - name: ui5-tooling-transpile-task
+      afterTask: replaceVersion
+    - name: ui5-task-zipper
+      afterTask: generateCachebusterInfo
+      configuration:
+        archiveName: com.zgp09.fe
+        additionalFiles:
+          - xs-app.json

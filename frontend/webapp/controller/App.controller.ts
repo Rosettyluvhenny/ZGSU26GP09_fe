@@ -1,7 +1,7 @@
 import BaseController from "./BaseController";
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class App extends BaseController {
 	public onInit(): void {

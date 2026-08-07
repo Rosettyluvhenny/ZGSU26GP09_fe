@@ -1,6 +1,6 @@
 import type {SuiteConfiguration} from "sap/ui/test/starter/config";
 export default {
-	name: "QUnit test suite for the UI5 Application: com.zgp9.fe",
+	name: "QUnit test suite for the UI5 Application: com.zgp09.fe",
 	defaults: {
 		page: "ui5://test-resources/com/zgp9/fe/Test.qunit.html?testsuite={suite}&test={name}",
 		qunit: {
@@ -25,7 +25,7 @@ export default {
 	},
 	tests: {
 		"unit/unitTests": {
-			title: "Unit tests for com.zgp9.fe"
+			title: "Unit tests for com.zgp09.fe"
 		}
 	}
 } satisfies SuiteConfiguration;

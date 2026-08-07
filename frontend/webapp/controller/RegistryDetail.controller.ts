@@ -12,7 +12,7 @@ import type { registry, registryVersion } from '../model/types';
 import { mapRegistryEntity } from '../services/ODataParsers';
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class RegistryDetail extends BaseController {
 	private registryId: string | null = null;

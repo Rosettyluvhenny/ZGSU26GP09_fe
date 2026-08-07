@@ -101,7 +101,7 @@ const AUTO_REFRESH_MS = 60_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class Home extends BaseController {
 	private refreshTimer: number | null = null;

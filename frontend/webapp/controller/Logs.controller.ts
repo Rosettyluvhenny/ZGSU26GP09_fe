@@ -15,7 +15,7 @@ interface FilterOption {
 }
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class Logs extends BaseController {
 	private detailDialog?: Dialog;
@@ -341,7 +341,7 @@ export default class Logs extends BaseController {
 		if (!this.detailDialog) {
 			this.detailDialog = (await Fragment.load({
 				id: this.getView().getId(),
-				name: 'com.zgp9.fe.view.fragments.LogDetailDialog',
+				name: 'com.zgp09.fe.view.fragments.LogDetailDialog',
 				controller: this
 			})) as Dialog;
 			this.getView().addDependent(this.detailDialog);

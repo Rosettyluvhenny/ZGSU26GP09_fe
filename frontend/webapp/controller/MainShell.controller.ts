@@ -8,7 +8,7 @@ const LIGHT_THEME = "sap_horizon";
 const DARK_THEME = "sap_horizon_dark";
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default class MainShell extends BaseController {
 	private pendingRoute: string | null = null;

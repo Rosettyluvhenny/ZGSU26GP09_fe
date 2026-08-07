@@ -35,7 +35,7 @@ const AI_CHAT_HISTORY_LIMIT = 12;
 const DEFAULT_AI_SUGGESTIONS = ['Summarize this XML', 'List entity types and keys', 'Spot potential issues'];
 
 /**
- * @namespace com.zgp9.fe.controller
+ * @namespace com.zgp09.fe.controller
  */
 export default abstract class BaseController extends Controller {
 	private readonly aiChatService = new AiChatService();
@@ -172,7 +172,7 @@ export default abstract class BaseController extends Controller {
 		if (this.aiChatDialogPromise === null) {
 			this.aiChatDialogPromise = Fragment.load({
 				id: this.getView().getId(),
-				name: 'com.zgp9.fe.view.fragments.AiChatDialog',
+				name: 'com.zgp09.fe.view.fragments.AiChatDialog',
 				controller: this
 			}) as Promise<Dialog>;
 		}

@@ -1,0 +1,112 @@
+_schema-version: "3.2"
+ID: com.zgp09.fe
+description: UI5 Application com.zgp09.fe
+version: 0.0.4
+modules:
+- name: com-zgp09-fe-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: com-zgp09-fe-destination-service
+    parameters:
+      content-target: true
+  - name: com-zgp09-fe-repo-host
+    parameters:
+      service-key:
+        name: com-zgp09-fe-repo-host-key
+  - name: com-zgp09-fe-uaa
+    parameters:
+      service-key:
+        name: com-zgp09-fe-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: com_zgp09_fe_html_repo_host
+          ServiceInstanceName: com-zgp09-fe-html5-service
+          ServiceKeyName: com-zgp09-fe-repo-host-key
+          sap.cloud.service: zgp9
+        - Authentication: OAuth2UserTokenExchange
+          Name: com_zgp09_fe_uaa
+          ServiceInstanceName: com-zgp09-fe-xsuaa-service
+          ServiceKeyName: com-zgp09-fe-uaa-key
+          sap.cloud.service: zgp9
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+- name: com-zgp09-fe-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: com-zgp09-fe-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - com.zgp09.fe.zip
+      name: com-zgp09-fe
+      target-path: resources/
+- name: com-zgp09-fe
+  type: html5
+  path: frontend
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: com-zgp09-fe-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          - Name: S40
+            Description: On-prem backend via Cloud Connector
+            URL: http://s40lp1:443
+            Type: HTTP
+            ProxyType: OnPremise
+            Authentication: PrincipalPropagation
+            sap-client: "324"
+            HTML5.DynamicDestination: true
+          - Name: SCHEMA_GENERATOR
+            Description: Schema Generator
+            URL: https://zgsu26gp09schemagenerator-production.up.railway.app
+            Type: HTTP
+            ProxyType: Internet
+            Authentication: NoAuthentication
+            HTML5.DynamicDestination: true
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: com-zgp09-fe-destination-service
+    service-plan: lite
+- name: com-zgp09-fe-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      tenant-mode: dedicated
+      xsappname: com-zgp09-fe-${org}-${space}
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: com-zgp09-fe-xsuaa-service
+    service-plan: application
+- name: com-zgp09-fe-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: com-zgp09-fe-html5-service
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true

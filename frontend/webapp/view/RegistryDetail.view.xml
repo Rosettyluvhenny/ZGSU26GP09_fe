@@ -1,5 +1,5 @@
 <mvc:View
-	controllerName="com.zgp9.fe.controller.RegistryDetail"
+	controllerName="com.zgp09.fe.controller.RegistryDetail"
 	displayBlock="true"
 	xmlns="sap.m"
 	xmlns:mvc="sap.ui.core.mvc"

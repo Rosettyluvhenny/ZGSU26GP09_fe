@@ -17,7 +17,7 @@ import VersionService from './services/VersionService';
 import models from './model/models';
 
 /**
- * @namespace com.zgp9.fe
+ * @namespace com.zgp09.fe
  */
 export default class Component extends UIComponent {
 	public static metadata = {

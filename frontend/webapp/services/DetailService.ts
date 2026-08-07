@@ -187,7 +187,9 @@ export default class DetailService {
 	public async exportSchema(xml: string, format: string): Promise<{ blob: Blob, isZip: boolean }> {
 		console.log(`[ExportSchema] Sending XML payload of length ${xml.length} for format: ${format}`);
 
-		const response = await fetch(`/convert/${format}`, {
+		// Resolve the URL relative to the UI5 component so it includes the namespace in Work Zone
+		const baseUrl = sap.ui.require.toUrl('com/zgp09/fe');
+		const response = await fetch(`${baseUrl}/convert/${format}`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/xml'
