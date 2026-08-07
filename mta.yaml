@@ -1,6 +1,6 @@
 _schema-version: "3.3"
 ID: com.zgp9.fe.mta
-version: 1.0.0
+version: 1.0.2
 modules:
   - name: zgp9-fe-approuter
     type: approuter.nodejs
@@ -18,7 +18,6 @@ modules:
       - name: zgp9-destination
       - name: zgp9-connectivity
       - name: zgp9-ias
-      - name: zgp9-html5-repo-host
     provides:
       - name: app-api
         properties:
@@ -29,6 +28,7 @@ modules:
     type: html5
     path: frontend
     build-parameters:
+      ignore: ["node_modules/", "default-env.json"]
       builder: custom
       commands:
         - npm install
@@ -58,6 +58,8 @@ resources:
     parameters:
       service: html5-apps-repo
       service-plan: app-host
+      config:
+        sizeLimit: 100
       service-keys:
        - name: zgp9-html5-repo-host-key
 
@@ -74,7 +76,7 @@ resources:
       service-plan: application
       path: ./xs-security.json
       service-keys:
-        - name: zgp9-uaa-key
+        - name: zgp9-uaa-keyf
 
   - name: zgp9-destination
     type: org.cloudfoundry.managed-service
@@ -94,7 +96,7 @@ resources:
                 Authentication: PrincipalPropagation
                 sap-client: "324"
                 HTML5.DynamicDestination: true
-              - Name: SCHEMA_GEN
+              - Name: SCHEMA_GENERATOR
                 Description: Schema Generator
                 URL: https://zgsu26gp09schemagenerator-production.up.railway.app
                 Type: HTTP
