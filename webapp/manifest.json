@@ -83,16 +83,6 @@
 					"bundleName": "com.zgp9.fe.i18n.i18n",
 					"async": true
 				}
-			},
-			"": {
-				"type": "sap.ui.model.odata.v4.ODataModel",
-				"dataSource": "mainService",
-				"settings": {
-					"operationMode": "Server",
-					"autoExpandSelect": true,
-					"earlyRequests": true,
-					"synchronizationMode": "None"
-				}
 			}
 		},
 		"routing": {

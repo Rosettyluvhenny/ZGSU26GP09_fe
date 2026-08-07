@@ -282,8 +282,6 @@ export default class VersionDetail extends BaseController {
 		}
 
 		const htmlContent = this.buildVersionHtml(prettyXml, subject, detail);
-		const htmlSizeKb = Math.round(htmlContent.length / 1024);
-		console.log(`[SendVersionMail] HTML size: ${htmlSizeKb} KB, recipients: "${recipients}"`);
 
 		const attachVersionId = this.versionId ?? detail?.versionId ?? '';
 		if (!attachVersionId) {

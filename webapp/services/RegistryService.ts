@@ -20,9 +20,15 @@ function formatGuidLiteral(value: string): string {
 	return normalizeGuid(value);
 }
 
-// function isNetworkFailure(error: unknown): boolean {
-// 	return error instanceof TypeError || String(error).toLowerCase().includes('fetch');
-// }
+/**
+ * Escapes a value for an OData string literal. A single quote terminates the literal,
+ * so an unescaped one produces a malformed $filter and the backend answers 400 — which
+ * is what the free-text Registry Name / Created By filters used to do on any name
+ * containing an apostrophe. Doubling is the OData v4 escape. Mirrors LogService.
+ */
+function escapeODataString(value: string): string {
+	return value.replace(/'/g, "''");
+}
 
 function asString(value: unknown): string {
 	if (value === null || value === undefined) {
@@ -232,9 +238,8 @@ export default class RegistryService {
 	}
 
 	public async deleteRegistry(registryId: string): Promise<void> {
-		await this.client.ensureWriteHeaders('DELETE');
-		await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'DELETE', undefined, await this.client.ensureWriteHeaders('DELETE'));
-		await delay(undefined);
+		const headers = await this.client.ensureWriteHeaders('DELETE');
+		await writeJson(`/Registry(${formatGuidLiteral(registryId)})`, 'DELETE', undefined, headers);
 	}
 
 	public async activateRegistry(registryId: string, changedBy = 'demo.user'): Promise<Registry> {
@@ -294,22 +299,22 @@ export default class RegistryService {
 		const filterParts: string[] = [];
 		if (filter) {
 			if (filter.status && filter.status.toLowerCase() !== 'all') {
-				filterParts.push(`Status eq '${filter.status}'`);
+				filterParts.push(`Status eq '${escapeODataString(filter.status)}'`);
 			}
 			if (filter.groupType && filter.groupType.toLowerCase() !== 'all') {
-				filterParts.push(`GroupType eq '${filter.groupType}'`);
+				filterParts.push(`GroupType eq '${escapeODataString(filter.groupType)}'`);
 			}
 			if (filter.registryName) {
-				filterParts.push(`contains(GroupName,'${filter.registryName}')`);
+				filterParts.push(`contains(GroupName,'${escapeODataString(filter.registryName)}')`);
 			}
 			if (filter.createdBy) {
-				filterParts.push(`contains(RegisteredBy,'${filter.createdBy}')`);
+				filterParts.push(`contains(RegisteredBy,'${escapeODataString(filter.createdBy)}')`);
 			}
 
 			if (filterParts.length > 0 || filter.search) {
 				const queryParts = [...filterParts];
 				if (filter.search) {
-					const term = filter.search.replace(/'/g, "''");
+					const term = escapeODataString(filter.search);
 					let globalSearchFilter = '';
 					const isGuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(term);
 
@@ -375,18 +380,5 @@ export default class RegistryService {
 			messages.push('Status is required.');
 		}
 		return messages;
-	}
-
-	private statusTextFromId(statusId: string): Registry['status'] {
-		switch (statusId.trim().toUpperCase()) {
-			case 'P':
-				return 'Published';
-			case 'U':
-				return 'Unpublished';
-			case 'A':
-				return 'Archive';
-			default:
-				return 'Unpublished';
-		}
 	}
 }

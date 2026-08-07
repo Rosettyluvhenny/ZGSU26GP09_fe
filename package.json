@@ -34,8 +34,5 @@
     "ui5-task-zipper": "^3.6.1",
     "ui5-tooling-transpile": "^3.9.0"
   },
-  "dependencies": {
-    "ui5-middleware-sap-proxy": "file:./ui5-middleware-sap-proxy",
-    "xlsx": "^0.18.5"
-  }
+  "dependencies": {}
 }
