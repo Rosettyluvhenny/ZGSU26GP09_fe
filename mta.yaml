@@ -1,7 +1,7 @@
 _schema-version: "3.2"
 ID: com.zgp09.fe
 description: UI5 Application com.zgp09.fe
-version: 0.0.4
+version: 0.0.5
 modules:
 - name: com-zgp09-fe-destination-content
   type: com.sap.application.content

@@ -57,6 +57,13 @@
 		"archeType": "transactional"
 	},
 	"sap.ui5": {
+		"resources": {
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			]
+		},
 		"rootView": {
 			"viewName": "com.zgp09.fe.view.App",
 			"type": "XML",

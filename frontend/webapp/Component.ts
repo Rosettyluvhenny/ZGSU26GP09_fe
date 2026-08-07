@@ -51,7 +51,7 @@ export default class Component extends UIComponent {
 		this.setModel(models.createUiModel(), 'ui');
 		this.setModel((Messaging as unknown as { getMessageModel: () => MessageModel }).getMessageModel(), 'message');
 
-		this.injectAppStylesheet();
+		// this.injectAppStylesheet();
 		this.errorHandler = new ErrorHandler(this.getRouter());
 
 		this.registerViewportWidthTracking();
@@ -89,17 +89,7 @@ export default class Component extends UIComponent {
 		}
 	}
 
-	private injectAppStylesheet(): void {
-		if (document.head.querySelector('link[data-app-stylesheet="true"]')) {
-			return;
-		}
 
-		const link = document.createElement('link');
-		link.rel = 'stylesheet';
-		link.href = new URL('css/style.css', document.baseURI).toString();
-		link.setAttribute('data-app-stylesheet', 'true');
-		document.head.appendChild(link);
-	}
 
 	public getContentDensityClass(): string {
 		if (this.contentDensityClass === undefined) {

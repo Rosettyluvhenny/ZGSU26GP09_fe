@@ -22,7 +22,6 @@
 					tooltip="{= ${ui>/isDarkTheme} ? 'Switch to light theme' : 'Switch to dark theme' }"
 					press=".onToggleTheme"
 					type="Transparent" />
-				<Button icon="sap-icon://log" text="Logout" press=".onLogout" type="Transparent" />
 			</OverflowToolbar>
 		</tnt:header>
 		<tnt:sideContent>

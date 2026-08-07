@@ -164,14 +164,24 @@ export default class RegistryService {
 		return this.changeStatus(registryId, 'Unpublished');
 	}
 
-	public async generateVersion(registryId: string): Promise<unknown> {
+	public async generateVersion(registryId: string, etag?: string): Promise<unknown> {
 		try {
 			const oRegistryContext = this.getRegistryContext(registryId);
+
+			// By requesting the object, we force the UI5 OData V4 model to load the 
+			// entity's @odata.etag into this context. When we execute the bound action 
+			// below, UI5 will automatically inject the 'If-Match' header into the 
+			// specific batch part for this conditional request.
+			await oRegistryContext.requestObject();
 
 			const oOperation = this.model.bindContext(
 				'com.sap.gateway.srvd_a2x.zsr_registry.v0001.generateVersion(...)',
 				oRegistryContext
 			);
+
+			// Optionally, some backends accept If-Match via HTTP headers. If you bypass
+			// batching, you could use this.model.changeHttpHeaders({'If-Match': etag}),
+			// but loading the context data is the safest way to ensure batch-part ETags.
 
 			await oOperation.execute();
 			const result = oOperation.getBoundContext()?.getObject() as unknown;
