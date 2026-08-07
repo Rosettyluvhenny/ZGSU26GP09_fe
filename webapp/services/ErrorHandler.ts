@@ -1,14 +1,19 @@
-import MessageBox from "sap/m/MessageBox";
+// Action is a named export of the module, not a member of the default export, in the
+// 1.108 typings — MessageBox.Action does not compile even though it exists at runtime.
+import MessageBox, { Action as MessageBoxAction } from "sap/m/MessageBox";
 import ServiceError from "./ServiceError";
 import ODataClient from "./ODataClient";
-import type Router from "sap/ui/core/routing/Router";
+
+const SESSION_EXPIRED_MESSAGE = "Your session expired. Reload the page to sign in again.";
+const RELOAD_ACTION = "Reload";
 
 export default class ErrorHandler {
 	private handlingAuthError = false;
 
-	public constructor(
-		private readonly router: Router
-	) { }
+	/** Isolated so unit tests can assert on it without navigating the runner page. */
+	protected reload(): void {
+		window.location.reload();
+	}
 
 	public async handle(error: unknown): Promise<void> {
 		if (error instanceof ServiceError) {
@@ -29,11 +34,20 @@ export default class ErrorHandler {
 				}
 
 				ODataClient.clearSecurityState();
-				this.router.navTo("login", undefined, undefined, true);
-				const message = error.status === 403 ? "Your session expired. Please sign in again." : "Your session expired. Please sign in again.";
-				MessageBox.error(message, {
-					onClose: () => {
+				// Deliberately not a navTo: there is no "login" route in manifest.json and
+				// never was, so the previous navTo("login") only logged "Route with name
+				// login does not exist" and left the user stranded behind this dialog with
+				// no way back in. Re-authentication is owned by the host (the ABAP server's
+				// own auth challenge, or the launchpad shell), and a reload is what triggers
+				// it — so offer that instead. See FLP_MIGRATION.md deferred finding G.
+				MessageBox.error(SESSION_EXPIRED_MESSAGE, {
+					actions: [RELOAD_ACTION, MessageBoxAction.CLOSE],
+					emphasizedAction: RELOAD_ACTION,
+					onClose: (action: string) => {
 						this.handlingAuthError = false;
+						if (action === RELOAD_ACTION) {
+							this.reload();
+						}
 					}
 				});
 				return;

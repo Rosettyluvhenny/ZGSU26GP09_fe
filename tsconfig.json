@@ -9,13 +9,11 @@
 		"strictNullChecks": false,
 		"strictPropertyInitialization": false,
 		"rootDir": "./webapp",
-		"types": ["@sapui5/ts-types-esm", "@types/qunit"],
+		"types": ["@sapui5/ts-types-esm"],
 		"paths": {
-			"com/zgp9/fe/*": ["./webapp/*"],
-			"unit/*": ["./webapp/test/unit/*"],
-			"integration/*": ["./webapp/test/integration/*"]
+			"com/zgp9/fe/*": ["./webapp/*"]
 		}
 	},
-	"exclude": ["./webapp/test/e2e/**/*"],
+	"exclude": ["./webapp/test/**/*"],
 	"include": ["./webapp/**/*"]
 }

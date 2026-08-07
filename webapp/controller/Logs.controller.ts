@@ -87,8 +87,18 @@ export default class Logs extends BaseController {
 		model.setProperty('/logResult', 'All');
 		model.setProperty('/objectIdType', 'All');
 		model.setProperty('/search', '');
+		model.setProperty('/activeJobId', '');
+		model.setProperty('/activeJobLabel', '');
 		this.dateFrom = null;
 		this.dateTo = null;
+
+		const dateRange = this.byId('logDateRange') as unknown as {
+			setDateValue?: (value: Date | null) => void;
+			setSecondDateValue?: (value: Date | null) => void;
+		} | undefined;
+		dateRange?.setDateValue?.(null);
+		dateRange?.setSecondDateValue?.(null);
+
 		await this.loadLogs(true);
 	}
 

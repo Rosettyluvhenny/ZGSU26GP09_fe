@@ -282,19 +282,34 @@ export default class VersionDetail extends BaseController {
 		}
 
 		const htmlContent = this.buildVersionHtml(prettyXml, subject, detail);
-		const htmlSizeKb = Math.round(htmlContent.length / 1024);
-		console.log(`[SendVersionMail] HTML size: ${htmlSizeKb} KB, recipients: "${recipients}"`);
+
+		const attachVersionId = this.versionId ?? detail?.versionId ?? '';
+		if (!attachVersionId) {
+			MessageBox.error('Version ID is missing. Cannot attach version to the email.');
+			return;
+		}
 
 		sendMailModel.setProperty('/busy', true);
 		BusyIndicator.show(0);
 		try {
-			await this.getOwnerComponent().getDetailService().sendEmail({
+			const result = await this.getOwnerComponent().getDetailService().sendEmail({
 				htmlContent,
 				recipients,
-				subject
+				subject,
+				attachVersionId
 			});
 			this._sendMailDialog?.close();
-			MessageBox.success('Email sent successfully.');
+
+			const beMessage = (result.message ?? '').trim();
+			if (result.success) {
+				MessageBox.success(beMessage || 'Email sent successfully.');
+			} else {
+				let warning = beMessage || 'Email may not have been delivered.';
+				if (result.failedRecip && !warning.includes(result.failedRecip)) {
+					warning += `\nFailed recipients: ${result.failedRecip}`;
+				}
+				MessageBox.warning(warning);
+			}
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {

@@ -34,10 +34,11 @@
 						<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					</OverflowToolbar>
 					<!--
-						Search sits on the filter row rather than the button toolbar — same layout as
-						RegistryList. alignItems="End" on both boxes bottom-aligns everything, so the
-						SearchField lines up with the filter *controls* and not with their labels; the
-						labelled VBoxes are taller by exactly one label.
+						Search sits on the filter row, not on the button toolbar above it: it is a
+						filter, and pairing it with Go/Clear/Refresh read as an action. alignItems="End"
+						on both boxes bottom-aligns everything, so the SearchField lines up with the
+						filter *controls* rather than with their labels — the labelled VBoxes are
+						taller by exactly one label.
 					-->
 					<HBox wrap="Wrap" alignItems="End" justifyContent="SpaceBetween" width="100%" class="sapUiTinyMarginTop">
 						<HBox wrap="Wrap" alignItems="End">
@@ -61,10 +62,12 @@
 							</VBox>
 							<VBox class="sapUiSmallMarginEnd">
 								<Label text="Created At" />
-								<DateRangeSelection width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
+								<DateRangeSelection id="logDateRange" width="16rem" placeholder="Filter by date" displayFormat="medium" change=".onDateRangeChange" />
 							</VBox>
 						</HBox>
-						<SearchField width="18rem" placeholder="Search type, remarks, actor, Object ID…" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
+						<HBox alignItems="End">
+							<SearchField width="22rem" placeholder="Search remarks, actor, action, result, type; full Object/Log ID (GUID)…" value="{logList>/search}" liveChange=".onSearchLiveChange" search=".onSearch" />
+						</HBox>
 					</HBox>
 				</VBox>
 			</f:DynamicPageHeader>
