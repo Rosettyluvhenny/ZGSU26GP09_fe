@@ -1,0 +1,12 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1">
+	<ActionSheet title="Convert XML to..." placement="Bottom">
+		<buttons>
+			<Button text="Dart" press=".onConvert" app:option="dart" />
+			<Button text="TypeScript" press=".onConvert" app:option="ts" />
+			<Button text="Swift" press=".onConvert" app:option="swift" />
+			<Button text="Open Api" press=".onConvert" app:option="openapi" />
+			<Button text="Json Schema" press=".onConvert" app:option="json-schema" />
+			<Button text="Kotlin" press=".onConvert" app:option="kotlin" />
+		</buttons>
+	</ActionSheet>
+</core:FragmentDefinition>
