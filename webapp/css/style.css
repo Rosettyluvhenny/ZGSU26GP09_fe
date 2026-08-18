@@ -500,3 +500,10 @@ html[class*="_hcb"] {
 	opacity: 0.55;
 }
 
+/* Registry Detail versions table: keep row checkboxes, hide header Select All / Clear All */
+.registryDetailVersionsTable .sapMListTblHeader .sapMListTblSelCol .sapMCb,
+.registryDetailVersionsTable .sapMListTblHeader .sapMListTblSelCol .sapMBtn {
+	visibility: hidden;
+	pointer-events: none;
+}
+

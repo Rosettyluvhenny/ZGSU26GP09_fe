@@ -75,7 +75,8 @@
 
 				<Panel headerText="Versions" expandable="false" class="sapUiSmallMarginTop">
 					<content>
-						<Table id="versionsTable" items="{registryDetail>/versions}" mode="MultiSelect" growing="true" selectionChange=".onVersionSelectionChange">
+						<!-- Chỉ chọn từng dòng (tối đa 2); CSS ẩn checkbox Select All / Clear All ở header -->
+						<Table id="versionsTable" class="registryDetailVersionsTable" items="{registryDetail>/versions}" mode="MultiSelect" growing="true" selectionChange=".onVersionSelectionChange">
 							<columns>
 								<Column width="10rem"><Text text="Version Number" /></Column>
 								<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Created By" /></Column>

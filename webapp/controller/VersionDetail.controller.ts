@@ -10,6 +10,8 @@ import type Dialog from 'sap/m/Dialog';
 import type UI5Event from 'sap/ui/base/Event';
 import type Table from 'sap/m/Table';
 import type Tree from 'sap/m/Tree';
+import type ActionSheet from 'sap/m/ActionSheet';
+import type Button from 'sap/m/Button';
 
 import BaseController, { type AiChatContext } from './BaseController';
 import type { NodeTreeViewItem, RegistryDetail, XmlLineEntry } from '../model/types';
@@ -44,7 +46,8 @@ export default class VersionDetail extends BaseController {
 				selectedDetailLineStarts: [],
 				selectedDetailLines: [] as XmlLineEntry[],
 				treeSearch: '',
-				treeSearchMatchCount: 0
+				treeSearchMatchCount: 0,
+				isConvertHealthOk: false
 			}),
 			'versionDetail'
 		);
@@ -54,6 +57,82 @@ export default class VersionDetail extends BaseController {
 			.attachPatternMatched((event: Route$PatternMatchedEvent) => {
 				void this.onRouteMatched(event);
 			});
+
+		void this.checkConvertHealth();
+	}
+
+	private _convertActionSheet: ActionSheet | null = null;
+
+	private async checkConvertHealth(): Promise<void> {
+		try {
+			const isOk = await this.getOwnerComponent().getDetailService().checkConvertHealth();
+			if (isOk) {
+				(this.getModel('versionDetail') as JSONModel).setProperty('/isConvertHealthOk', true);
+			}
+		} catch (e) {
+			// Health check failed or endpoint is not available
+		}
+	}
+
+	public async onOpenConvertOptions(event: UI5Event): Promise<void> {
+		const button = event.getSource() as Button;
+		if (!this._convertActionSheet) {
+			this._convertActionSheet = await Fragment.load({
+				id: this.getView()?.getId(),
+				name: 'com.zgp9.fe.view.fragments.ConvertActionSheet',
+				controller: this
+			}) as ActionSheet;
+			this.getView()?.addDependent(this._convertActionSheet);
+		}
+		this._convertActionSheet.openBy(button);
+	}
+
+	public async onConvert(event: UI5Event): Promise<void> {
+		const source = event.getSource() as Button;
+		const option = source.data('option') as string;
+
+		const model = this.getModel('versionDetail') as JSONModel;
+		const xml = model.getProperty('/selectedDetailXml') as string;
+		const detail = model.getProperty('/selectedDetail') as RegistryDetail | null;
+
+		if (!xml) {
+			MessageToast.show('No XML content to convert.');
+			return;
+		}
+
+		BusyIndicator.show(0);
+		try {
+			const { blob, filename } = await this.getOwnerComponent().getDetailService().convertXml(option, xml);
+
+			const baseName = (detail?.serviceDefinition || detail?.id || 'metadata').replace(/[^a-zA-Z0-9_.-]+/g, '_');
+
+			let finalFileName = filename;
+			if (!finalFileName) {
+				const isZip = blob.type.includes('zip') || blob.type === 'application/x-zip-compressed';
+				let ext = isZip ? 'zip' : option;
+				if (!isZip) {
+					if (option === 'ts') ext = 'ts';
+					else if (option === 'json-schema') ext = 'json';
+					else if (option === 'openapi') ext = 'json';
+				}
+				finalFileName = `${baseName}.${ext}`;
+			}
+
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = finalFileName;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
+
+			MessageToast.show('Conversion successful.');
+		} catch (error) {
+			MessageBox.error((error as Error).message || 'Conversion failed.');
+		} finally {
+			BusyIndicator.hide();
+		}
 	}
 
 	public async onRouteMatched(event: UI5Event): Promise<void> {
@@ -243,7 +322,7 @@ export default class VersionDetail extends BaseController {
 	public async onConfirmSendMail(): Promise<void> {
 		const sendMailModel = this.getModel('sendMail') as JSONModel;
 		const recipients = ((sendMailModel.getProperty('/recipients') as string) ?? '').trim();
-		const subject    = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
+		const subject = ((sendMailModel.getProperty('/subject') as string) ?? '').trim();
 
 		let hasError = false;
 
@@ -270,7 +349,7 @@ export default class VersionDetail extends BaseController {
 		}
 
 		if (hasError) return;
-	
+
 
 		const model = this.getModel('versionDetail') as JSONModel;
 		const prettyXml = (model.getProperty('/selectedDetailXml') as string) ?? '';
@@ -339,10 +418,10 @@ export default class VersionDetail extends BaseController {
 		let html = indentHtml + highlightXmlLine(line.slice(indent.length));
 		html = html
 			.replace(/class="xmlTokPunct"/g, 'style="color:#00C"')
-			.replace(/class="xmlTokTag"/g,   'style="color:#00008B"')
-			.replace(/class="xmlTokAttr"/g,  'style="color:#7D0045"')
-			.replace(/class="xmlTokVal"/g,   'style="color:#006400"')
-			.replace(/class="xmlTokCmt"/g,   'style="color:#6a9955"');
+			.replace(/class="xmlTokTag"/g, 'style="color:#00008B"')
+			.replace(/class="xmlTokAttr"/g, 'style="color:#7D0045"')
+			.replace(/class="xmlTokVal"/g, 'style="color:#006400"')
+			.replace(/class="xmlTokCmt"/g, 'style="color:#6a9955"');
 		return html;
 	}
 
@@ -354,13 +433,13 @@ export default class VersionDetail extends BaseController {
 
 		const metaRows = detail
 			? `<tr><td>Service Definition</td><td>${escHtml(detail.serviceDefinition || '-')}</td></tr>` +
-			  `<tr><td>Version Id</td><td>${escHtml(detail.versionId || '-')}</td></tr>` +
-			  `<tr><td>Service Hash</td><td>${escHtml(detail.serviceHash || '-')}</td></tr>`
+			`<tr><td>Version Id</td><td>${escHtml(detail.versionId || '-')}</td></tr>` +
+			`<tr><td>Service Hash</td><td>${escHtml(detail.serviceHash || '-')}</td></tr>`
 			: '';
 
 		const S_NUM = 'style="padding:2px 4px;border:1px solid #eee;color:#aaa;text-align:right;font-family:monospace;font-size:11px;white-space:nowrap;width:4%"';
 		const S_XML = 'style="padding:2px 8px;border:1px solid #eee;white-space:pre-wrap;overflow-wrap:break-word;font-family:monospace;font-size:11px;vertical-align:top"';
-		const TH    = 'style="padding:4px 6px;border:1px solid #ddd;background:#f5f5f5;text-align:left;font-family:sans-serif;font-size:11px"';
+		const TH = 'style="padding:4px 6px;border:1px solid #ddd;background:#f5f5f5;text-align:left;font-family:sans-serif;font-size:11px"';
 
 		const styledRows = lines.map((line, idx) =>
 			`<tr><td ${S_NUM}>${idx + 1}</td><td ${S_XML}>${this.highlightForEmail(line)}</td></tr>`
@@ -371,17 +450,17 @@ export default class VersionDetail extends BaseController {
 
 		const metaTable = metaRows
 			? `<table style="border-collapse:collapse;margin-bottom:16px"><tbody>` +
-			  metaRows.replace(/<td>/g, `<td ${metaStyle}>`).replace(/<td class="[^"]*">/g, `<td ${metaLabelStyle}>`) +
-			  `</tbody></table>`
+			metaRows.replace(/<td>/g, `<td ${metaStyle}>`).replace(/<td class="[^"]*">/g, `<td ${metaLabelStyle}>`) +
+			`</tbody></table>`
 			: '';
 
 		return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:8px;font-family:sans-serif;color:#333">` +
 			`<h2 style="margin-bottom:4px">${escHtml(title)}</h2>` +
 			metaTable +
 			`<table style="border-collapse:collapse;width:100%;table-layout:fixed">` +
-				`<colgroup><col style="width:4%"/><col style="width:96%"/></colgroup>` +
-				`<thead><tr><th ${TH}>#</th><th ${TH}>XML Content</th></tr></thead>` +
-				`<tbody>${styledRows}</tbody>` +
+			`<colgroup><col style="width:4%"/><col style="width:96%"/></colgroup>` +
+			`<thead><tr><th ${TH}>#</th><th ${TH}>XML Content</th></tr></thead>` +
+			`<tbody>${styledRows}</tbody>` +
 			`</table></body></html>`;
 	}
 

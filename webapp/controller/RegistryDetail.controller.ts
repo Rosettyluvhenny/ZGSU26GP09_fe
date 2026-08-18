@@ -107,15 +107,21 @@ export default class RegistryDetail extends BaseController {
 	public onVersionSelectionChange(event: UI5Event): void {
 		const table = event.getSource() as unknown as Table;
 		const model = this.getModel('registryDetail') as JSONModel;
-		const selectedItems = table.getSelectedItems();
+		let selectedItems = table.getSelectedItems();
+
+		// Compare chỉ cho 2 version. Khi chọn thứ 3 (hoặc bulk), bỏ chọn phần dư + toast.
 		if (selectedItems.length > 2) {
+			MessageToast.show('Select exactly 2 versions to compare. Unselect one first.');
 			const changedItem = (event as ListBase$ItemPressEvent).getParameter('listItem');
-			if (changedItem) {
+			if (changedItem && selectedItems.includes(changedItem)) {
 				table.setSelectedItem(changedItem, false);
+			} else {
+				selectedItems.slice(2).forEach((item) => table.setSelectedItem(item, false));
 			}
+			selectedItems = table.getSelectedItems();
 		}
 
-		const selectedVersionIds = table.getSelectedItems().slice(0, 2).map((item) => {
+		const selectedVersionIds = selectedItems.slice(0, 2).map((item) => {
 			const context = item.getBindingContext('registryDetail');
 			return (context?.getObject() as RegistryVersion | null)?.id ?? '';
 		}).filter(Boolean);
