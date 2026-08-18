@@ -46,7 +46,7 @@ export default class Component extends UIComponent {
 		this.setModel(Core.getMessageManager().getMessageModel(), 'message');
 
 		this.injectAppStylesheet();
-		this.errorHandler = new ErrorHandler(this.getRouter());
+		this.errorHandler = new ErrorHandler();
 
 		this.registerViewportWidthTracking();
 

@@ -130,7 +130,7 @@ export default class Home extends BaseController {
 				recentRegistries: [] as RegistryCard[],
 				activity: [] as ActivityItem[],
 				scanTrend: [] as ScanTrendPoint[],
-				scanSummary: { total: 0, peakValue: 0, peakLabel: '', startLabel: '', endLabel: '' } as ScanTrendSummary,
+				scanSummary: { total: 0, peakValue: 0, peakLabel: '', startLabel: '', endLabel: '' },
 				attentionItems: [] as AttentionItem[],
 				attentionCount: 0,
 				lastUpdated: null as string | null

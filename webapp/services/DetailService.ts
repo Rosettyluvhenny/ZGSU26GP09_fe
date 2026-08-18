@@ -179,5 +179,38 @@ export default class DetailService {
 		};
 	}
 
+	public async checkConvertHealth(): Promise<boolean> {
+		try {
+			const response = await fetch('https://zgsu26gp09schemagenerator-production.up.railway.app/health');
+			return response.ok;
+		} catch (e) {
+			return false;
+		}
+	}
 
+	public async convertXml(option: string, xml: string): Promise<{ blob: Blob, filename: string | null }> {
+		const response = await fetch(`https://zgsu26gp09schemagenerator-production.up.railway.app/convert/${option}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/xml'
+			},
+			body: xml
+		});
+
+		if (!response.ok) {
+			throw new Error(`Conversion failed with status ${response.status}`);
+		}
+
+		const contentDisposition = response.headers.get('content-disposition');
+		let filename: string | null = null;
+		if (contentDisposition) {
+			const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+			if (filenameMatch && filenameMatch[1]) {
+				filename = filenameMatch[1].replace(/['"]/g, '');
+			}
+		}
+
+		const blob = await response.blob();
+		return { blob, filename };
+	}
 }

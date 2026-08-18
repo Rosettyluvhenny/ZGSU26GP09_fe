@@ -25,6 +25,13 @@ yarn-error.log*
 # Dependency directories
 node_modules/
 
+# Local Claude Code tooling — dev-server launch config and the capstone-docs
+# skill. Kept on disk, out of the repo: it drives nobody's build or deploy.
+.claude/
+
+# JetBrains IDE settings — per-developer, not project config.
+.idea/
+
 .DS_Store
 
 # AI provider keys for local dev only — copy .env.example to .env.
