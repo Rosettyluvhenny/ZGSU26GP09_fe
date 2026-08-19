@@ -7,23 +7,28 @@ import type Dialog from 'sap/m/Dialog';
 
 import BaseController from './BaseController';
 import type { Job } from '../model/types';
+import { JOB_PAGE_SIZE } from '../services/JobService';
 
 /**
  * @namespace com.zgp9.fe.controller
  */
 export default class JobList extends BaseController {
 	private _jobDetailDialog: Dialog | null = null;
+	private loadingMore = false;
 
 	public onInit(): void {
-		this.setModel(
-			new JSONModel({
-				items: [],
-				busy: false,
-				search: '',
-				selectedJob: null as Job | null
-			}),
-			'jobList'
-		);
+		const model = new JSONModel({
+			items: [],
+			busy: false,
+			loadingMore: false,
+			search: '',
+			totalCount: 0,
+			hasMore: false,
+			countLabel: '0 jobs',
+			selectedJob: null as Job | null
+		});
+		model.setSizeLimit(5000);
+		this.setModel(model, 'jobList');
 		this.getRouter()
 			.getRoute("jobList")
 			.attachPatternMatched(() => {
@@ -39,31 +44,63 @@ export default class JobList extends BaseController {
 		}
 
 		(this.getModel('jobList') as JSONModel).setProperty('/selectedJob', null);
-		await this.loadJobs();
+		await this.loadJobs(true);
 	}
 
-	public async loadJobs(): Promise<void> {
+	public async loadJobs(reset: boolean): Promise<void> {
 		const model = this.getModel('jobList') as JSONModel;
-		model.setProperty('/busy', true);
+		const currentItems = (model.getProperty('/items') as Job[]) ?? [];
+		const skip = reset ? 0 : currentItems.length;
+
+		if (!reset) {
+			if (!model.getProperty('/hasMore') || this.loadingMore) {
+				return;
+			}
+			this.loadingMore = true;
+			model.setProperty('/loadingMore', true);
+		} else {
+			model.setProperty('/busy', true);
+		}
+
 		try {
-			const jobs = await this.getOwnerComponent().getJobService().getJobs(model.getProperty('/search') as string);
-			model.setProperty('/items', jobs);
+			const page = await this.getOwnerComponent().getJobService().getJobs({
+				search: model.getProperty('/search') as string,
+				top: JOB_PAGE_SIZE,
+				skip
+			});
+			const items = reset ? page.items : currentItems.concat(page.items);
+			const totalCount = page.totalCount;
+			const hasMore = items.length < totalCount && page.items.length > 0;
+
+			model.setProperty('/items', items);
+			model.setProperty('/totalCount', totalCount);
+			model.setProperty('/hasMore', hasMore);
+			model.setProperty('/countLabel', this.buildCountLabel(items.length, totalCount));
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
+			model.setProperty('/loadingMore', false);
+			this.loadingMore = false;
 		}
 	}
 
+	public async onLoadMore(): Promise<void> {
+		if (this.loadingMore) {
+			return;
+		}
+		await this.loadJobs(false);
+	}
+
 	public async onRefresh(): Promise<void> {
-		await this.loadJobs();
+		await this.loadJobs(true);
 	}
 
 	public async onSearchLiveChange(event: UI5Event): Promise<void> {
 		const source = event.getSource() as unknown as { getValue: () => string };
 		const model = this.getModel('jobList') as JSONModel;
 		model.setProperty('/search', source.getValue());
-		await this.loadJobs();
+		await this.loadJobs(true);
 	}
 
 	public onRowPress(event: UI5Event): void {
@@ -96,12 +133,19 @@ export default class JobList extends BaseController {
 		try {
 			await this.getOwnerComponent().getJobService().runScanJob();
 			MessageToast.show('Scan job started.');
-			await this.loadJobs();
+			await this.loadJobs(true);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
 			BusyIndicator.hide();
 		}
+	}
+
+	private buildCountLabel(shown: number, total: number): string {
+		if (total <= 0) {
+			return '0 jobs';
+		}
+		return `${shown}/${total} jobs`;
 	}
 
 	private async openJobDetailDialog(): Promise<void> {

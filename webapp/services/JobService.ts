@@ -4,19 +4,45 @@ import ServiceError from './ServiceError';
 import type { Job } from '../model/types';
 import { mapJobEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
+export const JOB_PAGE_SIZE = 50;
+
+export interface JobPageResult {
+	items: Job[];
+	totalCount: number;
+	hasMore: boolean;
+}
+
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
 		setTimeout(() => resolve(value), ms);
 	});
 }
 
+function readODataCount(payload: unknown, fallback: number): number {
+	if (!payload || typeof payload !== 'object') {
+		return fallback;
+	}
+	const record = payload as Record<string, unknown>;
+	const raw = record['@odata.count'] ?? record['odata.count'] ?? record['__count'];
+	const numeric = Number(raw);
+	return Number.isFinite(numeric) ? numeric : fallback;
+}
+
 
 export default class JobService {
 	private readonly client = new ODataClient();
 
-	public async getJobs(search = ''): Promise<Job[]> {
-		const backendJobs = await this.loadJobsFromBackend();
-		return delay(this.filterJobs(backendJobs, search));
+	public async getJobs(filter: { search?: string; top?: number; skip?: number } = {}): Promise<JobPageResult> {
+		const top = filter.top ?? JOB_PAGE_SIZE;
+		const skip = filter.skip ?? 0;
+		const { payload, items: allItems } = await this.loadJobsFromBackend(top, skip);
+		const items = this.filterJobs(allItems, filter.search ?? '');
+		const totalCount = readODataCount(payload, skip + allItems.length);
+		return delay({
+			items,
+			totalCount,
+			hasMore: skip + allItems.length < totalCount && allItems.length > 0
+		});
 	}
 
 	public async getJob(jobId: string): Promise<Job> {
@@ -56,9 +82,11 @@ export default class JobService {
 		return filtered;
 	}
 
-	private async loadJobsFromBackend(): Promise<Job[]> {
-		const payload = await this.client.readJson('/ScanJob?$orderby=StartedAt desc');
-		return normalizeODataCollection(payload).map((entity) => mapJobEntity(entity));
+	private async loadJobsFromBackend(top: number, skip: number): Promise<{ payload: unknown; items: Job[] }> {
+		const url = `/ScanJob?$orderby=StartedAt desc&$top=${top}&$skip=${skip}&$count=true`;
+		const payload = await this.client.readJson(url);
+		const items = normalizeODataCollection(payload).map((entity) => mapJobEntity(entity));
+		return { payload, items };
 	}
 
 	private async loadJobFromBackend(jobId: string): Promise<Job | null> {

@@ -15,6 +15,7 @@ import Control from 'sap/ui/core/Control';
 
 import BaseController from './BaseController';
 import type { Registry, RegistryCreateInput, RegistryValueHelpItem } from '../model/types';
+import { REGISTRY_PAGE_SIZE } from '../services/RegistryService';
 
 /**
  * @namespace com.zgp9.fe.controller
@@ -23,23 +24,27 @@ export default class RegistryList extends BaseController {
 	private registryDialogPromise?: Promise<Dialog>;
 	private dialogMode: 'create' | 'edit' = 'create';
 	private currentRegistryId: string | null = null;
+	private loadingMore = false;
 
 	public onInit(): void {
-		this.setModel(
-			new JSONModel({
-				items: [],
-				busy: false,
-				search: '',
-				searchField: 'all',
-				status: 'All',
-				groupType: 'All',
-				registryName: '',
-				createdBy: '',
-				groupTypes: [],
-				statuses: []
-			}),
-			'registryList'
-		);
+		const model = new JSONModel({
+			items: [],
+			busy: false,
+			loadingMore: false,
+			search: '',
+			searchField: 'all',
+			status: 'All',
+			groupType: 'All',
+			registryName: '',
+			createdBy: '',
+			groupTypes: [],
+			statuses: [],
+			totalCount: 0,
+			hasMore: false,
+			countLabel: '0 registries'
+		});
+		model.setSizeLimit(5000);
+		this.setModel(model, 'registryList');
 
 		this.getRouter().getRoute('registryList').attachPatternMatched((event: Route$PatternMatchedEvent) => { void this.onRouteMatched(event); });
 		this.applyStatusFromCurrentHash();
@@ -84,7 +89,14 @@ export default class RegistryList extends BaseController {
 	}
 
 	public async onFilterChange(): Promise<void> {
-		await this.loadRegistries();
+		await this.loadRegistries(true);
+	}
+
+	public async onLoadMore(): Promise<void> {
+		if (this.loadingMore) {
+			return;
+		}
+		await this.loadRegistries(false);
 	}
 
 	public async onSortPress(): Promise<void> {
@@ -230,9 +242,21 @@ export default class RegistryList extends BaseController {
 	}
 
 
-	public async loadRegistries(): Promise<void> {
+	public async loadRegistries(reset = true): Promise<void> {
 		const model = this.getModel('registryList') as JSONModel;
-		model.setProperty('/busy', true);
+		const currentItems = (model.getProperty('/items') as Registry[]) ?? [];
+		const skip = reset ? 0 : currentItems.length;
+
+		if (!reset) {
+			if (!model.getProperty('/hasMore') || this.loadingMore) {
+				return;
+			}
+			this.loadingMore = true;
+			model.setProperty('/loadingMore', true);
+		} else {
+			model.setProperty('/busy', true);
+		}
+
 		try {
 			const filterState = {
 				search: model.getProperty('/search') as string,
@@ -240,15 +264,33 @@ export default class RegistryList extends BaseController {
 				status: model.getProperty('/status') as string,
 				groupType: model.getProperty('/groupType') as string,
 				registryName: model.getProperty('/registryName') as string,
-				createdBy: model.getProperty('/createdBy') as string
+				createdBy: model.getProperty('/createdBy') as string,
+				top: REGISTRY_PAGE_SIZE,
+				skip
 			};
-			const data = await this.getOwnerComponent().getRegistryService().getRegistries(filterState);
-			model.setProperty('/items', data);
+			const page = await this.getOwnerComponent().getRegistryService().getRegistries(filterState);
+			const items = reset ? page.items : currentItems.concat(page.items);
+			const totalCount = page.totalCount;
+			const hasMore = items.length < totalCount && page.items.length > 0;
+
+			model.setProperty('/items', items);
+			model.setProperty('/totalCount', totalCount);
+			model.setProperty('/hasMore', hasMore);
+			model.setProperty('/countLabel', this.buildCountLabel(items.length, totalCount));
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
 			model.setProperty('/busy', false);
+			model.setProperty('/loadingMore', false);
+			this.loadingMore = false;
 		}
+	}
+
+	private buildCountLabel(shown: number, total: number): string {
+		if (total <= 0) {
+			return '0 registries';
+		}
+		return `${shown}/${total} registries`;
 	}
 
 	private async openRegistryDialog(initialData: {

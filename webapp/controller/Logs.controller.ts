@@ -22,9 +22,6 @@ export default class Logs extends BaseController {
 	private dateFrom: Date | null = null;
 	private dateTo: Date | null = null;
 	private loadingMore = false;
-	/** Distinct values seen from backend responses — never hard-coded. */
-	private knownLogResults = new Set<string>();
-	private knownObjectIdTypes = new Set<string>();
 
 	public onInit(): void {
 		const model = new JSONModel({
@@ -35,10 +32,18 @@ export default class Logs extends BaseController {
 			actionType: 'All',
 			logResult: 'All',
 			objectIdType: 'All',
-			// Filter options are built from values returned by the backend — never invented.
 			actionTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
-			logResultOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
-			objectIdTypeOptions: [{ key: 'All', text: 'All' }] as FilterOption[],
+			logResultOptions: [
+				{ key: 'All', text: 'All' },
+				{ key: 'SUCCESS', text: 'SUCCESS' },
+				{ key: 'FAIL', text: 'FAIL' }
+			] as FilterOption[],
+			objectIdTypeOptions: [
+				{ key: 'All', text: 'All' },
+				{ key: 'REGISTRY', text: 'REGISTRY' },
+				{ key: 'VERSION', text: 'VERSION' },
+				{ key: 'DETAIL', text: 'DETAIL' }
+			] as FilterOption[],
 			selectedLog: null as LogEntry | null,
 			activeJobId: '',
 			activeJobLabel: '',
@@ -263,7 +268,6 @@ export default class Logs extends BaseController {
 			model.setProperty('/totalCount', totalCount);
 			model.setProperty('/hasMore', hasMore);
 			model.setProperty('/countLabel', this.buildCountLabel(items.length, totalCount));
-			this.refreshFilterOptions(items);
 		} catch (error) {
 			await this.handleServiceError(error);
 		} finally {
@@ -271,29 +275,6 @@ export default class Logs extends BaseController {
 			model.setProperty('/loadingMore', false);
 			this.loadingMore = false;
 		}
-	}
-
-	/** Accumulate distinct backend values and rebuild Select options (never invent codes). */
-	private refreshFilterOptions(items: LogEntry[]): void {
-		for (const item of items) {
-			const result = (item.logResult || '').trim();
-			const objectType = (item.objectIdType || '').trim();
-			if (result) {
-				this.knownLogResults.add(result);
-			}
-			if (objectType) {
-				this.knownObjectIdTypes.add(objectType);
-			}
-		}
-
-		const model = this.getModel('logList') as JSONModel;
-		model.setProperty('/logResultOptions', this.buildOptionsFromSet(this.knownLogResults));
-		model.setProperty('/objectIdTypeOptions', this.buildOptionsFromSet(this.knownObjectIdTypes));
-
-		// If the current selection vanished from the option list, fall back to All.
-		this.ensureSelectedFilterKey('/actionType', '/actionTypeOptions');
-		this.ensureSelectedFilterKey('/logResult', '/logResultOptions');
-		this.ensureSelectedFilterKey('/objectIdType', '/objectIdTypeOptions');
 	}
 
 	/** Fetch action type VH from API and populate the Action filter dropdown. */
@@ -312,11 +293,6 @@ export default class Logs extends BaseController {
 		}
 	}
 
-	private buildOptionsFromSet(values: Set<string>): FilterOption[] {
-		const unique = [...values].sort((a, b) => a.localeCompare(b));
-		return [{ key: 'All', text: 'All' }, ...unique.map((value) => ({ key: value, text: value }))];
-	}
-
 	private ensureSelectedFilterKey(selectedPath: string, optionsPath: string): void {
 		const model = this.getModel('logList') as JSONModel;
 		const selected = (model.getProperty(selectedPath) as string) || 'All';
@@ -330,10 +306,7 @@ export default class Logs extends BaseController {
 		if (total <= 0) {
 			return '0 entries';
 		}
-		if (shown >= total) {
-			return `${total} entries`;
-		}
-		return `Showing ${shown} of ${total}`;
+		return `${shown}/${total} entries`;
 	}
 
 	private buildQueryFilter(): LogQueryFilter {

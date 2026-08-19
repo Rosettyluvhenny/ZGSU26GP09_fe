@@ -28,28 +28,37 @@
 			</f:DynamicPageHeader>
 		</f:header>
 		<f:content>
-			<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" growing="true" mode="None">
-				<columns>
-					<Column width="12rem"><Text text="Job ID" /></Column>
-					<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Trigger Type" /></Column>
-					<Column width="9rem"><Text text="Status" /></Column>
-					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Started At" /></Column>
-					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Finished At" /></Column>
-					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Executed By" /></Column>
-				</columns>
-				<items>
-					<ColumnListItem type="Navigation" press=".onRowPress">
-						<cells>
-							<Text text="{jobList>id}" />
-							<Text text="{jobList>triggerText}" />
-							<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
-							<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
-							<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
-							<Text text="{jobList>executedBy}" />
-						</cells>
-					</ColumnListItem>
-				</items>
-			</Table>
+			<VBox width="100%">
+				<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" mode="None" sticky="ColumnHeaders" noDataText="No scan jobs found.">
+					<headerToolbar>
+						<OverflowToolbar>
+							<Title text="Scan Jobs" level="H2" />
+							<ToolbarSpacer />
+							<ObjectStatus text="{jobList>/countLabel}" state="Information" />
+						</OverflowToolbar>
+					</headerToolbar>
+					<columns>
+						<Column width="12rem"><Text text="Job ID" /></Column>
+						<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Trigger Type" /></Column>
+						<Column width="9rem"><Text text="Status" /></Column>
+						<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Started At" /></Column>
+						<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Finished At" /></Column>
+						<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Executed By" /></Column>
+					</columns>
+					<items>
+						<ColumnListItem type="Navigation" press=".onRowPress">
+							<cells>
+								<Text text="{jobList>id}" />
+								<Text text="{jobList>triggerText}" />
+								<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
+								<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
+								<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
+								<Text text="{jobList>executedBy}" />
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+			</VBox>
 		</f:content>
 	</f:DynamicPage>
 

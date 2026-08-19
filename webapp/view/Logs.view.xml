@@ -109,17 +109,6 @@
 						</ColumnListItem>
 					</items>
 				</Table>
-				<OverflowToolbar design="Transparent" visible="{logList>/hasMore}">
-					<ToolbarSpacer />
-					<Button
-						text="More"
-						icon="sap-icon://slim-arrow-down"
-						type="Transparent"
-						press=".onLoadMore"
-						busy="{logList>/loadingMore}"
-						enabled="{= !${logList>/loadingMore} }" />
-					<ToolbarSpacer />
-				</OverflowToolbar>
 			</VBox>
 		</f:content>
 	</f:DynamicPage>

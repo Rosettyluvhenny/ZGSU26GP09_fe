@@ -69,13 +69,13 @@
 		</f:header>
 		<f:content>
 			<VBox width="100%" class="sapUiSmallMargin">
-				<Table id="registryTable" items="{registryList>/items}" busy="{registryList>/busy}" mode="None" growing="true" sticky="ColumnHeaders">
+				<Table id="registryTable" items="{registryList>/items}" busy="{registryList>/busy}" mode="None" sticky="ColumnHeaders" noDataText="No registries found.">
 					<headerToolbar>
 						<OverflowToolbar>
 							<Title text="Registries" level="H2" />
 							<ToolbarSpacer />
 							<Button icon="sap-icon://sort" press=".onSortPress" tooltip="Sort" />
-							<ObjectStatus text="{= ${registryList>/items}.length + ' items' }" state="Information" class="sapUiSmallMarginBegin" />
+							<ObjectStatus text="{registryList>/countLabel}" state="Information" class="sapUiSmallMarginBegin" />
 						</OverflowToolbar>
 					</headerToolbar>
 					<columns>
