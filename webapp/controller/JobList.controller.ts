@@ -22,6 +22,19 @@ export default class JobList extends BaseController {
 			busy: false,
 			loadingMore: false,
 			search: '',
+			triggerType: 'All',
+			status: 'All',
+			triggerTypeOptions: [
+				{ key: 'All', text: 'All Trigger Types' },
+				{ key: 'A', text: 'Auto' },
+				{ key: 'M', text: 'Manual' }
+			],
+			statusOptions: [
+				{ key: 'All', text: 'All Statuses' },
+				{ key: 'C', text: 'Completed' },
+				{ key: 'R', text: 'Running' },
+				{ key: 'F', text: 'Failed' }
+			],
 			totalCount: 0,
 			hasMore: false,
 			countLabel: '0 jobs',
@@ -65,6 +78,8 @@ export default class JobList extends BaseController {
 		try {
 			const page = await this.getOwnerComponent().getJobService().getJobs({
 				search: model.getProperty('/search') as string,
+				triggerType: model.getProperty('/triggerType') as string,
+				status: model.getProperty('/status') as string,
 				top: JOB_PAGE_SIZE,
 				skip
 			});
@@ -96,10 +111,15 @@ export default class JobList extends BaseController {
 		await this.loadJobs(true);
 	}
 
-	public async onSearchLiveChange(event: UI5Event): Promise<void> {
-		const source = event.getSource() as unknown as { getValue: () => string };
+	public async onFilterChange(): Promise<void> {
+		await this.loadJobs(true);
+	}
+
+	public async onSearch(event: UI5Event): Promise<void> {
 		const model = this.getModel('jobList') as JSONModel;
-		model.setProperty('/search', source.getValue());
+		// The search event reliably provides the entered text via the 'query' parameter on the event object
+		const query = event.getParameter('query') as string | undefined;
+		model.setProperty('/search', query || '');
 		await this.loadJobs(true);
 	}
 

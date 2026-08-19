@@ -23,7 +23,23 @@
 					<Button text="Run Scan Job" type="Emphasized" press=".onRunScanJob" visible="{ui>/canExecuteScanJob}" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
-					<SearchField width="18rem" placeholder="Search jobs" liveChange=".onSearchLiveChange" />
+					<Select
+						selectedKey="{jobList>/triggerType}"
+						items="{jobList>/triggerTypeOptions}"
+						change=".onFilterChange"
+						width="12rem"
+						class="sapUiSmallMarginEnd">
+						<core:Item key="{jobList>key}" text="{jobList>text}" />
+					</Select>
+					<Select
+						selectedKey="{jobList>/status}"
+						items="{jobList>/statusOptions}"
+						change=".onFilterChange"
+						width="12rem"
+						class="sapUiSmallMarginEnd">
+						<core:Item key="{jobList>key}" text="{jobList>text}" />
+					</Select>
+					<SearchField width="18rem" placeholder="Search by Job ID or Created By" search=".onSearch" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
@@ -58,6 +74,17 @@
 						</ColumnListItem>
 					</items>
 				</Table>
+				<OverflowToolbar design="Transparent" visible="{jobList>/hasMore}">
+					<ToolbarSpacer />
+					<Button
+						text="More"
+						icon="sap-icon://slim-arrow-down"
+						type="Transparent"
+						press=".onLoadMore"
+						busy="{jobList>/loadingMore}"
+						enabled="{= !${jobList>/loadingMore} }" />
+					<ToolbarSpacer />
+				</OverflowToolbar>
 			</VBox>
 		</f:content>
 	</f:DynamicPage>
