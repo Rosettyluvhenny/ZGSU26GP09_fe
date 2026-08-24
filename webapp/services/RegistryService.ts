@@ -4,6 +4,14 @@ import ServiceError from './ServiceError';
 import type { Registry, RegistryCreateInput, RegistryUpdateInput, RegistryValueHelpItem } from '../model/types';
 import { mapRegistryEntity, normalizeODataCollection, normalizeODataEntity } from './ODataParsers';
 
+export const REGISTRY_PAGE_SIZE = 50;
+
+export interface RegistryPageResult {
+	items: Registry[];
+	totalCount: number;
+	hasMore: boolean;
+}
+
 function delay<T>(value: T, ms = 250): Promise<T> {
 	return new Promise((resolve) => {
 		setTimeout(() => resolve(value), ms);
@@ -28,6 +36,16 @@ function formatGuidLiteral(value: string): string {
  */
 function escapeODataString(value: string): string {
 	return value.replace(/'/g, "''");
+}
+
+function readODataCount(payload: unknown, fallback: number): number {
+	if (!payload || typeof payload !== 'object') {
+		return fallback;
+	}
+	const record = payload as Record<string, unknown>;
+	const raw = record['@odata.count'] ?? record['odata.count'] ?? record['__count'];
+	const numeric = Number(raw);
+	return Number.isFinite(numeric) ? numeric : fallback;
 }
 
 function asString(value: unknown): string {
@@ -194,9 +212,17 @@ export default class RegistryService {
 		return delay(items);
 	}
 
-	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string; searchField: string }): Promise<Registry[]> {
-		const backendRegistries = await this.loadRegistriesFromBackend(filter);
-		return delay(this.filterRegistries(backendRegistries, filter));
+	public async getRegistries(filter: { search: string; status: string; groupType: string; registryName: string; createdBy: string; searchField: string; top?: number; skip?: number }): Promise<RegistryPageResult> {
+		const top = filter.top ?? REGISTRY_PAGE_SIZE;
+		const skip = filter.skip ?? 0;
+		const { payload, registries } = await this.loadRegistriesFromBackend(filter, top, skip);
+		const filteredItems = this.filterRegistries(registries, filter);
+		const totalCount = readODataCount(payload, skip + registries.length);
+		return delay({
+			items: filteredItems,
+			totalCount,
+			hasMore: skip + registries.length < totalCount && registries.length > 0
+		});
 	}
 
 	public async getRegistry(registryId: string): Promise<Registry> {
@@ -294,8 +320,8 @@ export default class RegistryService {
 		});
 	}
 
-	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string, searchField: string }): Promise<Registry[]> {
-		let url = '/Registry?$orderby=LastChangeAt desc';
+	private async loadRegistriesFromBackend(filter?: { search: string; status: string; groupType: string; registryName: string; createdBy: string, searchField: string }, top = REGISTRY_PAGE_SIZE, skip = 0): Promise<{ payload: unknown; registries: Registry[] }> {
+		let url = `/Registry?$orderby=LastChangeAt desc&$top=${top}&$skip=${skip}&$count=true`;
 		const filterParts: string[] = [];
 		if (filter) {
 			if (filter.status && filter.status.toLowerCase() !== 'all') {
@@ -340,8 +366,8 @@ export default class RegistryService {
 		}
 
 		const payload = await readJson(url);
-		const registries = normalizeODataCollection(payload);
-		return registries.map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
+		const registries = normalizeODataCollection(payload).map((entity) => mapRegistryEntity(entity, { serviceDefinition: '' }));
+		return { payload, registries };
 	}
 
 	private async loadRegistryFromBackend(registryId: string): Promise<Registry | null> {

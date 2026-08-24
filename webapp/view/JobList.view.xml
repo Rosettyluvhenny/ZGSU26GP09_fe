@@ -23,33 +23,69 @@
 					<Button text="Run Scan Job" type="Emphasized" press=".onRunScanJob" visible="{ui>/canExecuteScanJob}" />
 					<Button text="Refresh" icon="sap-icon://refresh" press=".onRefresh" />
 					<ToolbarSpacer />
-					<SearchField width="18rem" placeholder="Search jobs" liveChange=".onSearchLiveChange" />
+					<Select
+						selectedKey="{jobList>/triggerType}"
+						items="{jobList>/triggerTypeOptions}"
+						change=".onFilterChange"
+						width="12rem"
+						class="sapUiSmallMarginEnd">
+						<core:Item key="{jobList>key}" text="{jobList>text}" />
+					</Select>
+					<Select
+						selectedKey="{jobList>/status}"
+						items="{jobList>/statusOptions}"
+						change=".onFilterChange"
+						width="12rem"
+						class="sapUiSmallMarginEnd">
+						<core:Item key="{jobList>key}" text="{jobList>text}" />
+					</Select>
+					<SearchField width="18rem" placeholder="Search by Job ID or Created By" search=".onSearch" />
 				</OverflowToolbar>
 			</f:DynamicPageHeader>
 		</f:header>
 		<f:content>
-			<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" growing="true" mode="None">
-				<columns>
-					<Column width="12rem"><Text text="Job ID" /></Column>
-					<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Trigger Type" /></Column>
-					<Column width="9rem"><Text text="Status" /></Column>
-					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Started At" /></Column>
-					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Finished At" /></Column>
-					<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Executed By" /></Column>
-				</columns>
-				<items>
-					<ColumnListItem type="Navigation" press=".onRowPress">
-						<cells>
-							<Text text="{jobList>id}" />
-							<Text text="{jobList>triggerText}" />
-							<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
-							<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
-							<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
-							<Text text="{jobList>executedBy}" />
-						</cells>
-					</ColumnListItem>
-				</items>
-			</Table>
+			<VBox width="100%">
+				<Table id="jobTable" items="{jobList>/items}" busy="{jobList>/busy}" mode="None" sticky="ColumnHeaders" noDataText="No scan jobs found.">
+					<headerToolbar>
+						<OverflowToolbar>
+							<Title text="Scan Jobs" level="H2" />
+							<ToolbarSpacer />
+							<ObjectStatus text="{jobList>/countLabel}" state="Information" />
+						</OverflowToolbar>
+					</headerToolbar>
+					<columns>
+						<Column width="12rem"><Text text="Job ID" /></Column>
+						<Column minScreenWidth="Tablet" demandPopin="true"><Text text="Trigger Type" /></Column>
+						<Column width="9rem"><Text text="Status" /></Column>
+						<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Started At" /></Column>
+						<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Finished At" /></Column>
+						<Column width="11rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Executed By" /></Column>
+					</columns>
+					<items>
+						<ColumnListItem type="Navigation" press=".onRowPress">
+							<cells>
+								<Text text="{jobList>id}" />
+								<Text text="{jobList>triggerText}" />
+								<ObjectStatus text="{jobList>status}" state="{path: 'jobList>status', formatter: '.formatStatusState'}" />
+								<Text text="{path: 'jobList>startedAt', formatter: '.formatDateTime'}" />
+								<Text text="{path: 'jobList>finishedAt', formatter: '.formatDateTime'}" />
+								<Text text="{jobList>executedBy}" />
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+				<OverflowToolbar design="Transparent" visible="{jobList>/hasMore}">
+					<ToolbarSpacer />
+					<Button
+						text="More"
+						icon="sap-icon://slim-arrow-down"
+						type="Transparent"
+						press=".onLoadMore"
+						busy="{jobList>/loadingMore}"
+						enabled="{= !${jobList>/loadingMore} }" />
+					<ToolbarSpacer />
+				</OverflowToolbar>
+			</VBox>
 		</f:content>
 	</f:DynamicPage>
 

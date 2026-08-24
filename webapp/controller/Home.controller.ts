@@ -322,18 +322,21 @@ export default class Home extends BaseController {
 		}
 		try {
 			const component = this.getOwnerComponent();
-			const [registries, jobs, logs] = await Promise.all([
+			const [registryPage, jobPage, logs] = await Promise.all([
 				component.getRegistryService().getRegistries({
 					search: '',
 					searchField: 'all',
 					status: 'All',
 					groupType: 'All',
 					registryName: '',
-					createdBy: ''
+					createdBy: '',
+					top: 500
 				}),
-				component.getJobService().getJobs(),
+				component.getJobService().getJobs({ top: 500 }),
 				this.loadRecentLogs()
 			]);
+			const registries = registryPage.items;
+			const jobs = jobPage.items;
 
 			const recentRegistries = this.sortByDateDesc(registries, (registry) => registry.lastChangedAt).slice(0, RECENT_LIMIT);
 			const recentRegistryCards = await this.attachChangeSummaries(recentRegistries);

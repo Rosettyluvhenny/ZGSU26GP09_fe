@@ -81,28 +81,25 @@ export const resolveAiBasePath = (): string => (isAbapHost() ? AI_BASE_ABAP : AI
 // Providers are tried in order; within a provider, models are tried in order. When one
 // is rate-limited/unavailable the next is used, so exhausting one provider's daily
 // quota rolls over to the next. All are OpenAI-compatible.
+//
+// OpenRouter was removed 2026-08-24 — its free-tier path was failing repeatedly in
+// practice. Groq-only for now. If OpenRouter needs to come back, re-add a provider
+// entry here with path 'openrouter/chat/completions' and re-check its free model
+// slugs first (they churn — see git history for the last known-good list).
+//
+// llama-3.3-70b-versatile and llama-3.1-8b-instant were deprecated by Groq on
+// 2026-06-17 and now 400 with "model does not exist or you do not have access to
+// it." Swapped 2026-08-24 for Groq's own recommended replacements
+// (console.groq.com/docs/deprecations): gpt-oss-20b for the 8B slot, qwen3.6-27b
+// for the 70B slot (gpt-oss-120b was already covering that tier and is unaffected).
 const PROVIDERS: AiProvider[] = [
 	{
 		name: 'Groq',
 		path: 'groq/chat/completions',
 		models: [
 			{ id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
-			{ id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
-			{ id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' }
-		]
-	},
-	{
-		name: 'OpenRouter',
-		path: 'openrouter/chat/completions',
-		// Replaced 2026-07-28. The previous three slugs had rotted: OpenRouter answered
-		// "This model is unavailable for free" for meta-llama/llama-3.3-70b-instruct:free,
-		// and deepseek-chat-v3-0324:free had left the catalogue. Free-tier slugs churn, and
-		// this list is only reached when Groq is rate-limited — so a dead entry here stays
-		// invisible until the exact moment the fallback is needed. If the AI chat ever fails
-		// only under load, re-check these first.
-		models: [
-			{ id: 'openai/gpt-oss-20b:free', label: 'GPT-OSS 20B' },
-			{ id: 'inclusionai/ling-3.0-flash:free', label: 'Ling 3.0 Flash' }
+			{ id: 'qwen/qwen3.6-27b', label: 'Qwen3.6 27B' },
+			{ id: 'openai/gpt-oss-20b', label: 'GPT-OSS 20B' }
 		]
 	}
 ];
@@ -201,17 +198,21 @@ export default class AiChatService {
 	/**
 	 * Streams the answer; onDelta receives the full text accumulated so far
 	 * every time a new chunk arrives. Resolves with the complete answer.
-	 * preferredModel (a key from getModelOptions) is tried first; the rest of
-	 * the chain still acts as fallback when it fails.
+	 *
+	 * preferredModel is a key from getModelOptions. AI_MODEL_AUTO walks the whole
+	 * chain, rolling over to the next model when one is unavailable. Any other key
+	 * is honoured *exclusively* — the picker names one model, and answering from a
+	 * different one behind the user's back is worse than surfacing the failure.
+	 * Reordering the chain instead (the previous behaviour) made a per-model 429
+	 * invisible: the answer came from the first model in the chain while the picker
+	 * still showed the chosen one, so the choice looked like it reset every turn.
 	 */
 	public async askStream(messages: AiChatMessage[], onDelta: (fullText: string) => void, preferredModel: string = AI_MODEL_AUTO): Promise<string> {
-		const candidates: AiModelCandidate[] = PROVIDERS.flatMap((provider) => provider.models.map((model) => ({ provider, model })));
-		if (preferredModel !== AI_MODEL_AUTO) {
-			const preferredIndex = candidates.findIndex((candidate) => candidateKey(candidate) === preferredModel);
-			if (preferredIndex > 0) {
-				candidates.unshift(candidates.splice(preferredIndex, 1)[0]);
-			}
-		}
+		const chain: AiModelCandidate[] = PROVIDERS.flatMap((provider) => provider.models.map((model) => ({ provider, model })));
+		// An unknown key — a model retired since the choice was stored — falls back to
+		// the full chain rather than leaving nothing to call.
+		const chosen = preferredModel === AI_MODEL_AUTO ? undefined : chain.find((candidate) => candidateKey(candidate) === preferredModel);
+		const candidates = chosen ? [chosen] : chain;
 
 		let lastError: ServiceError | null = null;
 		for (const candidate of candidates) {
@@ -274,7 +275,7 @@ export default class AiChatService {
 			} else if (response.status === 403) {
 				message = 'The AI assistant is currently unavailable. Please try again later or contact an administrator.';
 			} else if (response.status === 429) {
-				message = `${provider.name} free-tier quota reached. Wait a moment and try again.`;
+				message = `${provider.name} free-tier quota reached for ${model}. Wait a moment, or pick another model.`;
 			}
 			throw new ServiceError(response.status, message);
 		}
